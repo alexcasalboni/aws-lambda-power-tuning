@@ -1,0 +1,59 @@
+service: aws-lambda-power-tuning
+
+provider:
+  name: aws
+  runtime: nodejs4.3
+  region: eu-west-1
+
+# you can add statements to the Lambda function's IAM Role here
+#  iamRoleStatements:
+#    - Effect: "Allow"
+#      Action:
+#        - "s3:ListBucket"
+#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
+#    - Effect: "Allow"
+#      Action:
+#        - "s3:PutObject"
+#      Resource:
+#        Fn::Join:
+#          - ""
+#          - - "arn:aws:s3:::"
+#            - "Ref" : "ServerlessDeploymentBucket"
+#            - "/*"
+
+  environment:
+    powerValues: "128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024,1088,1152,1216,1280,1344,1408,1472,1536"
+
+package:
+  include:
+    - lambda/**
+
+functions:
+  initializer:
+    handler: lambda/initializer.handler
+
+  executor:
+    handler: lambda/executor.handler
+
+  analyzer:
+    handler: lambda/analyzer.handler
+
+  finalizer:
+    handler: lambda/finalizer.handler
+
+
+#    Define function environment variables here
+#    environment:
+#      variable2: value2
+
+# you can add CloudFormation resource templates here
+#resources:
+#  Resources:
+#    NewResource:
+#      Type: AWS::S3::Bucket
+#      Properties:
+#        BucketName: my-new-bucket
+#  Outputs:
+#     NewOutput:
+#       Description: "Description for the output"
+#       Value: "Some output value"
