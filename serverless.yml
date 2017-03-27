@@ -5,24 +5,16 @@ provider:
   runtime: nodejs4.3
   region: eu-west-1
 
-# you can add statements to the Lambda function's IAM Role here
-#  iamRoleStatements:
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:ListBucket"
-#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:PutObject"
-#      Resource:
-#        Fn::Join:
-#          - ""
-#          - - "arn:aws:s3:::"
-#            - "Ref" : "ServerlessDeploymentBucket"
-#            - "/*"
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "lambda:*"
+      Resource: "*"
 
   environment:
     powerValues: "128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024,1088,1152,1216,1280,1344,1408,1472,1536"
+    minRAM: 128
+    minCost: 0.000000208
 
 package:
   include:
@@ -31,12 +23,15 @@ package:
 functions:
   initializer:
     handler: lambda/initializer.handler
+    timeout: 30
 
   executor:
     handler: lambda/executor.handler
+    timeout: 30
 
-  analyzer:
-    handler: lambda/analyzer.handler
+  cleaner:
+    handler: lambda/cleaner.handler
+    timeout: 30
 
   finalizer:
     handler: lambda/finalizer.handler
