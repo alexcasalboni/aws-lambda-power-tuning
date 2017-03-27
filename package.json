@@ -1,0 +1,6 @@
+{
+  "name": "aws-lambda-power-tuning",
+  "version": "0.0.1",
+  "description": "Step Functions state machine generator for AWS Lambda Power Tuning ",
+  "author": "Alex Casalboni <alex@cloudacademy.com>"
+}
