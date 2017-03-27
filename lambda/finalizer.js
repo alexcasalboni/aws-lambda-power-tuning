@@ -1,13 +1,16 @@
 'use strict';
 
-/**
- * Compute cost and estimate best configuration.
- */
+const powerValues = process.env.powerValues.split(',');
 
+/**
+ * Receive avg prices and decides which config works better.
+ */
 module.exports.handler = (event, context, callback) => {
   
-  const powerValues = process.env.powerValues.split(',');
+    const prices = event.prices;  // array?
 
-  callback(null, "OK");
+    // TBD will prices be an object or a list?
+
+    callback(null, "OK");
 
 };
