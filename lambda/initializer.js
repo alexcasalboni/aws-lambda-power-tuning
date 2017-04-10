@@ -1,7 +1,7 @@
 'use strict';
 
-const AWS = require('aws-sdk');
-const lambda = new AWS.Lambda();
+const utils = require('./utils');
+
 const SENTINEL = "OK";
 
 const powerValues = process.env.powerValues.split(',');
@@ -26,9 +26,11 @@ module.exports.handler = (event, context, callback) => {
 
     powerValues.forEach(function(value) {
 
+        const alias = "RAM" + value;
+
         queue = queue
             // alias should not exist (check it first)
-            .then(checkLambdaAlias.bind(null, lambdaARN, value))
+            .then(utils.checkLambdaAlias.bind(null, lambdaARN, alias))
             .catch(function(error) {
                 // proceed with sentinel, on error
                 return Promise.resolve(SENTINEL);
@@ -41,10 +43,12 @@ module.exports.handler = (event, context, callback) => {
                 // proceed to next promise otherwise
                 return Promise.resolve(SENTINEL);
             })
-            .then(setLambdaPower.bind(null, lambdaARN, value))
-            .then(publishLambdaVersion.bind(null, lambdaARN, value))
+            .then(utils.setLambdaPower.bind(null, lambdaARN, value))
+            .then(utils.publishLambdaVersion.bind(null, lambdaARN, alias))
             // createLambdaAlias could throw the same 'Alias already exists' error
-            .then(createLambdaAlias.bind(null, lambdaARN, value))
+            .then(function(data) {
+                return utils.createLambdaAlias(lambdaARN, alias, data.Version);
+            })
             .catch(function(error) {
                 if (error.message.includes('Alias already exists')) {
                     // proceed to next value if alias already exists
@@ -63,38 +67,3 @@ module.exports.handler = (event, context, callback) => {
 
 };
 
-function checkLambdaAlias(lambdaARN, value) {
-    // console.log("Checking alias for ", value);
-    var params = {
-        FunctionName: lambdaARN, 
-        Name: "RAM" + value,
-    };
-    return lambda.getAlias(params).promise();
-}
-
-function setLambdaPower(lambdaARN, value) {
-    // console.log("Setting power to ", value);
-    var params = {
-        FunctionName: lambdaARN, 
-        MemorySize: parseInt(value),
-    };
-    return lambda.updateFunctionConfiguration(params).promise();
-}
-
-function publishLambdaVersion(lambdaARN, value) {
-    // console.log("Publishing version for ", value);
-    var params = {
-        FunctionName: lambdaARN,
-    };
-    return lambda.publishVersion(params).promise();
-}
-
-function createLambdaAlias(lambdaARN, value, data) {
-    // console.log("Creating Alias for ", value);
-    var params = {
-        FunctionName: lambdaARN,
-        FunctionVersion: data.Version,
-        Name: "RAM" + value,
-    };
-    return lambda.createAlias(params).promise();
-}

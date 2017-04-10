@@ -1,7 +1,6 @@
 'use strict';
 
-const AWS = require('aws-sdk');
-const lambda = new AWS.Lambda();
+const utils = require('./utils');
 
 const powerValues = process.env.powerValues.split(',');
 
@@ -19,22 +18,24 @@ module.exports.handler = (event, context, callback) => {
     const aliasRemovals = powerValues.map(function(value) {
 
         const alias = "RAM" + value;
-        var functionVersionWrapper = {};
+        var functionVersion = null;
 
         return Promise.resolve()
-            .then(checkLambdaAlias.bind(null, lambdaARN, alias))
+            .then(utils.checkLambdaAlias.bind(null, lambdaARN, alias))
             .then(function(data) {  // (ugly workaround!)
                 // just to pass it to deleteLambdaVersion
-                functionVersionWrapper.FunctionVersion = data.FunctionVersion;
+                functionVersion = data.FunctionVersion;
             })
-            .then(deleteLambdaAlias.bind(null, lambdaARN, alias))
-            .then(deleteLambdaVersion.bind(null, lambdaARN, functionVersionWrapper))
+            .then(utils.deleteLambdaAlias.bind(null, lambdaARN, alias))
+            .then(function() {
+                return utils.deleteLambdaVersion(lambdaARN, functionVersion);
+            })
             .catch(function(error) {
                 if (error.message.includes('version is not defined')) {
-                    console.log("Version is not defined: ", error.message, error.stack);
+                    console.error("Version is not defined: ", error.message, error.stack);
                     return Promise.resolve("OK");
                 } else if (error.message.includes('alias is not defined')) {
-                    console.log("Alias is not defined: ", error.message, error.stack);
+                    console.error("Alias is not defined: ", error.message, error.stack);
                     return Promise.resolve("OK");
                 }
             });
@@ -49,29 +50,3 @@ module.exports.handler = (event, context, callback) => {
 
 };
 
-function checkLambdaAlias(lambdaARN, alias) {
-    console.log("Checking alias ", alias);
-    var params = {
-        FunctionName: lambdaARN, 
-        Name: alias,
-    };
-    return lambda.getAlias(params).promise();
-}
-
-function deleteLambdaAlias(lambdaARN, alias) {
-    console.log("Deleting alias ", alias);
-    var params = {
-        FunctionName: lambdaARN, 
-        Name: alias,
-    };
-    return lambda.deleteAlias(params).promise();
-}
-
-function deleteLambdaVersion(lambdaARN, data) {
-    console.log("Deleting version ", data.FunctionVersion, " with data ", data);
-    var params = {
-        FunctionName: lambdaARN, 
-        Qualifier: data.FunctionVersion,
-    };
-    return lambda.deleteFunction(params).promise();
-}
