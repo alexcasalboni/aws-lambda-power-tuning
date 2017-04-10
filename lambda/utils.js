@@ -1,9 +1,7 @@
 const AWS = require('aws-sdk');
-const lambda = new AWS.Lambda();
 
 // local reference to this module
 const utils = module.exports;
-
 
 /**
  * Check whether a Lambda Alias exists or not, and return its data.
@@ -14,6 +12,7 @@ module.exports.checkLambdaAlias = function (lambdaARN, alias) {
         FunctionName: lambdaARN, 
         Name: alias,
     };
+    const lambda = new AWS.Lambda();
     return lambda.getAlias(params).promise();
 };
 
@@ -26,6 +25,7 @@ module.exports.setLambdaPower = function (lambdaARN, value) {
         FunctionName: lambdaARN, 
         MemorySize: parseInt(value),
     };
+    const lambda = new AWS.Lambda();
     return lambda.updateFunctionConfiguration(params).promise();
 };
 
@@ -37,6 +37,7 @@ module.exports.publishLambdaVersion = function (lambdaARN, alias) {
     const params = {
         FunctionName: lambdaARN,
     };
+    const lambda = new AWS.Lambda();
     return lambda.publishVersion(params).promise();
 };
 
@@ -49,6 +50,7 @@ module.exports.deleteLambdaVersion = function (lambdaARN, version) {
         FunctionName: lambdaARN, 
         Qualifier: version,
     };
+    const lambda = new AWS.Lambda();
     return lambda.deleteFunction(params).promise();
 };
 
@@ -62,6 +64,7 @@ module.exports.createLambdaAlias = function (lambdaARN, alias, version) {
         FunctionVersion: version,
         Name: alias,
     };
+    const lambda = new AWS.Lambda();
     return lambda.createAlias(params).promise();
 };
 
@@ -74,6 +77,7 @@ module.exports.deleteLambdaAlias = function (lambdaARN, alias) {
         FunctionName: lambdaARN, 
         Name: alias,
     };
+    const lambda = new AWS.Lambda();
     return lambda.deleteAlias(params).promise();
 };
 
@@ -88,40 +92,35 @@ module.exports.invokeLambda = function (lambdaARN, alias, payload) {
         Payload: payload,
         LogType: "Tail",  // will return logs
     };
+    const lambda = new AWS.Lambda();
     return lambda.invoke(params).promise();
-};
-
-
-/**
- * Extract duration (in ms) from a given Lambda's CloudWatch log.
- */
-module.exports.extractDuration = function (log) {
-    // extract duration from log (anyone can suggest a regex?)
-    const durationStr = log.split('\tDuration: ')[1].split(' ms')[0];
-    return parseFloat(durationStr);
 };
 
 /**
  * Compute average price, given a RAM value and an average duration.
  */
 module.exports.computeAveragePrice = function (minCost, minRAM, value, averageDuration) {
-    console.log("avg duration: ", averageDuration);
+    // console.log("avg duration: ", averageDuration);
     // compute official price per 100ms
     const pricePer100ms = value * minCost / minRAM;
-    console.log("price for 100ms: ", pricePer100ms);
+    // console.log("price for 100ms: ", pricePer100ms);
     // quantize price to upper 100ms (billed duration) and compute avg price
     const averagePrice = Math.ceil(averageDuration / 100) * pricePer100ms;
-    console.log("avg price: ", averagePrice);
+    // console.log("avg price: ", averagePrice);
     return Promise.resolve(averagePrice);
 };
 
 /**
  * Copute average duration
  */
-module.exports.computeAverageDuration = function (num, results) {
+module.exports.computeAverageDuration = function (results) {
+
+    if (!results || !results.length) {
+        return 0;
+    }
 
     // 20% of durations will be discarted (trimmed mean)
-    const toBeDiscarded = parseInt(num * 20 / 100);
+    const toBeDiscarded = parseInt(results.length * 20 / 100);
 
     // build a list of floats by parsing logs
     const durations = results.map(function(result) {
@@ -141,11 +140,23 @@ module.exports.computeAverageDuration = function (num, results) {
         .sort()  // sort numerically
         .slice(toBeDiscarded, -toBeDiscarded)  // discard first/last values
         .reduce(_add, 0)  // sum all together
-        / (num - 2 * toBeDiscarded)  // divide by N
+        / (results.length - 2 * toBeDiscarded)  // divide by N
     ;
 
     return Promise.resolve(averageDuration);
 }
+
+/**
+ * Extract duration (in ms) from a given Lambda's CloudWatch log.
+ */
+module.exports.extractDuration = function (log) {
+    // extract duration from log (anyone can suggest a regex?)
+    const durationSplit = log.split('\tDuration: ');
+    if (durationSplit.length < 2) return 0;
+
+    const durationStr = durationSplit[1].split(' ms')[0];
+    return parseFloat(durationStr);
+};
 
 /**
  * Encode a given string to base64.
@@ -158,5 +169,8 @@ module.exports.base64decode = function (str) {
  * Generate a list of size n.
  */
 module.exports.range = function (n) {
+    if (n === null || typeof n === 'undefined') {
+        n = -1;
+    }
     return Array.from(Array(n).keys());
 };

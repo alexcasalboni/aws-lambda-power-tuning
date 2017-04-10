@@ -53,7 +53,7 @@ module.exports.handler = (event, context, callback) => {
     queue
         .then(function(parallelresults) {
             // aggregate results (either parallel or series)
-            return utils.computeAverageDuration(num, parallelresults || seriesResults);
+            return utils.computeAverageDuration(parallelresults || seriesResults);
         })
         .then(utils.computeAveragePrice.bind(null, minCost, minRAM, value))  // compute price
         .then(function(price) {
