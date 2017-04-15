@@ -10,22 +10,31 @@ const minCost = parseFloat(process.env.minCost);
  */
 module.exports.handler = (event, context, callback) => {
   
-    const enableParallel = event.parallelInvocation || false;
+    // read input from event
     const lambdaARN = event.lambdaARN;
     const value = parseInt(event.value);
-    const lambdaAlias = "RAM" + value;  // last one
+    const num = parseInt(event.num);
     const payload = event.payload;
-    const num = event.num;
+    const enableParallel = event.parallelInvocation || false;
 
     if (!lambdaARN) {
-        throw new Error("Missing or empty lambdaARN");
+        const error = new Error("Missing or empty lambdaARN");
+        callback(error);
+        throw error;  // TODO useless?
     }
-
-    if (!num) {
-        throw new Error("Invalid num: " + num);
+    if (!value  || isNaN(value)) {
+        const error = new Error("Invalid value: " + value);
+        callback(error);
+        throw error;  // TODO useless?
+    }
+    if (!num || isNaN(num)) {
+        const error = new Error("Invalid num: " + num);
+        callback(error);
+        throw error;  // TODO useless?
     }
 
     // create list of promises (same params)
+    const lambdaAlias = "RAM" + value;
     const invocations = utils.range(num).map(function() {
         return utils.invokeLambda.bind(null, lambdaARN, lambdaAlias, payload);
     });
@@ -36,7 +45,9 @@ module.exports.handler = (event, context, callback) => {
 
     if (enableParallel) {
         // invoke in parallel
-        queue = Promise.all(invocations);
+        queue = Promise.all(invocations.map(function(f) {
+            return f();
+        }));
     } else {
         // invoke in series
         invocations.forEach(function(invocation) {
@@ -50,17 +61,19 @@ module.exports.handler = (event, context, callback) => {
     }
 
     // proceed with aggregation and cost computation
-    queue
-        .then(function(parallelresults) {
+    return queue
+        .then(function(parallelResults) {
             // aggregate results (either parallel or series)
-            return utils.computeAverageDuration(parallelresults || seriesResults);
+            return utils.computeAverageDuration(parallelResults || seriesResults);
         })
         .then(utils.computeAveragePrice.bind(null, minCost, minRAM, value))  // compute price
         .then(function(price) {
-            callback(null, {
+            const output = {
                 value: value,
                 price: price,
-            });
+            };
+            callback(null, output);
+            return Promise.resolve(output);
         })
         .catch(console.error.bind(console));
 };

@@ -124,7 +124,7 @@ module.exports.computeAverageDuration = function (results) {
 
     // build a list of floats by parsing logs
     const durations = results.map(function(result) {
-        const log = utils.base64decode(result.LogResult);
+        const log = utils.base64decode(result.LogResult || "");
         return utils.extractDuration(log);
     });
 

@@ -50,20 +50,22 @@ module.exports.handler = (event, context, callback) => {
                 return utils.createLambdaAlias(lambdaARN, alias, data.Version);
             })
             .catch(function(error) {
-                if (error.message.includes('Alias already exists')) {
+                if (error.message && error.message.includes('Alias already exists')) {
                     // proceed to next value if alias already exists
                     return Promise.resolve(SENTINEL);
+                } else {
+                    callback(error);  // end of function (critial error)
                 }
             });
-        
+
     });
 
-    
-    queue.then(function() {
-        callback(null, SENTINEL);  // end of function
-    });
 
-    queue.catch(console.error.bind(console));  // unexpected errors
+    return queue
+        .then(function() {
+            callback(null, SENTINEL);  // end of function
+        })
+        .catch(console.error.bind(console))
 
 };
 

@@ -2,7 +2,7 @@ const assert = require('assert');
 const expect = require('expect.js');
 const fs = require('fs');
 
-describe('statemachine', function() {
+describe('State Machine Generation', function() {
 
     describe("template.json", function() {
         it('should be valid json', function() {

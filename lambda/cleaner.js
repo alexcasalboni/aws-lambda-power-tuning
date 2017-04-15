@@ -12,7 +12,15 @@ module.exports.handler = (event, context, callback) => {
     const lambdaARN = event.lambdaARN;
 
     if (!lambdaARN) {
-        throw new Error("Missing or empty lambdaARN");
+        const error = new Error("Missing or empty lambdaARN");
+        callback(error);
+        throw error;  // TODO useless?
+    }
+
+    if (!powerValues.length) {
+        const error = new Error("Missing or empty env.powerValues");
+        callback(error);
+        throw error;  // TODO useless?
     }
 
     const aliasRemovals = powerValues.map(function(value) {
@@ -41,7 +49,7 @@ module.exports.handler = (event, context, callback) => {
             });
     });
 
-    Promise
+    return Promise
         .all(aliasRemovals)
         .then(function() {
             callback(null, "OK");

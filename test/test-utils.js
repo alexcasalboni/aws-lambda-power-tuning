@@ -14,7 +14,7 @@ AWS.mock('Lambda', 'createAlias', {});
 AWS.mock('Lambda', 'deleteAlias', {});
 AWS.mock('Lambda', 'invoke', {});
 
-describe('utils.js', function() {
+describe('Lambda Utils', function() {
 
     const promises = [
         utils.checkLambdaAlias,
