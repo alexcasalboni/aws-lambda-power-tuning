@@ -1,0 +1,42 @@
+{
+      "Comment": "Step Functions state machine generator for AWS Lambda Power Tuning",
+      "StartAt": "Initializer",
+      "States": {
+        "Initializer": {
+          "Type": "Task",
+          "Resource": "arn:aws:lambda:{REGION}:{ACCOUNT_ID}:function:{INITIALIZER_FUNCTION}",
+          "Next": "Branching"
+        },
+        "Branching": {
+          "Type": "Parallel",
+          "Next": "After Branching",
+          "Branches": []
+        },
+        "After Branching": {
+          "Type": "Parallel",
+          "End": true,
+          "Branches": [
+            {
+              "StartAt": "Finalizer",
+              "States": {
+                "Finalizer": {
+                  "Type": "Task",
+                  "Resource": "arn:aws:lambda:{REGION}:{ACCOUNT_ID}:function:{FINALIZER_FUNCTION}",
+                  "End": true
+                }
+              }
+            },
+            {
+              "StartAt": "Cleaner",
+              "States": {
+                "Cleaner": {
+                  "Type": "Task",
+                  "Resource": "arn:aws:lambda:{REGION}:{ACCOUNT_ID}:function:{CLEANER_FUNCTION}",
+                  "End": true
+                }
+              }
+            }
+          ]
+        }
+      }
+    }

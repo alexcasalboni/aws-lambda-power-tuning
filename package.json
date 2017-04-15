@@ -23,7 +23,8 @@
     "test": "mocha"
   },
   "dependencies": {
-    "commander": "^2.9.0"
+    "commander": "^2.9.0",
+    "js-yaml": "^3.8.3"
   },
   "devDependencies": {
     "aws-sdk": "^2.40.0",

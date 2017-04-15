@@ -1,54 +1,42 @@
 service: aws-lambda-power-tuning
-
 provider:
   name: aws
   runtime: nodejs4.3
   region: eu-west-1
-
   iamRoleStatements:
-    - Effect: "Allow"
+    - Effect: Allow
       Action:
-        - "lambda:*"
-      Resource: "*"
-
+        - 'lambda:*'
+      Resource: '*'
   environment:
-    powerValues: "128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024,1088,1152,1216,1280,1344,1408,1472,1536"
+    powerValues: '128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024,1088,1152,1216,1280,1344,1408,1472,1536'
     minRAM: 128
-    minCost: 0.000000208
-
+    minCost: 2.08e-7
 package:
   include:
     - lambda/**
-
 functions:
   initializer:
     handler: lambda/initializer.handler
     timeout: 30
-
   executor:
     handler: lambda/executor.handler
     timeout: 30
-
   cleaner:
     handler: lambda/cleaner.handler
     timeout: 30
-
   finalizer:
     handler: lambda/finalizer.handler
-
-
-#    Define function environment variables here
-#    environment:
-#      variable2: value2
-
-# you can add CloudFormation resource templates here
-#resources:
-#  Resources:
-#    NewResource:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: my-new-bucket
-#  Outputs:
-#     NewOutput:
-#       Description: "Description for the output"
-#       Value: "Some output value"
+resources:
+  Resources:
+    LambdaPowerStateMachine:
+      Type: 'AWS::StepFunctions::StateMachine'
+      Properties:
+        DefinitionString: '{"Comment":"Step Functions state machine generator for AWS Lambda Power Tuning","StartAt":"Initializer","States":{"Initializer":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-initializer","Next":"Branching"},"Branching":{"Type":"Parallel","Next":"After Branching","Branches":[{"StartAt":"128MB","States":{"128MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"128MB Executor"},"128MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"192MB","States":{"192MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"192MB Executor"},"192MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"256MB","States":{"256MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"256MB Executor"},"256MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"320MB","States":{"320MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"320MB Executor"},"320MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"384MB","States":{"384MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"384MB Executor"},"384MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"448MB","States":{"448MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"448MB Executor"},"448MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"512MB","States":{"512MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"512MB Executor"},"512MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"576MB","States":{"576MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"576MB Executor"},"576MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"640MB","States":{"640MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"640MB Executor"},"640MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"704MB","States":{"704MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"704MB Executor"},"704MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"768MB","States":{"768MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"768MB Executor"},"768MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"832MB","States":{"832MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"832MB Executor"},"832MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"896MB","States":{"896MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"896MB Executor"},"896MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"960MB","States":{"960MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"960MB Executor"},"960MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"1024MB","States":{"1024MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"1024MB Executor"},"1024MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"1088MB","States":{"1088MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"1088MB Executor"},"1088MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"1152MB","States":{"1152MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"1152MB Executor"},"1152MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"1216MB","States":{"1216MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"1216MB Executor"},"1216MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"1280MB","States":{"1280MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"1280MB Executor"},"1280MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"1344MB","States":{"1344MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"1344MB Executor"},"1344MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"1408MB","States":{"1408MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"1408MB Executor"},"1408MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"1472MB","States":{"1472MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"1472MB Executor"},"1472MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}},{"StartAt":"1536MB","States":{"1536MB":{"Type":"Pass","Result":"128","ResultPath":"$.num","Next":"1536MB Executor"},"1536MB Executor":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-executor","End":true}}}]},"After Branching":{"Type":"Parallel","End":true,"Branches":[{"StartAt":"Finalizer","States":{"Finalizer":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-finalizer","End":true}}},{"StartAt":"Cleaner","States":{"Cleaner":{"Type":"Task","Resource":"arn:aws:lambda:ciao:prova:function:aws-lambda-power-tuning-dev-cleaner","End":true}}}]}}}'
+        RoleArn:
+          Ref: LambdaPowerStateMachineRole
+  Outputs:
+    NewOutput:
+      Description: StateMachine ARN
+      Value:
+        Ref: LambdaPowerStateMachine

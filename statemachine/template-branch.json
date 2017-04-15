@@ -1,0 +1,16 @@
+{
+  "StartAt": "{NUM}MB",
+  "States": {
+    "{NUM}MB": {
+      "Type": "Pass",
+      "Result": "128",
+      "ResultPath": "$.num",
+      "Next": "{NUM}MB Executor"
+    },
+    "{NUM}MB Executor": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:{REGION}:{ACCOUNT_ID}:function:{EXECUTOR_FUNCTION}",
+      "End": true
+    }
+  }
+}
