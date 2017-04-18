@@ -29,6 +29,13 @@ functions:
     handler: lambda/finalizer.handler
 resources:
   Resources:
+    LambdaPowerStateMachineRole:
+      Type: 'AWS::IAM::Role'
+      Properties:
+        RoleName: "AWSLambdaPowerTuningRole"
+        AssumeRolePolicyDocument: {}
+        Policies:
+          - blabla
     LambdaPowerStateMachine:
       Type: 'AWS::StepFunctions::StateMachine'
       Properties:
