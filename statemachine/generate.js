@@ -17,48 +17,56 @@ const BRANCH_TEMPLATE = fs.readFileSync("statemachine/template-branch.json", 'ut
 // YAML config (serverles.hml)
 const SERVERLESS_YAML_FILENAME = './serverless.yml';
 var serverlessYaml = yaml.safeLoad(fs.readFileSync(SERVERLESS_YAML_FILENAME, 'utf8'));
-const DEFAULT_POWER_VALUES = serverlessYaml.provider.environment.powerValues;
-
+const DEFAULT_POWER_VALUES = '128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024,1088,1152,1216,1280,1344,1408,1472,1536';
+const DEFAULT_AWS_REGION = 'us-east-1';
 
 // program definition
 program
     .version('0.0.1')
-    .option('-R, --region <REGION>', 'The AWS Region name')
-    .option('-A, --account <ACCOUNT_ID>', 'Your AWS Account ID')
-    .action(function(REGION, ACCOUNT_ID) {
-
-        const stateMachineStr = buildStateMachine(REGION, ACCOUNT_ID);
-
-        // edit state machine definition
-        var lambdaPowerStateMachine = serverlessYaml.resources.Resources.LambdaPowerStateMachine;
-        lambdaPowerStateMachine.Properties.DefinitionString = stateMachineStr;
-        
-        // write back to yaml file
-        const newYaml = yaml.safeDump(serverlessYaml, {lineWidth: 999999});
-        fs.writeFileSync(SERVERLESS_YAML_FILENAME, newYaml)
-
-    })
+    .option('-A, --account <id>', 'Your AWS Account ID')
+    .option('-R, --region [name]', 'The AWS Region name', DEFAULT_AWS_REGION)
+    .option('-P, --power-values [values]', 'Comma-separated power values', str2list, DEFAULT_POWER_VALUES)
     .parse(process.argv);
 
+if (!program.account) {
+    return console.error("Missing account id, use -A or --account\n");
+}
 
-function buildStateMachine (REGION, ACCOUNT_ID, powerValues) {
+(function runCommand(accountId, region, powerValues) {
 
-    // TODO add optional param?
-    powerValues = powerValues || DEFAULT_POWER_VALUES.split(',')
+    const stateMachineStr = buildStateMachine(accountId, region, powerValues);
+
+    // update state machine definition
+    var lambdaPowerStateMachine = serverlessYaml.resources.Resources.LambdaPowerStateMachine;
+    lambdaPowerStateMachine.Properties.DefinitionString = stateMachineStr;
+
+    // update power values (functions env variable)
+    serverlessYaml.provider.environment.powerValues = powerValues.join(',');
+
+    // write back to yaml file
+    const newYaml = yaml.safeDump(serverlessYaml, {lineWidth: 999999});
+    fs.writeFileSync(SERVERLESS_YAML_FILENAME, newYaml)
+
+    console.log("Done. Check your serverless.yml file :)\n");
+
+})(program.account, program.region, program.powerValues);
+
+
+function buildStateMachine (accountId, region, powerValues) {
 
     var machineTemplate = JSON.parse(MACHINE_TEMPLATE),
         branches = machineTemplate.States.Branching.Branches,
-        vars = {'REGION': REGION, 'ACCOUNT_ID': ACCOUNT_ID};
+        vars = {'REGION': region, 'ACCOUNT_ID': accountId};
 
     powerValues.forEach(function(value) {
-        branches.push(createBranch(value, vars));
+        vars.NUM = value;
+        branches.push(createBranch(vars));
     });
 
     return applyTemplateVars(JSON.stringify(machineTemplate), vars);
 }
 
-function createBranch (num, vars) {
-    vars.NUM = num;
+function createBranch (vars) {
     const branch = applyTemplateVars(BRANCH_TEMPLATE, vars);
     return JSON.parse(branch);
 }
@@ -73,4 +81,8 @@ function applyTemplateVars (template, vars) {
         .replace(/\{CLEANER_FUNCTION\}/g, CLEANER_FUNCTION)
         .replace(/\{FINALIZER_FUNCTION\}/g, FINALIZER_FUNCTION)
     ;
+}
+
+function str2list (str) {
+    return str.split(',');
 }
