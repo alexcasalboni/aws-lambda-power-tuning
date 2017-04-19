@@ -32,7 +32,6 @@ resources:
     LambdaPowerStateMachineRole:
       Type: 'AWS::IAM::Role'
       Properties:
-        RoleName: AWSLambdaPowerTuningRole
         ManagedPolicyArns:
           - 'arn:aws:iam::aws:policy/service-role/AWSLambdaRole'
         AssumeRolePolicyDocument:
@@ -48,9 +47,11 @@ resources:
       Properties:
         DefinitionString: 'to be replaced!'
         RoleArn:
-          Ref: LambdaPowerStateMachineRole
+          'Fn::GetAtt':
+            - LambdaPowerStateMachineRole
+            - Arn
   Outputs:
-    NewOutput:
+    StateMachine:
       Description: StateMachine ARN
       Value:
         Ref: LambdaPowerStateMachine
