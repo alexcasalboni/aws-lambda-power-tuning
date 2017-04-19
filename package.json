@@ -20,7 +20,8 @@
   "licence": "Apache",
   "scripts": {
     "generate": "node ./statemachine/generate.js",
-    "test": "mocha"
+    "test": "mocha",
+    "deploy": "sls deploy"
   },
   "dependencies": {
     "commander": "^2.9.0",
