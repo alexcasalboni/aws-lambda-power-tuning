@@ -233,15 +233,13 @@ describe('Lambda Functions', function() {
             });
         });
 
-        it('should return value and price as output', function() {
+        it('should return price as output', function() {
             return invokeForSuccess(handler, {
                 lambdaARN: "arnOK",
                 value: 128,
                 num: 10,
-            }).then(function(output) {
-                expect(output).to.be.an('object');
-                expect(output.value).to.be.a('number');
-                expect(output.price).to.be.a('number');
+            }).then(function(price) {
+                expect(price).to.be.a('number');
             });
         });
 

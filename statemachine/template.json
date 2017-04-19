@@ -5,7 +5,8 @@
         "Initializer": {
           "Type": "Task",
           "Resource": "arn:aws:lambda:{REGION}:{ACCOUNT_ID}:function:{INITIALIZER_FUNCTION}",
-          "Next": "Branching"
+          "Next": "Branching",
+          "ResultPath": "$.OK"
         },
         "Branching": {
           "Type": "Parallel",
@@ -31,6 +32,8 @@
               "States": {
                 "Cleaner": {
                   "Type": "Task",
+                  "InputPath": "$[0]",
+                  "ResultPath": null,
                   "Resource": "arn:aws:lambda:{REGION}:{ACCOUNT_ID}:function:{CLEANER_FUNCTION}",
                   "End": true
                 }

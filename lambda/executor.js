@@ -68,12 +68,8 @@ module.exports.handler = (event, context, callback) => {
         })
         .then(utils.computeAveragePrice.bind(null, minCost, minRAM, value))  // compute price
         .then(function(price) {
-            const output = {
-                value: value,
-                price: price,
-            };
-            callback(null, output);
-            return Promise.resolve(output);
+            callback(null, price);
+            return Promise.resolve(price);
         })
         .catch(console.error.bind(console));
 };

@@ -4,12 +4,13 @@
     "{NUM}MB": {
       "Type": "Pass",
       "Result": "128",
-      "ResultPath": "$.num",
+      "ResultPath": "$.value",
       "Next": "{NUM}MB Executor"
     },
     "{NUM}MB Executor": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:{REGION}:{ACCOUNT_ID}:function:{EXECUTOR_FUNCTION}",
+      "ResultPath": "$.price",
       "End": true
     }
   }
