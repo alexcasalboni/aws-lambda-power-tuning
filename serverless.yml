@@ -32,10 +32,17 @@ resources:
     LambdaPowerStateMachineRole:
       Type: 'AWS::IAM::Role'
       Properties:
-        RoleName: "AWSLambdaPowerTuningRole"
-        AssumeRolePolicyDocument: {}
-        Policies:
-          - blabla
+        RoleName: AWSLambdaPowerTuningRole
+        ManagedPolicyArns:
+          - 'arn:aws:iam::aws:policy/service-role/AWSLambdaRole'
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Sid: ''
+              Effect: Allow
+              Principal:
+                Service: states.us-east-1.amazonaws.com
+              Action: 'sts:AssumeRole'
     LambdaPowerStateMachine:
       Type: 'AWS::StepFunctions::StateMachine'
       Properties:

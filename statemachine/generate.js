@@ -12,6 +12,7 @@ const CLEANER_FUNCTION = PREFIX + "cleaner";
 // state machine templates
 const MACHINE_TEMPLATE = fs.readFileSync("statemachine/template.json", 'utf8');
 const BRANCH_TEMPLATE = fs.readFileSync("statemachine/template-branch.json", 'utf8');
+const IAM_TEMPLATE = fs.readFileSync("statemachine/template-iam-role.json", 'utf8');
 
 
 // YAML config (serverles.hml)
@@ -25,7 +26,7 @@ program
     .version('0.0.1')
     .option('-A, --account <id>', 'Your AWS Account ID')
     .option('-R, --region [name]', 'The AWS Region name', DEFAULT_AWS_REGION)
-    .option('-P, --power-values [values]', 'Comma-separated power values', str2list, DEFAULT_POWER_VALUES)
+    .option('-P, --power-values [values]', 'Comma-separated power values', str2list, DEFAULT_POWER_VALUES.split(','))
     .parse(process.argv);
 
 if (!program.account) {
@@ -42,6 +43,10 @@ if (!program.account) {
 
     // update power values (functions env variable)
     serverlessYaml.provider.environment.powerValues = powerValues.join(',');
+
+    // update IAM assume role policy document (region required)
+    var iamRole = serverlessYaml.resources.Resources.LambdaPowerStateMachineRole;
+    iamRole.Properties.AssumeRolePolicyDocument = createIAMRolePolicyDocument({REGION: region});
 
     // write back to yaml file
     const newYaml = yaml.safeDump(serverlessYaml, {lineWidth: 999999});
@@ -69,6 +74,11 @@ function buildStateMachine (accountId, region, powerValues) {
 function createBranch (vars) {
     const branch = applyTemplateVars(BRANCH_TEMPLATE, vars);
     return JSON.parse(branch);
+}
+
+function createIAMRolePolicyDocument (vars) {
+    const doc = applyTemplateVars(IAM_TEMPLATE, vars);
+    return JSON.parse(doc);
 }
 
 function applyTemplateVars (template, vars) {
