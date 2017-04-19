@@ -1,0 +1,6 @@
+{
+    "lambdaARN": "arn:aws:lambda:{REGION}:{ACCOUNT_ID}:function:HelloWorld",
+    "payload": "{}",
+    "num": 10,
+    "enableParallel": false
+}
