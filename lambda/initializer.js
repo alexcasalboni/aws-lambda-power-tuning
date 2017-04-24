@@ -65,7 +65,10 @@ module.exports.handler = (event, context, callback) => {
         .then(function() {
             callback(null, SENTINEL);  // end of function
         })
-        .catch(console.error.bind(console))
+        .catch(function(err) {
+            console.error(err);
+            callback(err);
+        })
 
 };
 
