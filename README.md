@@ -1,4 +1,4 @@
-# AWS Lambda Power Tuning
+# AWS Lambda Power Tuning (made with [![serverless](http://public.serverless.com/badges/v3.svg)](http://www.serverless.com))
 Step Functions state machine generator for AWS Lambda Power Tuning 
 
 ## How to run & deploy
@@ -24,16 +24,18 @@ sls deploy
 
 The AWS Step Functions state machine accepts the following parameters:
 
-* lambdaARN (required, string): ARN of the Lambda Function you want to optimize
-* num (required, integer): the # of invocations for each power configuration (recommended: between 10 and 100)
-* payload (string or object): the static payload that will be used for every invocation
-* enableParallel (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `enableParallel` to true)
+* **lambdaARN** (required, string): ARN of the Lambda Function you want to optimize
+* **num** (required, integer): the # of invocations for each power configuration (recommended: between 10 and 100)
+* **payload** (string or object): the static payload that will be used for every invocation
+* **enableParallel** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `enableParallel` to true)
 
 
 ## State Machine Output
 
-* power: the optimal power configuration
-* cost: the corresponding average cost (per invocation)
+The AWS Step Functions state machine will return an object containing the following keys:
+
+* **power**: the optimal power configuration
+* **cost**: the corresponding average cost (per invocation)
 
 
 ## Contributing
