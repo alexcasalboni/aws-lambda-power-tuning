@@ -1,4 +1,4 @@
-# AWS Lambda Power Tuning (made with [![serverless](http://public.serverless.com/badges/v3.svg)](http://www.serverless.com))
+# AWS Lambda Power Tuning - made with [![serverless](http://public.serverless.com/badges/v3.svg)](http://www.serverless.com)
 Step Functions state machine generator for AWS Lambda Power Tuning 
 
 ## How to run & deploy
@@ -19,6 +19,9 @@ Finally, you can deploy everything:
 ```
 sls deploy
 ```
+
+![state-machine](state-machine-screnshot.png?raw=true)
+
 
 ## State Machine Input
 
