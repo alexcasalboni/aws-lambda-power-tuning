@@ -24,7 +24,6 @@ const fakeContext = {};
 const invokeForSuccess = function(handler, event) {
     var err, data;
     function _cb (error, result) {
-        //console.log("success cb", error, result);
         err = error;
         data = result;
     };
@@ -38,7 +37,6 @@ const invokeForSuccess = function(handler, event) {
 const invokeForFailure = function(handler, event) {
     var err, data;
     function _cb (error, result) {
-        //console.log("failure cb", error, result);
         err = error;
         data = result;
     };
@@ -241,6 +239,43 @@ describe('Lambda Functions', function() {
             }).then(function(price) {
                 expect(price).to.be.a('number');
             });
+        });
+
+    });
+
+    describe('finalizer', function() {
+
+        const handler = require('../lambda/finalizer').handler;
+
+        it('should explode if invoked without invalid event', function() {
+            const invalidEvents = [
+                null,
+                {},
+                [],
+                {lambdaARN: ""},
+                {whatever: 1}
+            ];
+            invalidEvents.forEach(function(event) {
+                expect(function() {
+                    invokeForFailure(handler, event);
+                }).to.throwError();
+            });
+        });
+
+        it('should return the cheapest power configuration', function() {
+            const event = [
+                {"value": "128", "price": 100},
+                {"value": "256", "price": 200},
+                {"value": "512", "price": 30},
+            ];
+
+            return invokeForSuccess(handler, event)
+                .then(function(result) {
+                    expect(result).to.be.an('object');
+                    expect(result.power).to.be('512');
+                    expect(result.cost).to.be(30);
+                });
+            
         });
 
     });
