@@ -20,7 +20,7 @@ Finally, you can deploy everything:
 sls deploy
 ```
 
-![state-machine](state-machine-screnshot.png?raw=true)
+![state-machine](state-machine-screenshot.png?raw=true)
 
 
 ## State Machine Input
