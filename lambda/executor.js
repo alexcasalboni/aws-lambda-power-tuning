@@ -14,8 +14,8 @@ module.exports.handler = (event, context, callback) => {
     const lambdaARN = event.lambdaARN;
     const value = parseInt(event.value);
     const num = parseInt(event.num);
-    const payload = event.payload;
     const enableParallel = event.parallelInvocation || false;
+    var payload = event.payload;
 
     if (!lambdaARN) {
         const error = new Error("Missing or empty lambdaARN");
@@ -31,6 +31,11 @@ module.exports.handler = (event, context, callback) => {
         const error = new Error("Invalid num: " + num);
         callback(error);
         throw error;  // TODO useless?
+    }
+
+    if (typeof payload !== 'string') {
+        console.log("Converting payload to string from ", typeof payload);
+        payload = JSON.stringify(payload);
     }
 
     // create list of promises (same params)
@@ -71,5 +76,8 @@ module.exports.handler = (event, context, callback) => {
             callback(null, price);
             return Promise.resolve(price);
         })
-        .catch(console.error.bind(console));
+        .catch(function(err) {
+            console.error(err);
+            callback(err);
+        });
 };
