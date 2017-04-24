@@ -34,6 +34,7 @@
                   "Type": "Task",
                   "InputPath": "$[0]",
                   "ResultPath": null,
+                  "OutputPath": null,
                   "Resource": "arn:aws:lambda:{REGION}:{ACCOUNT_ID}:function:{CLEANER_FUNCTION}",
                   "End": true
                 }
