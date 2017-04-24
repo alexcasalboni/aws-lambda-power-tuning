@@ -3,7 +3,7 @@
   "States": {
     "{NUM}MB": {
       "Type": "Pass",
-      "Result": "128",
+      "Result": "{NUM}",
       "ResultPath": "$.value",
       "Next": "{NUM}MB Executor"
     },
