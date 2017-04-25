@@ -20,7 +20,7 @@ serverless config credentials --provider aws --key XXX --secret YYY
 Then you can generate the state machine by providing your AWS Account ID. Optionally, you can also specify the AWS region and a comma-separated list of RAM values (these will be the state machine parallel branches):
 
 ```
-npm run generate -- -A 582636008125 [-R eu-west-1] [-P 128,256,512,1024]
+npm run generate -- -A ACCOUNT_ID [-R eu-west-1] [-P 128,256,512,1024]
 ```
 
 Finally, you can deploy everything:
@@ -33,7 +33,7 @@ serverless deploy
 
 Once the state machine and all the Lambda Functions have been deployed, you will need to execute the state machine and provide an input object.
 
-You will find the state machine [here](https://console.aws.amazon.com/states/). Enter the state machine and click "New execution". Here you can provide the execution input, that should look like this:
+You will find the new state machine [here](https://console.aws.amazon.com/states/). Enter the state machine named **LambdaPowerStateMachine** and click "**New execution**". Here you can provide the execution input, which should look like this (see section below for the full documentation):
 
 ```
 {
@@ -43,11 +43,11 @@ You will find the state machine [here](https://console.aws.amazon.com/states/). 
 }
 ```
 
-As soon as you click "Start Execution", the state machine chart will appear and you will be able to follow the execution flow. Here's a screenshot:
+As soon as you click "**Start Execution**", the state machine chart will appear and you will be able to follow the execution flow. Here's a screenshot:
 
 ![state-machine](state-machine-screenshot.png?raw=true)
 
-Once the execution has completed, you will find the execution results in the "Output" tab of the "Execution Details" section.
+Once the execution has completed, you will find the execution results in the "**Output**" tab of the "**Execution Details**" section.
 
 ## State Machine Input
 
