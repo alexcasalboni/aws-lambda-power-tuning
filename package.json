@@ -20,7 +20,8 @@
   "licence": "Apache",
   "scripts": {
     "generate": "node ./statemachine/generate.js",
-    "test": "mocha"
+    "test": "mocha",
+    "coverage": "istanbul cover _mocha"
   },
   "dependencies": {
     "commander": "^2.9.0",
@@ -30,6 +31,7 @@
     "aws-sdk": "^2.40.0",
     "aws-sdk-mock": "^1.6.1",
     "expect.js": "^0.3.1",
+    "istanbul": "^0.4.5",
     "mocha": "^3.2.0"
   }
 }

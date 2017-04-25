@@ -82,8 +82,8 @@ The AWS Step Functions state machine is composed by four Lambda Functions:
 ## Contributing
 Contributors and PRs are always welcome!
 
-### Testing
+### Tests and coverage
 
-Run `npm install --dev` and `npm test`.
+Install dev dependencies with `npm install --dev`. Then run tests with `npm test`, or coverage with `npm run coverage`.
 
 Current test coverage: 91%.
