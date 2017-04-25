@@ -1,32 +1,35 @@
 # AWS Lambda Power Tuning - made with [![serverless](http://public.serverless.com/badges/v3.svg)](http://www.serverless.com)
-Step Functions state machine generator for AWS Lambda Power Tuning 
+Step Functions state machine generator for AWS Lambda Power Tuning.
+
+The state machine is designed to be **quick** and **language agnostic**. You can provide **any Lambda Function as input** and the state machine will **estimate the best power configuration to minimize cost**. Your Lambda Function will be executed in your AWS account (i.e. real HTTP calls, SDK calls, cold starts, etc.) and you can enable parallel execution to generate results in just a few seconds.
+
 
 ## How to deploy the state machine
 
-First, clone this repo and install all the required dependencies:
+First, clone this repo and install npm dependencies:
 ```
-git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
-cd aws-lambda-power-tuning
-npm install
+$ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
+$ cd aws-lambda-power-tuning
+$ npm install
 ```
 
 Don't forget to install and configure the Serverless Framework too:
 
 ```
-npm install serverless -g
-serverless config credentials --provider aws --key XXX --secret YYY
+$ npm install serverless -g
+$ serverless config credentials --provider aws --key XXX --secret YYY
 ```
 
 Then you can generate the state machine by providing your AWS Account ID. Optionally, you can specify the AWS region and a comma-separated list of RAM values:
 
 ```
-npm run generate -- -A ACCOUNT_ID [-R eu-west-1] [-P 128,256,512,1024]
+$ npm run generate -- -A ACCOUNT_ID [-R eu-west-1] [-P 128,256,512,1024]
 ```
 
 Finally, you can deploy everything:
 
 ```
-serverless deploy
+$ serverless deploy
 ```
 
 ## How to execute the state machine
@@ -81,4 +84,4 @@ Contributors and PRs are always welcome!
 
 ### Testing
 
-Run `npm test`.
+Run `npm install --dev` and `npm test`.
