@@ -1,14 +1,23 @@
 # AWS Lambda Power Tuning - made with [![serverless](http://public.serverless.com/badges/v3.svg)](http://www.serverless.com)
 Step Functions state machine generator for AWS Lambda Power Tuning 
 
-## How to run & deploy
+## How to deploy the state machine
 
-First, clone this repo:
+First, clone this repo and install all the required dependencies:
 ```
 git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
+cd aws-lambda-power-tuning
+npm install
 ```
 
-Then generate the state machine with your Account ID:
+Don't forget to install and configure the Serverless Framework too:
+
+```
+npm install serverless -g
+serverless config credentials --provider aws --key XXX --secret YYY
+```
+
+Then you can generate the state machine by providing your AWS Account ID. Optionally, you can also specify the AWS region and a comma-separated list of RAM values (these will be the state machine parallel branches):
 
 ```
 npm run generate -- -A 582636008125 [-R eu-west-1] [-P 128,256,512,1024]
@@ -17,11 +26,28 @@ npm run generate -- -A 582636008125 [-R eu-west-1] [-P 128,256,512,1024]
 Finally, you can deploy everything:
 
 ```
-sls deploy
+serverless deploy
 ```
+
+## How to execute the state machine
+
+Once the state machine and all the Lambda Functions have been deployed, you will need to execute the state machine and provide an input object.
+
+You will find the state machine [here](https://console.aws.amazon.com/states/). Enter the state machine and click "New execution". Here you can provide the execution input, that should look like this:
+
+```
+{
+    "lambdaARN": "your-lambda-function-arn",
+    "payload": {"key1": "value1"},
+    "num": 100
+}
+```
+
+As soon as you click "Start Execution", the state machine chart will appear and you will be able to follow the execution flow. Here's a screenshot:
 
 ![state-machine](state-machine-screenshot.png?raw=true)
 
+Once the execution has completed, you will find the execution results in the "Output" tab of the "Execution Details" section.
 
 ## State Machine Input
 
