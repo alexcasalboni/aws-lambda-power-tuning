@@ -64,7 +64,7 @@ describe('Lambda Functions', function() {
             createLambdaAliasCounter = 0;
             // TODO use real mock (not override!)
             utils.checkLambdaAlias = function() {
-                return Promise.reject(new Error("Alias does not exist"));
+                return Promise.reject(new Error("alias is not defined"));
             };
             utils.setLambdaPower = function() {
                 setLambdaPowerCounter++;
@@ -136,9 +136,39 @@ describe('Lambda Functions', function() {
             });
         });
 
+        beforeEach('mock utilities', function() {
+            // TODO use real mock (not override!)
+            utils.checkLambdaAlias = function() {
+                return Promise.resolve({FunctionVersion: "1"});
+            };
+            utils.deleteLambdaAlias = function() {
+                return Promise.resolve("OK");
+            };
+            utils.deleteLambdaVersion = function() {
+                return Promise.resolve("OK");
+            };
+        });
+
         it('should invoke the given cb, when done', function() {
             return invokeForSuccess(handler, {lambdaARN: "arnOK"});
         });
+
+        it('should work fine even if the version does not exist', function() {
+            // TODO use real mock (not override!)
+            utils.deleteLambdaVersion = function() {
+                return Promise.reject(new Error("version is not defined"));
+            };
+            return invokeForSuccess(handler, {lambdaARN: "arnOK"});
+        });
+
+        it('should work fine even if the alias does not exist', function() {
+            // TODO use real mock (not override!)
+            utils.deleteLambdaAlias = function() {
+                return Promise.reject(new Error("alias is not defined"));
+            };
+            return invokeForSuccess(handler, {lambdaARN: "arnOK"});
+        });
+
 
     });
 

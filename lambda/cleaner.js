@@ -30,8 +30,8 @@ module.exports.handler = (event, context, callback) => {
 
         return Promise.resolve()
             .then(utils.checkLambdaAlias.bind(null, lambdaARN, alias))
-            .then(function(data) {  // (ugly workaround!)
-                // just to pass it to deleteLambdaVersion
+            .then(function(data) {
+                // workaround to pass functionVersion to deleteLambdaVersion
                 functionVersion = data.FunctionVersion;
             })
             .then(utils.deleteLambdaAlias.bind(null, lambdaARN, alias))

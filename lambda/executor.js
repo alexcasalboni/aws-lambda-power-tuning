@@ -33,7 +33,7 @@ module.exports.handler = (event, context, callback) => {
         throw error;  // TODO useless?
     }
 
-    if (typeof payload !== 'string') {
+    if (typeof payload !== 'string' && typeof payload !== 'undefined') {
         console.log("Converting payload to string from ", typeof payload);
         payload = JSON.stringify(payload);
     }
