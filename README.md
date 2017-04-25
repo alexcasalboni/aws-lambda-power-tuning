@@ -67,6 +67,16 @@ The AWS Step Functions state machine will return an object containing the follow
 * **cost**: the corresponding average cost (per invocation)
 
 
+## State Machine Internals
+
+The AWS Step Functions state machine is composed by four Lambda Functions:
+
+* **initializer**: create N versions and aliases corresponding to the power values provided as input (e.g. 128MB, 256MB, etc.)
+* **executor**: execute the given Lambda Function N times and extracts invocations statistics from logs (one parallel branch for each single power value)
+* **cleaner**: delete all the previously generated aliases and versions
+* **finalizer**: compute the return the optimal power value (current logic: lowest average cost per invocation)
+
+
 ## Contributing
 Contributors and PRs are always welcome!
 
