@@ -85,3 +85,5 @@ Contributors and PRs are always welcome!
 ### Testing
 
 Run `npm install --dev` and `npm test`.
+
+Current test coverage: 91%.
