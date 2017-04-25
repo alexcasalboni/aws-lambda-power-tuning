@@ -17,7 +17,7 @@ npm install serverless -g
 serverless config credentials --provider aws --key XXX --secret YYY
 ```
 
-Then you can generate the state machine by providing your AWS Account ID. Optionally, you can also specify the AWS region and a comma-separated list of RAM values (these will be the state machine parallel branches):
+Then you can generate the state machine by providing your AWS Account ID. Optionally, you can specify the AWS region and a comma-separated list of RAM values:
 
 ```
 npm run generate -- -A ACCOUNT_ID [-R eu-west-1] [-P 128,256,512,1024]
@@ -33,21 +33,20 @@ serverless deploy
 
 Once the state machine and all the Lambda Functions have been deployed, you will need to execute the state machine and provide an input object.
 
-You will find the new state machine [here](https://console.aws.amazon.com/states/). Enter the state machine named **LambdaPowerStateMachine** and click "**New execution**". Here you can provide the execution input, which should look like this (see section below for the full documentation):
+You will find the new state machine [here](https://console.aws.amazon.com/states/). Enter the state machine named **LambdaPowerStateMachine** and click "**New execution**". Here you can provide the execution input and an execution id (see section below for the full documentation):
 
 ```
 {
     "lambdaARN": "your-lambda-function-arn",
-    "payload": {"key1": "value1"},
     "num": 100
 }
 ```
 
-As soon as you click "**Start Execution**", the state machine chart will appear and you will be able to follow the execution flow. Here's a screenshot:
+As soon as you click "**Start Execution**", you'll be able to follow the execution flow on the state machine chart. Here is a sample screenshot:
 
 ![state-machine](state-machine-screenshot.png?raw=true)
 
-Once the execution has completed, you will find the execution results in the "**Output**" tab of the "**Execution Details**" section.
+Once the execution has completed, you will find the execution results in the "**Output**" tab of the "**Execution Details**" section. The output will contain the optimal RAM configuration and its corresponding average cost per execution.
 
 ## State Machine Input
 
@@ -61,7 +60,7 @@ The AWS Step Functions state machine accepts the following parameters:
 
 ## State Machine Output
 
-The AWS Step Functions state machine will return an object containing the following keys:
+The AWS Step Functions state machine will return the following outputs:
 
 * **power**: the optimal power configuration
 * **cost**: the corresponding average cost (per invocation)
@@ -72,9 +71,9 @@ The AWS Step Functions state machine will return an object containing the follow
 The AWS Step Functions state machine is composed by four Lambda Functions:
 
 * **initializer**: create N versions and aliases corresponding to the power values provided as input (e.g. 128MB, 256MB, etc.)
-* **executor**: execute the given Lambda Function N times and extracts invocations statistics from logs (one parallel branch for each single power value)
+* **executor**: execute the given Lambda Function `num` times, extract execution time from logs, and compute average cost per invocation (one parallel branch for each power value)
 * **cleaner**: delete all the previously generated aliases and versions
-* **finalizer**: compute the return the optimal power value (current logic: lowest average cost per invocation)
+* **finalizer**: compute the optimal power value (current logic: lowest average cost per invocation)
 
 
 ## Contributing
