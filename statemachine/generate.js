@@ -3,16 +3,16 @@ const fs = require('fs');
 const yaml = require('js-yaml');
 
 // function names
-const PREFIX = "aws-lambda-power-tuning-dev-";  // package name and sls env
-const INITIALIZER_FUNCTION = PREFIX + "initializer";
-const EXECUTOR_FUNCTION = PREFIX + "executor";
-const FINALIZER_FUNCTION = PREFIX + "finalizer";
-const CLEANER_FUNCTION = PREFIX + "cleaner";
+const PREFIX = 'aws-lambda-power-tuning-dev-';  // package name and sls env
+const INITIALIZER_FUNCTION = PREFIX + 'initializer';
+const EXECUTOR_FUNCTION = PREFIX + 'executor';
+const FINALIZER_FUNCTION = PREFIX + 'finalizer';
+const CLEANER_FUNCTION = PREFIX + 'cleaner';
 
 // state machine templates
-const MACHINE_TEMPLATE = fs.readFileSync("statemachine/template.json", 'utf8');
-const BRANCH_TEMPLATE = fs.readFileSync("statemachine/template-branch.json", 'utf8');
-const IAM_TEMPLATE = fs.readFileSync("statemachine/template-iam-role.json", 'utf8');
+const MACHINE_TEMPLATE = fs.readFileSync('statemachine/template.json', 'utf8');
+const BRANCH_TEMPLATE = fs.readFileSync('statemachine/template-branch.json', 'utf8');
+const IAM_TEMPLATE = fs.readFileSync('statemachine/template-iam-role.json', 'utf8');
 
 
 // YAML config (serverles.hml)
@@ -30,7 +30,7 @@ program
     .parse(process.argv);
 
 if (!program.account) {
-    return console.error("Missing account id, use -A or --account\n");
+    return console.error('Missing account id, use -A or --account\n');
 }
 
 (function runCommand(accountId, region, powerValues) {
@@ -50,9 +50,9 @@ if (!program.account) {
 
     // write back to yaml file
     const newYaml = yaml.safeDump(serverlessYaml, {lineWidth: 999999});
-    fs.writeFileSync(SERVERLESS_YAML_FILENAME, newYaml)
+    fs.writeFileSync(SERVERLESS_YAML_FILENAME, newYaml);
 
-    console.log("Done. Check your serverless.yml file :)\n");
+    console.log('Done. Check your serverless.yml file :)\n');
 
 })(program.account, program.region, program.powerValues);
 

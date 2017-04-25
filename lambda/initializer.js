@@ -2,7 +2,7 @@
 
 const utils = require('./utils');
 
-const SENTINEL = "OK";
+const SENTINEL = 'OK';
 
 const powerValues = process.env.powerValues.split(',');
 
@@ -15,30 +15,30 @@ module.exports.handler = (event, context, callback) => {
     const lambdaARN = event.lambdaARN;
 
     if (!lambdaARN) {
-        throw new Error("Missing or empty lambdaARN");
+        throw new Error('Missing or empty lambdaARN');
     }
 
     if (!powerValues.length) {
-        throw new Error("Missing or empty env.powerValues");
+        throw new Error('Missing or empty env.powerValues');
     }
 
     var queue = Promise.resolve();
 
     powerValues.forEach(function(value) {
 
-        const alias = "RAM" + value;
+        const alias = 'RAM' + value;
 
         queue = queue
             // alias should not exist (check it first)
             .then(utils.checkLambdaAlias.bind(null, lambdaARN, alias))
-            .catch(function(error) {
+            .catch(function() {
                 // proceed with sentinel, on error
                 return Promise.resolve(SENTINEL);
             })
             .then(function(data) {
                 // proceed to next value, if sentinel
                 if (data != SENTINEL) {
-                    throw new Error("Alias already exists");
+                    throw new Error('Alias already exists');
                 }
                 // proceed to next promise otherwise
                 return Promise.resolve(SENTINEL);
@@ -68,7 +68,7 @@ module.exports.handler = (event, context, callback) => {
         .catch(function(err) {
             console.error(err);
             callback(err);
-        })
+        });
 
 };
 

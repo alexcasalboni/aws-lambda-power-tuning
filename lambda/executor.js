@@ -18,28 +18,28 @@ module.exports.handler = (event, context, callback) => {
     var payload = event.payload;
 
     if (!lambdaARN) {
-        const error = new Error("Missing or empty lambdaARN");
+        const error = new Error('Missing or empty lambdaARN');
         callback(error);
         throw error;  // TODO useless?
     }
     if (!value  || isNaN(value)) {
-        const error = new Error("Invalid value: " + value);
+        const error = new Error('Invalid value: ' + value);
         callback(error);
         throw error;  // TODO useless?
     }
     if (!num || isNaN(num)) {
-        const error = new Error("Invalid num: " + num);
+        const error = new Error('Invalid num: ' + num);
         callback(error);
         throw error;  // TODO useless?
     }
 
     if (typeof payload !== 'string' && typeof payload !== 'undefined') {
-        console.log("Converting payload to string from ", typeof payload);
+        console.log('Converting payload to string from ', typeof payload);
         payload = JSON.stringify(payload);
     }
 
     // create list of promises (same params)
-    const lambdaAlias = "RAM" + value;
+    const lambdaAlias = 'RAM' + value;
     const invocations = utils.range(num).map(function() {
         return utils.invokeLambda.bind(null, lambdaARN, lambdaAlias, payload);
     });

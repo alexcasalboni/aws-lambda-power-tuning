@@ -12,20 +12,20 @@ module.exports.handler = (event, context, callback) => {
     const lambdaARN = event.lambdaARN;
 
     if (!lambdaARN) {
-        const error = new Error("Missing or empty lambdaARN");
+        const error = new Error('Missing or empty lambdaARN');
         callback(error);
         throw error;  // TODO useless?
     }
 
     if (!powerValues.length) {
-        const error = new Error("Missing or empty env.powerValues");
+        const error = new Error('Missing or empty env.powerValues');
         callback(error);
         throw error;  // TODO useless?
     }
 
     const aliasRemovals = powerValues.map(function(value) {
 
-        const alias = "RAM" + value;
+        const alias = 'RAM' + value;
         var functionVersion = null;
 
         return Promise.resolve()
@@ -40,11 +40,11 @@ module.exports.handler = (event, context, callback) => {
             })
             .catch(function(error) {
                 if (error.message.includes('version is not defined')) {
-                    console.error("Version is not defined: ", error.message, error.stack);
-                    return Promise.resolve("OK");
+                    console.error('Version is not defined: ', error.message, error.stack);
+                    return Promise.resolve('OK');
                 } else if (error.message.includes('alias is not defined')) {
-                    console.error("Alias is not defined: ", error.message, error.stack);
-                    return Promise.resolve("OK");
+                    console.error('Alias is not defined: ', error.message, error.stack);
+                    return Promise.resolve('OK');
                 }
             });
     });
@@ -52,7 +52,7 @@ module.exports.handler = (event, context, callback) => {
     return Promise
         .all(aliasRemovals)
         .then(function() {
-            callback(null, "OK");
+            callback(null, 'OK');
         })
         .catch(function(err) {
             console.error(err);

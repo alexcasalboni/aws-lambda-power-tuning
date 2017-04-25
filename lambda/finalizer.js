@@ -6,7 +6,7 @@
 module.exports.handler = (event, context, callback) => {
 
     if (!Array.isArray(event) || !event.length) {
-        const error = new Error("Wrong input " + JSON.stringify(event));
+        const error = new Error('Wrong input ' + JSON.stringify(event));
         callback(error);
         throw error;  // TODO useless?
     }
