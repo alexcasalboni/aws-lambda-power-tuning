@@ -31,9 +31,14 @@ module.exports.handler = (event, context, callback) => {
         queue = queue
             // alias should not exist (check it first)
             .then(utils.checkLambdaAlias.bind(null, lambdaARN, alias))
-            .catch(function() {
-                // proceed with sentinel, on error
-                return Promise.resolve(SENTINEL);
+            .catch(function(error) {
+                if (error.message && error.message === 'Interrupt') {
+                    // break chain is something went wrong in previous loop
+                    return Promise.reject(error);
+                } else {
+                    // proceed with sentinel (alias doesn't exist yet)
+                    return Promise.resolve(SENTINEL);
+                }
             })
             .then(function(data) {
                 // proceed to next value, if sentinel
@@ -54,7 +59,8 @@ module.exports.handler = (event, context, callback) => {
                     // proceed to next value if alias already exists
                     return Promise.resolve(SENTINEL);
                 } else {
-                    callback(error);  // end of function (critial error)
+                    console.error(error);
+                    throw new Error("Interrupt");
                 }
             });
 

@@ -28,6 +28,10 @@ const invokeForSuccess = function(handler, event) {
     }
     return handler(event, fakeContext, _cb)
         .then(function() {
+            // apparently null and undefined are not equal for expect.js
+            // see https://github.com/Automattic/expect.js/issues/74
+            if (typeof err === 'undefined') err = null;
+            if (typeof data === 'undefined') data = null;
             expect(err).to.be(null);
             expect(data).to.not.be(null);
             return Promise.resolve(data);
@@ -41,9 +45,13 @@ const invokeForFailure = function(handler, event) {
     }
     return handler(event, fakeContext, _cb)
         .then(function() {
+            // apparently null and undefined are not equal for expect.js
+            // see https://github.com/Automattic/expect.js/issues/74
+            if (typeof err === 'undefined') err = null;
+            if (typeof data === 'undefined') data = null;
             expect(err).to.not.be(null);
             expect(data).to.be(null);
-            return Promise.reject(err);
+            return Promise.resolve(err);
         });
 };
 
@@ -111,6 +119,22 @@ describe('Lambda Functions', function() {
                     expect(publishLambdaVersionCounter).to.be(powerValues.length);
                     expect(createLambdaAliasCounter).to.be(powerValues.length);
                 });
+        });
+
+        it('should work fine if an alias already exists', function() {
+            // TODO use real mock (not override!)
+            utils.checkLambdaAlias = function() {
+                return Promise.resolve({FunctionVersion: '1'});
+            };
+            return invokeForSuccess(handler, {lambdaARN: 'arnOK'});
+        });
+
+        it('should explode if something goes wrong during power set', function() {
+            // TODO use real mock (not override!)
+            utils.setLambdaPower = function() {
+                return Promise.reject(new Error("Something went wrong"));
+            };
+            return invokeForFailure(handler, {lambdaARN: 'arnOK'});
         });
         
     });
