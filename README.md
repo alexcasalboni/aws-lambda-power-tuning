@@ -6,21 +6,28 @@ The state machine is designed to be **quick** and **language agnostic**. You can
 
 ## How to deploy the state machine
 
-First, clone this repo and install npm dependencies:
-```
-$ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
-$ cd aws-lambda-power-tuning
-$ npm install
-```
+First, install the Serverless Framework and configure your AWS credentials:
 
-Don't forget to install and configure the Serverless Framework too:
 
 ```
 $ npm install serverless -g
 $ serverless config credentials --provider aws --key XXX --secret YYY
 ```
 
-Then you can generate the state machine by providing your AWS Account ID. Optionally, you can specify the AWS region and a comma-separated list of RAM values:
+Now, you can quickly install this service as follows:
+
+```
+$ serverless install -u https://github.com/alexcasalboni/aws-lambda-power-tuning
+```
+
+The Serverless Framework will download and unzip the repository, but it won't install dependencies. Don't forget to install npm dependencies:
+
+```
+$ cd aws-lambda-power-tuning
+$ npm install
+```
+
+Then you can generate the state machine resource by providing your AWS Account ID. Optionally, you can specify the AWS region and a comma-separated list of RAM values:
 
 ```
 $ npm run generate -- -A ACCOUNT_ID [-R eu-west-1] [-P 128,256,512,1024]
