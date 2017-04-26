@@ -20,14 +20,14 @@ Now, you can quickly install this service as follows:
 $ serverless install -u https://github.com/alexcasalboni/aws-lambda-power-tuning
 ```
 
-The Serverless Framework will download and unzip the repository, but it won't install dependencies. Don't forget to install npm dependencies:
+The Serverless Framework will download and unzip the repository, but it won't install dependencies. Don't forget to install npm dependencies before generating the state machine:
 
 ```
 $ cd aws-lambda-power-tuning
 $ npm install
 ```
 
-Then you can generate the state machine resource by providing your AWS Account ID. Optionally, you can specify the AWS region and a comma-separated list of RAM values:
+Then you can generate the dynamic state machine by providing your AWS Account ID. Optionally, you can specify the AWS region and a comma-separated list of RAM values:
 
 ```
 $ npm run generate -- -A ACCOUNT_ID [-R eu-west-1] [-P 128,256,512,1024]
