@@ -81,10 +81,11 @@ The AWS Step Functions state machine will return the following outputs:
 The AWS Step Functions state machine is composed by four Lambda Functions:
 
 * **initializer**: create N versions and aliases corresponding to the power values provided as input (e.g. 128MB, 256MB, etc.)
-* **executor**: execute the given Lambda Function `num` times, extract execution time from logs, and compute average cost per invocation (one parallel branch for each power value)
+* **executor**: execute the given Lambda Function `num` times, extract execution time from logs, and compute average cost per invocation
 * **cleaner**: delete all the previously generated aliases and versions
 * **finalizer**: compute the optimal power value (current logic: lowest average cost per invocation)
 
+Initializer, cleaner and finalizer are executed only once, while the executor is used by N parallel branches of the state machine (one for each configured power value). By default, the executor will execute the given Lambda Function `num` consecutive times, but you can enable parallel invocation by setting `enableParallel` to `true`.
 
 ## Contributing
 Contributors and PRs are always welcome!
