@@ -7,3 +7,6 @@ jspm_packages
 
 # Serverless directories
 .serverless
+
+# ignore serverless.yml
+serverless.yml
