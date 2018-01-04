@@ -48,7 +48,7 @@ You will find the new state machine [here](https://console.aws.amazon.com/states
 ```
 {
     "lambdaARN": "your-lambda-function-arn",
-    "num": 100
+    "num": 10
 }
 ```
 
