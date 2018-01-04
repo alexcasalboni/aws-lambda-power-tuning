@@ -2,7 +2,7 @@ service: aws-lambda-power-tuning
 provider:
   name: aws
   runtime: nodejs4.3
-  region: eu-west-1
+  region: us-east-1
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -18,15 +18,16 @@ package:
 functions:
   initializer:
     handler: lambda/initializer.handler
-    timeout: 300
+    timeout: 60
   executor:
     handler: lambda/executor.handler
     timeout: 300
   cleaner:
     handler: lambda/cleaner.handler
-    timeout: 300
+    timeout: 60
   finalizer:
     handler: lambda/finalizer.handler
+    timeout: 60
 resources:
   Resources:
     LambdaPowerStateMachineRole:

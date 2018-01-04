@@ -55,6 +55,7 @@ if (!program.account) {
     const newYaml = yaml.safeDump(serverlessYaml, {lineWidth: 999999});
     fs.writeFileSync(SERVERLESS_YAML_FILENAME, newYaml);
 
+    console.log('Target Region: ' + region);
     console.log('Done. Check your serverless.yml file :)\n');
 
 })(program.account, program.region, program.powerValues);
