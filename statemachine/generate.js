@@ -17,7 +17,8 @@ const IAM_TEMPLATE = fs.readFileSync('statemachine/template-iam-role.json', 'utf
 
 // YAML config (serverles.hml)
 const SERVERLESS_YAML_FILENAME = './serverless.yml';
-var serverlessYaml = yaml.safeLoad(fs.readFileSync(SERVERLESS_YAML_FILENAME, 'utf8'));
+const SERVERLESS_BASE_YAML_FILENAME = './serverless.base.yml';
+var serverlessYaml = yaml.safeLoad(fs.readFileSync(SERVERLESS_BASE_YAML_FILENAME, 'utf8'));
 const DEFAULT_POWER_VALUES = '128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024,1088,1152,1216,1280,1344,1408,1472,1536';
 const DEFAULT_AWS_REGION = 'us-east-1';
 
@@ -47,6 +48,8 @@ if (!program.account) {
     // update IAM assume role policy document (region required)
     var iamRole = serverlessYaml.resources.Resources.LambdaPowerStateMachineRole;
     iamRole.Properties.AssumeRolePolicyDocument = createIAMRolePolicyDocument({REGION: region});
+
+    serverlessYaml.provider.region = region;
 
     // write back to yaml file
     const newYaml = yaml.safeDump(serverlessYaml, {lineWidth: 999999});

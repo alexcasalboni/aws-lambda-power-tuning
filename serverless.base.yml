@@ -1,0 +1,57 @@
+service: aws-lambda-power-tuning
+provider:
+  name: aws
+  runtime: nodejs4.3
+  region: eu-west-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - 'lambda:*'
+      Resource: '*'
+  environment:
+    powerValues: '128,256,512,1024,1536'
+    minRAM: 128
+    minCost: 2.08e-7
+package:
+  include:
+    - lambda/**
+functions:
+  initializer:
+    handler: lambda/initializer.handler
+    timeout: 30
+  executor:
+    handler: lambda/executor.handler
+    timeout: 30
+  cleaner:
+    handler: lambda/cleaner.handler
+    timeout: 30
+  finalizer:
+    handler: lambda/finalizer.handler
+resources:
+  Resources:
+    LambdaPowerStateMachineRole:
+      Type: 'AWS::IAM::Role'
+      Properties:
+        ManagedPolicyArns:
+          - 'arn:aws:iam::aws:policy/service-role/AWSLambdaRole'
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Sid: ''
+              Effect: Allow
+              Principal:
+                Service: states.us-east-1.amazonaws.com
+              Action: 'sts:AssumeRole'
+    LambdaPowerStateMachine:
+      Type: 'AWS::StepFunctions::StateMachine'
+      Properties:
+        DefinitionString: 'to be replaced!'
+        RoleArn:
+          'Fn::GetAtt':
+            - LambdaPowerStateMachineRole
+            - Arn
+  Outputs:
+    StateMachine:
+      Description: StateMachine ARN
+      Value:
+        Ref: LambdaPowerStateMachine
