@@ -18,13 +18,13 @@ package:
 functions:
   initializer:
     handler: lambda/initializer.handler
-    timeout: 30
+    timeout: 300
   executor:
     handler: lambda/executor.handler
-    timeout: 30
+    timeout: 300
   cleaner:
     handler: lambda/cleaner.handler
-    timeout: 30
+    timeout: 300
   finalizer:
     handler: lambda/finalizer.handler
 resources:
