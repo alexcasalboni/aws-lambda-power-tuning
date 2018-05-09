@@ -73,7 +73,7 @@ The AWS Step Functions state machine accepts the following parameters:
 The AWS Step Functions state machine will return the following outputs:
 
 * **power**: the optimal power configuration
-* **cost**: the corresponding average cost (per invocation)
+* **stats**: the corresponding average cost and average duration(per invocation)
 
 
 ## State Machine Internals
