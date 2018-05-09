@@ -10,7 +10,7 @@
     "{NUM}MB Executor": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:{REGION}:{ACCOUNT_ID}:function:{EXECUTOR_FUNCTION}",
-      "ResultPath": "$.price",
+      "ResultPath": "$.stats",
       "End": true
     }
   }

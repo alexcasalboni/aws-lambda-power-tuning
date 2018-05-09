@@ -10,24 +10,25 @@ module.exports.handler = (event, context, callback) => {
         callback(error);
         throw error;  // TODO useless?
     }
-  
+
     // clean up input event (too much data from previous steps)
-    const prices = event.map(function(p) {
+    const stats = event.map(function (p) {
         return {
             'power': p.value,
-            'cost': p.price
+            'stats': p.stats
         };
     });
 
     // sort by cost
-    prices.sort(function(p1, p2){
-        return p1.cost - p2.cost;}
+    stats.sort(function (p1, p2) {
+        return p1.stats.cost - p2.stats.cost;
+    }
     );
 
-    console.log(prices);  // logging is free, right?
+    console.log(stats);  // logging is free, right?
 
     // just return th first one
-    const cheapest = prices[0];
+    const cheapest = stats[0];
 
     // TODO check for same-cost configuration and improve selection?
 
