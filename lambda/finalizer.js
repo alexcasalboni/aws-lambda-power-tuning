@@ -21,7 +21,7 @@ module.exports.handler = (event, context, callback) => {
 
     // sort by cost
     stats.sort(function (p1, p2) {
-        return p1.stats.cost - p2.stats.cost;
+        return p1.stats.averagePrice - p2.stats.averagePrice;
     }
     );
 

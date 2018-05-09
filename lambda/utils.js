@@ -97,9 +97,9 @@ module.exports.invokeLambda = function (lambdaARN, alias, payload) {
 };
 
 /**
- * Compute average price, given a RAM value and an average duration.
+ * Compute average price and returns with average duration, given a RAM value and an average duration.
  */
-module.exports.computeAveragePrice = function (minCost, minRAM, value, averageDuration) {
+module.exports.computeStats = function (minCost, minRAM, value, averageDuration) {
     // console.log('avg duration: ', averageDuration);
     // compute official price per 100ms
     const pricePer100ms = value * minCost / minRAM;

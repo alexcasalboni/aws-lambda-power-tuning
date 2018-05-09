@@ -9,7 +9,7 @@ const minCost = parseFloat(process.env.minCost);
  * Execute given function N times in parallel, until every invokation is over.
  */
 module.exports.handler = (event, context, callback) => {
-  
+
     // read input from event
     const lambdaARN = event.lambdaARN;
     const value = parseInt(event.value);
@@ -22,7 +22,7 @@ module.exports.handler = (event, context, callback) => {
         callback(error);
         throw error;  // TODO useless?
     }
-    if (!value  || isNaN(value)) {
+    if (!value || isNaN(value)) {
         const error = new Error('Invalid value: ' + value);
         callback(error);
         throw error;  // TODO useless?
@@ -40,7 +40,7 @@ module.exports.handler = (event, context, callback) => {
 
     // create list of promises (same params)
     const lambdaAlias = 'RAM' + value;
-    const invocations = utils.range(num).map(function() {
+    const invocations = utils.range(num).map(function () {
         return utils.invokeLambda.bind(null, lambdaARN, lambdaAlias, payload);
     });
 
@@ -50,15 +50,15 @@ module.exports.handler = (event, context, callback) => {
 
     if (enableParallel) {
         // invoke in parallel
-        queue = Promise.all(invocations.map(function(f) {
+        queue = Promise.all(invocations.map(function (f) {
             return f();
         }));
     } else {
         // invoke in series
-        invocations.forEach(function(invocation) {
+        invocations.forEach(function (invocation) {
             queue = queue
                 .then(invocation)
-                .then(function(result) {
+                .then(function (result) {
                     seriesResults.push(result);
                     return Promise.resolve(null);  // null result!
                 });
@@ -67,16 +67,16 @@ module.exports.handler = (event, context, callback) => {
 
     // proceed with aggregation and cost computation
     return queue
-        .then(function(parallelResults) {
+        .then(function (parallelResults) {
             // aggregate results (either parallel or series)
             return utils.computeAverageDuration(parallelResults || seriesResults);
         })
-        .then(utils.computeAveragePrice.bind(null, minCost, minRAM, value))  // compute price
-        .then(function(price) {
-            callback(null, price);
-            return Promise.resolve(price);
+        .then(utils.computeStats.bind(null, minCost, minRAM, value))  // compute stats
+        .then(function (stats) {
+            callback(null, stats);
+            return Promise.resolve(stats);
         })
-        .catch(function(err) {
+        .catch(function (err) {
             console.error(err);
             callback(err);
         });
