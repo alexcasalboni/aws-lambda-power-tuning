@@ -74,6 +74,7 @@ The AWS Step Functions state machine will return the following outputs:
 
 * **power**: the optimal power configuration
 * **stats**: the corresponding average cost and average duration(per invocation)
+* **cost**: DEPRECATED: the corresponding average cost(per invocation)
 
 
 ## State Machine Internals
