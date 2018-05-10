@@ -15,7 +15,8 @@ module.exports.handler = (event, context, callback) => {
     const stats = event.map(function (p) {
         return {
             'power': p.value,
-            'stats': p.stats
+            'stats': p.stats,
+            'cost': p.stats.averagePrice // deprecated
         };
     });
 
