@@ -9,7 +9,7 @@ const utils = module.exports;
 module.exports.checkLambdaAlias = function (lambdaARN, alias) {
     // console.log('Checking alias ', alias);
     const params = {
-        FunctionName: lambdaARN, 
+        FunctionName: lambdaARN,
         Name: alias,
     };
     const lambda = new AWS.Lambda();
@@ -22,7 +22,7 @@ module.exports.checkLambdaAlias = function (lambdaARN, alias) {
 module.exports.setLambdaPower = function (lambdaARN, value) {
     // console.log('Setting power to ', value);
     const params = {
-        FunctionName: lambdaARN, 
+        FunctionName: lambdaARN,
         MemorySize: parseInt(value),
     };
     const lambda = new AWS.Lambda();
@@ -47,7 +47,7 @@ module.exports.publishLambdaVersion = function (lambdaARN /*, alias*/) {
 module.exports.deleteLambdaVersion = function (lambdaARN, version) {
     // console.log('Deleting version ', version);
     const params = {
-        FunctionName: lambdaARN, 
+        FunctionName: lambdaARN,
         Qualifier: version,
     };
     const lambda = new AWS.Lambda();
@@ -74,7 +74,7 @@ module.exports.createLambdaAlias = function (lambdaARN, alias, version) {
 module.exports.deleteLambdaAlias = function (lambdaARN, alias) {
     // console.log('Deleting alias ', alias);
     const params = {
-        FunctionName: lambdaARN, 
+        FunctionName: lambdaARN,
         Name: alias,
     };
     const lambda = new AWS.Lambda();
@@ -87,7 +87,7 @@ module.exports.deleteLambdaAlias = function (lambdaARN, alias) {
 module.exports.invokeLambda = function (lambdaARN, alias, payload) {
     // console.log('Invoking alias ', alias);
     const params = {
-        FunctionName: lambdaARN, 
+        FunctionName: lambdaARN,
         Qualifier: alias,
         Payload: payload,
         LogType: 'Tail',  // will return logs
@@ -97,9 +97,9 @@ module.exports.invokeLambda = function (lambdaARN, alias, payload) {
 };
 
 /**
- * Compute average price, given a RAM value and an average duration.
+ * Compute average price and returns with average duration, given a RAM value and an average duration.
  */
-module.exports.computeAveragePrice = function (minCost, minRAM, value, averageDuration) {
+module.exports.computeStats = function (minCost, minRAM, value, averageDuration) {
     // console.log('avg duration: ', averageDuration);
     // compute official price per 100ms
     const pricePer100ms = value * minCost / minRAM;
@@ -107,7 +107,7 @@ module.exports.computeAveragePrice = function (minCost, minRAM, value, averageDu
     // quantize price to upper 100ms (billed duration) and compute avg price
     const averagePrice = Math.ceil(averageDuration / 100) * pricePer100ms;
     // console.log('avg price: ', averagePrice);
-    return Promise.resolve(averagePrice);
+    return Promise.resolve({ "averagePrice": averagePrice, "averageDuration": averageDuration });
 };
 
 /**
@@ -123,7 +123,7 @@ module.exports.computeAverageDuration = function (results) {
     const toBeDiscarded = parseInt(results.length * 20 / 100);
 
     // build a list of floats by parsing logs
-    const durations = results.map(function(result) {
+    const durations = results.map(function (result) {
         const log = utils.base64decode(result.LogResult || '');
         return utils.extractDuration(log);
     });
@@ -141,7 +141,7 @@ module.exports.computeAverageDuration = function (results) {
         .slice(toBeDiscarded, -toBeDiscarded)  // discard first/last values
         .reduce(_add, 0)  // sum all together
         / (results.length - 2 * toBeDiscarded)  // divide by N
-    ;
+        ;
 
     return Promise.resolve(averageDuration);
 };
