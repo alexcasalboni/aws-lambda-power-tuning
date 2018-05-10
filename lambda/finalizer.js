@@ -15,14 +15,14 @@ module.exports.handler = (event, context, callback) => {
     const stats = event.map(function (p) {
         return {
             'power': p.value,
-            'stats': p.stats,
-            'cost': p.stats.averagePrice // deprecated
+            'cost': p.stats.averagePrice,
+            'duration': p.stats.averageDuration
         };
     });
 
     // sort by cost
     stats.sort(function (p1, p2) {
-        return p1.stats.averagePrice - p2.stats.averagePrice;
+        return p1.cost - p2.cost;
     }
     );
 

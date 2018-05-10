@@ -329,9 +329,7 @@ describe('Lambda Functions', function () {
                     expect(result).to.be.an('object');
                     expect(result.power).to.be('512');
                     expect(result.cost).to.be(30);
-                    expect(result.stats.averagePrice).to.be(30);
-                    expect(result.stats.averageDuration).to.be(200);
-
+                    expect(result.duration).to.be(200);
                 });
 
         });
