@@ -65,7 +65,7 @@ The AWS Step Functions state machine accepts the following parameters:
 * **lambdaARN** (required, string): ARN of the Lambda Function you want to optimize
 * **num** (required, integer): the # of invocations for each power configuration (recommended: between 10 and 100)
 * **payload** (string or object): the static payload that will be used for every invocation
-* **enableParallel** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `enableParallel` to true)
+* **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
 
 
 ## State Machine Output
@@ -86,7 +86,7 @@ The AWS Step Functions state machine is composed by four Lambda Functions:
 * **cleaner**: delete all the previously generated aliases and versions
 * **finalizer**: compute the optimal power value (current logic: lowest average cost per invocation)
 
-Initializer, cleaner and finalizer are executed only once, while the executor is used by N parallel branches of the state machine (one for each configured power value). By default, the executor will execute the given Lambda Function `num` consecutive times, but you can enable parallel invocation by setting `enableParallel` to `true`.
+Initializer, cleaner and finalizer are executed only once, while the executor is used by N parallel branches of the state machine (one for each configured power value). By default, the executor will execute the given Lambda Function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`. Please note that the total invocation time should stay below 300 seconds (5 min), which means that the average duration of your functions should stay below 3 seconds with `num=100`, 30 seconds with `num=10`, and so on.
 
 ## Contributing
 Contributors and PRs are always welcome!
