@@ -13,6 +13,7 @@ const powerValues = process.env.powerValues.split(',');
 module.exports.handler = (event, context, callback) => {
 
     const lambdaARN = event.lambdaARN;
+    const num = event.num;
 
     if (!lambdaARN) {
         throw new Error('Missing or empty lambdaARN');
@@ -20,6 +21,10 @@ module.exports.handler = (event, context, callback) => {
 
     if (!powerValues.length) {
         throw new Error('Missing or empty env.powerValues');
+    }
+
+    if (!num || num < 5) {
+        throw new Error('Missing num or num below 5')
     }
 
     var queue = Promise.resolve();
