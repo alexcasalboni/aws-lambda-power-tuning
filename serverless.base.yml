@@ -10,8 +10,8 @@ provider:
       Resource: '*'
   environment:
     powerValues: '128,256,512,1024,1536'
-    minRAM: 128
-    minCost: 2.08e-7
+    minRAM: '128'
+    minCost: '0.000000208'
 package:
   include:
     - lambda/**

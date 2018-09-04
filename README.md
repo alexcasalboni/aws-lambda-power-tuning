@@ -63,7 +63,7 @@ Once the execution has completed, you will find the execution results in the "**
 The AWS Step Functions state machine accepts the following parameters:
 
 * **lambdaARN** (required, string): ARN of the Lambda Function you want to optimize
-* **num** (required, integer): the # of invocations for each power configuration (recommended: between 10 and 100)
+* **num** (required, integer): the # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)
 * **payload** (string or object): the static payload that will be used for every invocation
 * **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
 
