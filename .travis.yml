@@ -1,18 +1,14 @@
 language: node_js
 sudo: false
 node_js:
-  - 4.4
-  - 5.11
   - 6.2
   - 8.9
   - 10.6
   - 10.7
-env:
-    - AWS_DEFAULT_REGION=eu-west-1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy BOTO_CONFIG=/dev/null
 install:
   - travis_retry npm install
 script:
   - travis_retry npm test
 after_success:
   - npm run coverage
-  #- coveralls
+  - coveralls
