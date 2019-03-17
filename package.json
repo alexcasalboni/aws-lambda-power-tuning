@@ -21,7 +21,7 @@
   "scripts": {
     "generate": "node ./statemachine/generate.js",
     "test": "mocha",
-    "coverage": "istanbul cover _mocha"
+    "coverage": "istanbul cover _mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
   },
   "dependencies": {
     "commander": "^2.9.0",
@@ -30,6 +30,7 @@
   "devDependencies": {
     "aws-sdk": "^2.40.0",
     "aws-sdk-mock": "^1.6.1",
+    "coveralls": "^3.0.3",
     "expect.js": "^0.3.1",
     "istanbul": "^0.4.5",
     "mocha": "^3.2.0"
