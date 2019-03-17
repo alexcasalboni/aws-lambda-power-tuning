@@ -21,7 +21,7 @@
   "scripts": {
     "generate": "node ./statemachine/generate.js",
     "test": "mocha",
-    "coverage": "istanbul cover _mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
+    "coverage": "istanbul cover _mocha --report lcovonly -- -R spec"
   },
   "dependencies": {
     "commander": "^2.9.0",

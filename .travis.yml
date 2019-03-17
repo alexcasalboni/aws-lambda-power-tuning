@@ -10,4 +10,4 @@ install:
 script:
   - travis_retry npm test
 after_success:
-  - npm run coverage
+  - npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
