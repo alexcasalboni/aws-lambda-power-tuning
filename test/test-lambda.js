@@ -103,17 +103,17 @@ describe('Lambda Functions', function () {
             });
 
             expect(function () {
-                invokeForSuccess(handler, { lambdaARN: 'arnOK' });
+                invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
             }).to.not.throwError();
 
         });
 
         it('should invoke the given cb, when done', function () {
-            return invokeForSuccess(handler, { lambdaARN: 'arnOK' });
+            return invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
         });
 
         it('should create N aliases and verions', function () {
-            return invokeForSuccess(handler, { lambdaARN: 'arnOK' })
+            return invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 })
                 .then(function () {
                     expect(setLambdaPowerCounter).to.be(powerValues.length);
                     expect(publishLambdaVersionCounter).to.be(powerValues.length);
@@ -126,7 +126,7 @@ describe('Lambda Functions', function () {
             utils.checkLambdaAlias = function () {
                 return Promise.resolve({ FunctionVersion: '1' });
             };
-            return invokeForSuccess(handler, { lambdaARN: 'arnOK' });
+            return invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
         });
 
         it('should explode if something goes wrong during power set', function () {
@@ -134,7 +134,7 @@ describe('Lambda Functions', function () {
             utils.setLambdaPower = function () {
                 return Promise.reject(new Error("Something went wrong"));
             };
-            return invokeForFailure(handler, { lambdaARN: 'arnOK' });
+            return invokeForFailure(handler, { lambdaARN: 'arnOK', num: 5 });
         });
 
     });
