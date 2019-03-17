@@ -1,7 +1,7 @@
 service: aws-lambda-power-tuning
 provider:
   name: aws
-  runtime: nodejs4.3
+  runtime: nodejs8.10
   region: us-east-1
   iamRoleStatements:
     - Effect: Allow
