@@ -103,5 +103,3 @@ Contributors and PRs are always welcome!
 ### Tests and coverage
 
 Install dev dependencies with `npm install --dev`. Then run tests with `npm test`, or coverage with `npm run coverage`.
-
-Current test coverage: 95%.
