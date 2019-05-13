@@ -59,6 +59,15 @@ As soon as you click "**Start Execution**", you'll be able to visualize the exec
 
 Once the execution has completed, you will find the execution results in the "**Output**" tab of the "**Execution Details**" section. The output will contain the optimal RAM configuration and its corresponding average cost per execution.
 
+
+## Note about the previous version of this project
+
+This project used to require a generation step to dynamically create the required steps based on which memory/power configurations you wanted to test.
+
+The new version of this project doesn't require any generation step, but you may want to fine-tune the state machine in the `template.yml` file to add additional configurations.
+
+Please note that you can specify a subset of configuration values in the `PowerValues` CloudFormation parameter. Only those configurations will be tested. Even though you will still see them in the stete machine chart, the `executor` steps corresponding to non-tested configurations will not run the input function (they'll be skipped).
+
 ## State Machine Input
 
 The AWS Step Functions state machine accepts the following parameters:
