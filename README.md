@@ -15,7 +15,7 @@ The state machine is designed to be **quick** and **language agnostic**. You can
 
 ## How to deploy the state machine (SAR)
 
-You can find this app in the [Serverless Application Repository](https://console.aws.amazon.com/serverlessrepo/home?region=us-east-1#/published-applications/arn:aws:serverlessrepo:us-east-1:451282441545:applications~aws-lambda-power-tuning) and deploy it with just a few clicks.
+You can find this app in the [Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/arn:aws:serverlessrepo:us-east-1:451282441545:applications~aws-lambda-power-tuning) and deploy it with just a few clicks.
 
 In case you want to deploy it "manually", you can use the commands in `deploy.sh`.
 
