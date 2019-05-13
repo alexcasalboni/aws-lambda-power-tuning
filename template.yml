@@ -1,0 +1,267 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: aws-lambda-power-tuning
+    Description: AWS Step Functions state machine to optimize Lambda functions
+    Author: Alex Casalboni
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: LICENSE.txt
+    ReadmeUrl: README-SAR.md
+    Labels: ['lambda', 'power', 'state-machine', 'step-functions', 'optimization']
+    HomePageUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
+    SemanticVersion: 1.0.1
+    SourceCodeUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
+
+Parameters: 
+  PowerValues: 
+    Type: List<Number>
+    Default: 128,256,512,1024,1536,3008
+    # Default: 128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024,1088,1152,1216,1280,1344,1408,1472,1536,3008
+    # AllowedValues: ['128','192','256','320','384','448','512','576','640','704','768','832','896','960','1024','1088','1152','1216','1280','1344','1408','1472','1536','3008']
+    Description: Comma-separated RAM values.
+
+Globals:
+  Function:
+    Runtime: nodejs8.10
+    Timeout: 60
+    MemorySize: 128
+    Environment:
+      Variables:
+        powerValues: !Join [ ",", !Ref PowerValues ]
+        minRAM: '128'
+        minCost: '0.000000208'
+
+Resources:
+
+  initializer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 300
+      CodeUri: lambda
+      Handler: initializer.handler
+      Policies:
+        - AWSLambdaExecute # Managed Policy
+        - Version: '2012-10-17' # Policy Document
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:*
+              Resource: '*'
+
+  executor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: executor.handler
+      Policies:
+        - AWSLambdaExecute # Managed Policy
+        - Version: '2012-10-17' # Policy Document
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:*
+              Resource: '*'
+
+  cleaner:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: cleaner.handler
+      Policies:
+        - AWSLambdaExecute # Managed Policy
+        - Version: '2012-10-17' # Policy Document
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:*
+              Resource: '*'
+
+  finalizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: finalizer.handler
+      Policies:
+        - AWSLambdaExecute # Managed Policy
+        - Version: '2012-10-17' # Policy Document
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:*
+              Resource: '*'
+
+  statemachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+
+  powerTuningStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt statemachineRole.Arn
+      DefinitionString:
+        !Sub
+          - '
+            {
+              "Comment": "AWS Lambda Power Tuning state machine",
+              "StartAt": "Initializer",
+              "States": {
+                  "Initializer": {
+                      "Type": "Task",
+                      "Resource": "${initializerArn}",
+                      "Next": "Branching",
+                      "ResultPath": "$.OK"
+                  },
+                  "Branching": {
+                      "Type": "Parallel",
+                      "Next": "After Branching",
+                      "Branches": [
+                          {
+                              "StartAt": "128MB",
+                              "States": {
+                                  "128MB": {
+                                      "Type": "Pass",
+                                      "Result": "128",
+                                      "ResultPath": "$.value",
+                                      "Next": "128MB Executor"
+                                  },
+                                  "128MB Executor": {
+                                      "Type": "Task",
+                                      "Resource": "${executorArn}",
+                                      "ResultPath": "$.stats",
+                                      "End": true
+                                  }
+                              }
+                          },
+                          {
+                              "StartAt": "256MB",
+                              "States": {
+                                  "256MB": {
+                                      "Type": "Pass",
+                                      "Result": "256",
+                                      "ResultPath": "$.value",
+                                      "Next": "256MB Executor"
+                                  },
+                                  "256MB Executor": {
+                                      "Type": "Task",
+                                      "Resource": "${executorArn}",
+                                      "ResultPath": "$.stats",
+                                      "End": true
+                                  }
+                              }
+                          },
+                          {
+                              "StartAt": "512MB",
+                              "States": {
+                                  "512MB": {
+                                      "Type": "Pass",
+                                      "Result": "512",
+                                      "ResultPath": "$.value",
+                                      "Next": "512MB Executor"
+                                  },
+                                  "512MB Executor": {
+                                      "Type": "Task",
+                                      "Resource": "${executorArn}",
+                                      "ResultPath": "$.stats",
+                                      "End": true
+                                  }
+                              }
+                          },
+                          {
+                              "StartAt": "1024MB",
+                              "States": {
+                                  "1024MB": {
+                                      "Type": "Pass",
+                                      "Result": "1024",
+                                      "ResultPath": "$.value",
+                                      "Next": "1024MB Executor"
+                                  },
+                                  "1024MB Executor": {
+                                      "Type": "Task",
+                                      "Resource": "${executorArn}",
+                                      "ResultPath": "$.stats",
+                                      "End": true
+                                  }
+                              }
+                          },
+                          {
+                              "StartAt": "1536MB",
+                              "States": {
+                                  "1536MB": {
+                                      "Type": "Pass",
+                                      "Result": "1536",
+                                      "ResultPath": "$.value",
+                                      "Next": "1536MB Executor"
+                                  },
+                                  "1536MB Executor": {
+                                      "Type": "Task",
+                                      "Resource": "${executorArn}",
+                                      "ResultPath": "$.stats",
+                                      "End": true
+                                  }
+                              }
+                          },
+                          {
+                              "StartAt": "3008MB",
+                              "States": {
+                                  "3008MB": {
+                                      "Type": "Pass",
+                                      "Result": "3008",
+                                      "ResultPath": "$.value",
+                                      "Next": "3008MB Executor"
+                                  },
+                                  "3008MB Executor": {
+                                      "Type": "Task",
+                                      "Resource": "${executorArn}",
+                                      "ResultPath": "$.stats",
+                                      "End": true
+                                  }
+                              }
+                          }
+                      ]
+                  },
+                  "After Branching": {
+                      "Type": "Parallel",
+                      "End": true,
+                      "Branches": [
+                          {
+                              "StartAt": "Finalizer",
+                              "States": {
+                                  "Finalizer": {
+                                      "Type": "Task",
+                                      "Resource": "${finalizerArn}",
+                                      "End": true
+                                  }
+                              }
+                          },
+                          {
+                              "StartAt": "Cleaner",
+                              "States": {
+                                  "Cleaner": {
+                                      "Type": "Task",
+                                      "InputPath": "$[0]",
+                                      "ResultPath": null,
+                                      "OutputPath": null,
+                                      "Resource": "${cleanerArn}",
+                                      "End": true
+                                  }
+                              }
+                          }
+                      ]
+                  }
+              }
+          }'
+          - initializerArn: !GetAtt initializer.Arn
+            executorArn: !GetAtt executor.Arn
+            cleanerArn: !GetAtt cleaner.Arn
+            finalizerArn: !GetAtt finalizer.Arn
