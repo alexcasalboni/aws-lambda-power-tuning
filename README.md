@@ -1,4 +1,4 @@
-# AWS Lambda Power Tuning - made with [![serverless](http://public.serverless.com/badges/v3.svg)](http://www.serverless.com)
+# AWS Lambda Power Tuning
 
 [![Build Status](https://travis-ci.com/alexcasalboni/aws-lambda-power-tuning.svg?branch=master)](https://travis-ci.org/alexcasalboni/aws-lambda-power-tuning)
 [![Coverage Status](https://coveralls.io/repos/github/alexcasalboni/aws-lambda-power-tuning/badge.svg)](https://coveralls.io/github/alexcasalboni/aws-lambda-power-tuning)
@@ -8,51 +8,43 @@
 [![Open Source Love svg2](https://badges.frapsoft.com/os/v2/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
 [![GitHub stars](https://img.shields.io/github/stars/alexcasalboni/aws-lambda-power-tuning.svg)](https://github.com/alexcasalboni/aws-lambda-power-tuning/stargazers)
 
-Step Functions state machine generator for AWS Lambda Power Tuning.
+AWS Lambda Power Tuning is an AWS Step Functions state machine that helps you optimize your Lambda functions in a data-driven way.
 
-The state machine is designed to be **quick** and **language agnostic**. You can provide **any Lambda Function as input** and the state machine will **estimate the best power configuration to minimize cost**. Your Lambda Function will be executed in your AWS account (i.e. real HTTP calls, SDK calls, cold starts, etc.) and you can enable parallel execution to generate results in just a few seconds.
-
-
-## How to deploy the state machine
-
-First, install the Serverless Framework and configure your AWS credentials:
+The state machine is designed to be **quick** and **language agnostic**. You can provide **any Lambda Function as input** and the state machine will **estimate the best power configuration to minimize cost**. The function will be executed in your AWS account (i.e. real HTTP calls, SDK calls, cold starts, etc.) and you can enable parallel execution to generate results in just a few seconds.
 
 
-```
-$ npm install serverless -g
-$ serverless config credentials --provider aws --key XXX --secret YYY
-```
+## How to deploy the state machine (SAR)
 
-Now, you can quickly install this service as follows:
+You can find this app in the Serverless Application Repository and deploy it with just a few clicks.
+
+In case you want to deploy it "manually", you can use the commands in `deploy.sh`.
+
+First, install AWS SAM and configure your AWS credentials:
+
 
 ```
-$ serverless install -u https://github.com/alexcasalboni/aws-lambda-power-tuning
+$ pip install aws-sam-cli
+$ aws configure
 ```
 
-The Serverless Framework will download and unzip the repository, but it won't install dependencies. Don't forget to install npm dependencies before generating the state machine:
+Now, you can clone this repo as follows:
 
 ```
-$ cd aws-lambda-power-tuning
-$ npm install
+$ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
 ```
 
-Then you can generate the dynamic state machine by providing your AWS Account ID. Optionally, you can specify the AWS region and a comma-separated list of RAM values:
+Configure your bucket name and stack name in the deployment script, and then run it:
 
 ```
-$ npm run generate -- -A ACCOUNT_ID [-R eu-west-1] [-P 128,256,512,1024]
+$ bash deploy.sh
 ```
 
-Finally, you can deploy everything:
-
-```
-$ serverless deploy
-```
 
 ## How to execute the state machine
 
-Once the state machine and all the Lambda Functions have been deployed, you will need to execute the state machine and provide an input object.
+Once the state machine and all the Lambda Functions have been deployed, you can execute the state machine and provide an input object.
 
-You will find the new state machine [here](https://console.aws.amazon.com/states/). Enter the state machine named **LambdaPowerStateMachine** and click "**New execution**". Here you can provide the execution input and an execution id (see section below for the full documentation):
+You will find the new state machine [here](https://console.aws.amazon.com/states/). The state machine name will depend on the stack name (default: `aws-lambda-power-tuning`), find it and click "**New execution**". Here you can provide the execution input and an execution id (see section below for the full documentation):
 
 ```
 {
@@ -61,7 +53,7 @@ You will find the new state machine [here](https://console.aws.amazon.com/states
 }
 ```
 
-As soon as you click "**Start Execution**", you'll be able to follow the execution flow on the state machine chart. Here is a sample screenshot:
+As soon as you click "**Start Execution**", you'll be able to visualize the execution. Here is a sample screenshot:
 
 ![state-machine](state-machine-screenshot.png?raw=true)
 
