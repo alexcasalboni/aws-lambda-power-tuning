@@ -4,6 +4,7 @@ const utils = require('./utils');
 
 const minRAM = parseInt(process.env.minRAM);
 const minCost = parseFloat(process.env.minCost);
+const powerValues = process.env.powerValues.split(',');
 
 /**
  * Execute given function N times in parallel, until every invokation is over.
@@ -31,6 +32,11 @@ module.exports.handler = (event, context, callback) => {
         const error = new Error('Invalid num: ' + num);
         callback(error);
         throw error;  // TODO useless?
+    }
+    if (powerValues.indexOf(event.value) === -1) {
+        console.log("Not executing for " + value);
+        callback(null, "Not executing");
+        return Promise.resolve("Not executing");
     }
 
     if (typeof payload !== 'string' && typeof payload !== 'undefined') {

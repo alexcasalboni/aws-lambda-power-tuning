@@ -13,11 +13,13 @@ module.exports.handler = (event, context, callback) => {
 
     // clean up input event (too much data from previous steps)
     const stats = event.map(function (p) {
-        return {
-            'power': p.value,
-            'cost': p.stats.averagePrice,
-            'duration': p.stats.averageDuration
-        };
+        if (p.stats && p.stats.averageDuration) {  // handle empty results from executor
+            return {
+                'power': p.value,
+                'cost': p.stats.averagePrice,
+                'duration': p.stats.averageDuration
+            };
+        }
     });
 
     // sort by cost

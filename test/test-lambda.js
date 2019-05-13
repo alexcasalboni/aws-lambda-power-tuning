@@ -239,7 +239,7 @@ describe('Lambda Functions', function () {
         it('should invoke the given cb, when done', function () {
             return invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
-                value: 128,
+                value: '128',
                 num: 10,
             });
         });
@@ -247,7 +247,7 @@ describe('Lambda Functions', function () {
         it('should invoke the given cb, when done (parallelInvocation)', function () {
             return invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
-                value: 128,
+                value: '128',
                 num: 10,
                 parallelInvocation: true
             });
@@ -256,9 +256,19 @@ describe('Lambda Functions', function () {
         it('should invoke the given cb, when done (custom payload)', function () {
             return invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
-                value: 128,
+                value: '128',
                 num: 10,
                 payload: { key1: 'value1', key2: 'value2' },
+            });
+        });
+
+        it('should not execute lambda if missing power config', function () {
+            return invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                value: '1536',  // not in env var
+                num: 10,
+            }).then(function () {
+                expect(invokeLambdaCounter).to.be(0);
             });
         });
 
@@ -266,7 +276,7 @@ describe('Lambda Functions', function () {
             it('should invoke Lambda ' + num + ' time(s)', function () {
                 return invokeForSuccess(handler, {
                     lambdaARN: 'arnOK',
-                    value: 128,
+                    value: '128',
                     num: num,
                 }).then(function () {
                     expect(invokeLambdaCounter).to.be(num);
@@ -275,7 +285,7 @@ describe('Lambda Functions', function () {
             it('should invoke Lambda ' + num + ' time(s) in parallel', function () {
                 return invokeForSuccess(handler, {
                     lambdaARN: 'arnOK',
-                    value: 128,
+                    value: '128',
                     num: num,
                     parallelInvocation: true,
                 }).then(function () {
@@ -287,7 +297,7 @@ describe('Lambda Functions', function () {
         it('should return price as output', function () {
             return invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
-                value: 128,
+                value: '128',
                 num: 10,
             }).then(function (stats) {
                 expect(stats.averagePrice).to.be.a('number');
