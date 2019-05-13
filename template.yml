@@ -1,6 +1,19 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: aws-lambda-power-tuning
+    Description: AWS Step Functions state machine to optimize Lambda functions
+    Author: Alex Casalboni
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: LICENSE.txt
+    ReadmeUrl: README.md
+    Labels: ['lambda', 'state machine', 'step functions', 'optimization']
+    HomePageUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
+    SemanticVersion: 1.0.0
+    SourceCodeUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
+
 Parameters: 
   PowerValues: 
     Type: List<Number>
