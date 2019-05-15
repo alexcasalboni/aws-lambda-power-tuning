@@ -39,7 +39,7 @@ describe('Lambda Utils', function () {
     promises.forEach(function (func) {
         describe(_fname(func), function () {
             it('should return a promise', function () {
-                var res = func.bind(null, 'test', 'test', 'test');
+                var res = func.bind(null, 'arn:aws:lambda:us-east-1:XXX:function:YYY', 'test', 'test');
                 expect(res()).to.be.a(Promise);
             });
             // TODO add more tests!
@@ -142,6 +142,18 @@ describe('Lambda Utils', function () {
         it('should explode when called with invalid arguments', function () {
             [-1, -2, -Infinity, Infinity, null, undefined].forEach(function (val) {
                 expect(utils.range.bind(null, val)).to.throwError();
+            });
+        });
+    });
+
+    describe('lambdaClientFromARN', function () {
+        it('should return the region name', function () {
+            arn = "arn:aws:lambda:us-east-1:XXX:function:YYY"
+            expect(utils.lambdaClientFromARN(arn).config.region).to.be('us-east-1');
+    });
+        [undefined, null, 0, 10, "", "arn:aws", {}].forEach(function (arn) {
+            it('should explode when called with "' + arn + '"', function () {
+                expect(utils.lambdaClientFromARN.bind(null, arn)).to.throwError();
             });
         });
     });

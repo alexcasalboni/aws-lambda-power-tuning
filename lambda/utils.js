@@ -12,7 +12,7 @@ module.exports.checkLambdaAlias = function (lambdaARN, alias) {
         FunctionName: lambdaARN,
         Name: alias,
     };
-    const lambda = new AWS.Lambda();
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.getAlias(params).promise();
 };
 
@@ -25,7 +25,7 @@ module.exports.setLambdaPower = function (lambdaARN, value) {
         FunctionName: lambdaARN,
         MemorySize: parseInt(value),
     };
-    const lambda = new AWS.Lambda();
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.updateFunctionConfiguration(params).promise();
 };
 
@@ -37,7 +37,7 @@ module.exports.publishLambdaVersion = function (lambdaARN /*, alias*/) {
     const params = {
         FunctionName: lambdaARN,
     };
-    const lambda = new AWS.Lambda();
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.publishVersion(params).promise();
 };
 
@@ -50,7 +50,7 @@ module.exports.deleteLambdaVersion = function (lambdaARN, version) {
         FunctionName: lambdaARN,
         Qualifier: version,
     };
-    const lambda = new AWS.Lambda();
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.deleteFunction(params).promise();
 };
 
@@ -64,7 +64,7 @@ module.exports.createLambdaAlias = function (lambdaARN, alias, version) {
         FunctionVersion: version,
         Name: alias,
     };
-    const lambda = new AWS.Lambda();
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.createAlias(params).promise();
 };
 
@@ -77,7 +77,7 @@ module.exports.deleteLambdaAlias = function (lambdaARN, alias) {
         FunctionName: lambdaARN,
         Name: alias,
     };
-    const lambda = new AWS.Lambda();
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.deleteAlias(params).promise();
 };
 
@@ -92,7 +92,7 @@ module.exports.invokeLambda = function (lambdaARN, alias, payload) {
         Payload: payload,
         LogType: 'Tail',  // will return logs
     };
-    const lambda = new AWS.Lambda();
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.invoke(params).promise();
 };
 
@@ -174,3 +174,11 @@ module.exports.range = function (n) {
     }
     return Array.from(Array(n).keys());
 };
+
+module.exports.lambdaClientFromARN = function (lambdaARN) {
+    if (typeof lambdaARN !== "string" || lambdaARN.split(':').length !== 7) {
+        throw new Error("Invalid ARN: " + lambdaARN);
+    }
+    region = lambdaARN.split(':')[3];
+    return new AWS.Lambda({region: region});
+}
