@@ -14,6 +14,8 @@ The state machine is designed to be **quick** and **language agnostic**. You can
 
 The input function will be executed in your AWS account (i.e. real HTTP calls, SDK calls, cold starts, etc.). The state machine also supports cross-region access and you can enable parallel execution to generate results in just a few seconds.
 
+![state-machine](state-machine-screenshot.png?raw=true)
+
 
 ## How to deploy the state machine (SAR)
 
@@ -59,9 +61,7 @@ Here you can provide the execution input and an execution id (see section below 
 }
 ```
 
-As soon as you click "**Start Execution**" again, you'll be able to visualize the execution. Here is a sample screenshot:
-
-![state-machine](state-machine-screenshot.png?raw=true)
+As soon as you click "**Start Execution**" again, you'll be able to visualize the execution.
 
 Once the execution has completed, you will find the execution results in the "**Output**" tab of the "**Execution Details**" section. The output will contain the optimal power configuration and its corresponding average cost per execution.
 
