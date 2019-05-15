@@ -17,11 +17,15 @@ The input function will be executed in your AWS account (i.e. real HTTP calls, S
 ![state-machine](state-machine-screenshot.png?raw=true)
 
 
-## How to deploy the state machine (SAR)
+## How to deploy the state machine (AWS Serverless Application Repository)
 
 You can find this app in the [Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/arn:aws:serverlessrepo:us-east-1:451282441545:applications~aws-lambda-power-tuning) and deploy it with just a few clicks.
 
-In case you want to deploy it "manually", you can use the commands in `deploy.sh`.
+## How to deploy the state machine (AWS SAM)
+
+In case you want to deploy it "manually", you can run `deploy.sh`.
+
+The script uses AWS SAM CLI to create a new CloudFormation stack in your account.
 
 First, install AWS SAM and configure your AWS credentials:
 
@@ -31,13 +35,23 @@ $ pip install aws-sam-cli
 $ aws configure
 ```
 
-Now, you can clone this repo as follows:
+Now, you can clone this repository as follows:
 
 ```
 $ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
 ```
 
-Configure your bucket name and stack name in the deployment script, and then run it:
+Configure your bucket name and stack name in the deployment script: 
+
+
+```
+# config
+BUCKET_NAME=your-sam-templates-bucket
+STACK_NAME=lambda-power-tuning
+PowerValues='128,512,1024,1536,3008'
+```
+
+You can finally run it:
 
 ```
 $ bash deploy.sh

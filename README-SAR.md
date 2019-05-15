@@ -7,33 +7,6 @@ The state machine is designed to be **quick** and **language agnostic**. You can
 The input function will be executed in your AWS account (i.e. real HTTP calls, SDK calls, cold starts, etc.). The state machine also supports cross-region access and you can enable parallel execution to generate results in just a few seconds.
 
 
-## How to deploy the state machine (SAR)
-
-You can find this app in the Serverless Application Repository and deploy it with just a few clicks.
-
-In case you want to deploy it "manually", you can use the commands in `deploy.sh`.
-
-First, install AWS SAM and configure your AWS credentials:
-
-
-```
-$ pip install aws-sam-cli
-$ aws configure
-```
-
-Now, you can clone this repo as follows:
-
-```
-$ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
-```
-
-Configure your bucket name and stack name in the deployment script, and then run it:
-
-```
-$ bash deploy.sh
-```
-
-
 ## How to execute the state machine
 
 Once the state machine and all the Lambda Functions have been deployed, you can execute the state machine and provide an input object.
