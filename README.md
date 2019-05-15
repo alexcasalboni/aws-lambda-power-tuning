@@ -10,7 +10,7 @@
 
 AWS Lambda Power Tuning is an AWS Step Functions state machine that helps you optimize your Lambda functions in a data-driven way.
 
-The state machine is designed to be **quick** and **language agnostic**. You can provide **any Lambda Function as input** and the state machine will **estimate the best power configuration to minimize cost**. The function will be executed in your AWS account (i.e. real HTTP calls, SDK calls, cold starts, etc.) and you can enable parallel execution to generate results in just a few seconds.
+The state machine is designed to be **quick** and **language agnostic**. You can provide **any Lambda Function as input** and the state machine will **run it with multiple power configurations in parallel and estimate the best configuration to minimize cost**. The function will be executed in your AWS account (i.e. real HTTP calls, SDK calls, cold starts, etc.) and you can enable parallel execution to generate results in just a few seconds.
 
 
 ## How to deploy the state machine (SAR)
