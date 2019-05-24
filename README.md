@@ -119,6 +119,15 @@ The new version of this project doesn't require any generation step, but you may
 Please note that you can specify a subset of configuration values in the `PowerValues` CloudFormation parameter. Only those configurations will be tested. Even though you will still see them in the stete machine chart, the `executor` steps corresponding to non-tested configurations will not run the input function (they'll be skipped).
 
 
+## CHANGELOG (SAR versioning)
+
+* *1.2.0*: updated IAM permissions (least privilege for actions)
+* *1.1.1*: updated docs
+* *1.1.0*: cross-region invocation support
+* *1.0.1*: new README for SAR
+* *1.0.0*: AWS SAM refactor (published on SAR)
+* *0.0.1*: previous project (serverless framework)
+
 ## Contributing
 Contributors and PRs are always welcome!
 

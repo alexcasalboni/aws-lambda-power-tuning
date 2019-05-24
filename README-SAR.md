@@ -56,3 +56,13 @@ The AWS Step Functions state machine is composed of four Lambda functions:
 * **finalizer**: compute the optimal power value (current logic: lowest average cost per invocation)
 
 Initializer, cleaner and finalizer are executed only once, while the executor is used by N parallel branches of the state machine (one for each configured power value). By default, the executor will execute the given Lambda function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`. Please note that the total invocation time should stay below 300 seconds (5 min), which means that the average duration of your functions should stay below 3 seconds with `num=100`, 30 seconds with `num=10`, and so on.
+
+
+## CHANGELOG (SAR versioning)
+
+* *1.2.0*: updated IAM permissions (least privilege for actions)
+* *1.1.1*: updated docs
+* *1.1.0*: cross-region invocation support
+* *1.0.1*: new README for SAR
+* *1.0.0*: AWS SAM refactor (published on SAR)
+* *0.0.1*: previous project (serverless framework)
