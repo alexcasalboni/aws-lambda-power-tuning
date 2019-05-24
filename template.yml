@@ -47,7 +47,10 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - lambda:*
+                - lambda:GetAlias
+                - lambda:PublishVersion
+                - lambda:UpdateFunctionConfiguration
+                - lambda:CreateAlias
               Resource: '*'
 
   executor:
