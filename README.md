@@ -58,7 +58,11 @@ $ bash deploy.sh
 ```
 
 
-## How to execute the state machine
+## How to execute the state machine (programmatically)
+
+You can simply run the `execute.sh` script. It will start a state machine execution, wait for the execution to complete, and then show the execution result in case of success.
+
+## How to execute the state machine (manually)
 
 Once the state machine and all the Lambda functions have been deployed, you can execute the state machine and provide an input object.
 
