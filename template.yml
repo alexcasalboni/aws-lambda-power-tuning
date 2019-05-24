@@ -78,7 +78,9 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - lambda:*
+                - lambda:GetAlias
+                - lambda:DeleteAlias
+                - lambda:DeleteFunction  # only by version/qualifier
               Resource: '*'
 
   finalizer:
