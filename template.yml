@@ -265,3 +265,7 @@ Resources:
             executorArn: !GetAtt executor.Arn
             cleanerArn: !GetAtt cleaner.Arn
             finalizerArn: !GetAtt finalizer.Arn
+
+Outputs:
+  StateMachineARN:
+    Value: !Ref powerTuningStateMachine
