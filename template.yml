@@ -61,7 +61,7 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - lambda:*
+                - lambda:InvokeFunction
               Resource: '*'
 
   cleaner:
