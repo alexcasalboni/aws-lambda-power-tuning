@@ -85,12 +85,6 @@ Resources:
       Handler: finalizer.handler
       Policies:
         - AWSLambdaExecute # Managed Policy
-        - Version: '2012-10-17' # Policy Document
-          Statement:
-            - Effect: Allow
-              Action:
-                - lambda:*
-              Resource: '*'
 
   statemachineRole:
     Type: AWS::IAM::Role
