@@ -47,7 +47,10 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - lambda:*
+                - lambda:GetAlias
+                - lambda:PublishVersion
+                - lambda:UpdateFunctionConfiguration
+                - lambda:CreateAlias
               Resource: '*'
 
   executor:
@@ -61,7 +64,7 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - lambda:*
+                - lambda:InvokeFunction
               Resource: '*'
 
   cleaner:
@@ -75,7 +78,9 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - lambda:*
+                - lambda:GetAlias
+                - lambda:DeleteAlias
+                - lambda:DeleteFunction  # only by version/qualifier
               Resource: '*'
 
   finalizer:
@@ -85,12 +90,6 @@ Resources:
       Handler: finalizer.handler
       Policies:
         - AWSLambdaExecute # Managed Policy
-        - Version: '2012-10-17' # Policy Document
-          Statement:
-            - Effect: Allow
-              Action:
-                - lambda:*
-              Resource: '*'
 
   statemachineRole:
     Type: AWS::IAM::Role
