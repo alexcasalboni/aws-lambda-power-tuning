@@ -7,7 +7,7 @@ const utils = module.exports;
  * Check whether a Lambda Alias exists or not, and return its data.
  */
 module.exports.checkLambdaAlias = (lambdaARN, alias) => {
-    // console.log('Checking alias ', alias);
+    console.log('Checking alias ', alias);
     const params = {
         FunctionName: lambdaARN,
         Name: alias,
@@ -20,7 +20,7 @@ module.exports.checkLambdaAlias = (lambdaARN, alias) => {
  * Update a given Lambda Function's memory size (always $LATEST version).
  */
 module.exports.setLambdaPower = (lambdaARN, value) => {
-    // console.log('Setting power to ', value);
+    console.log('Setting power to ', value);
     const params = {
         FunctionName: lambdaARN,
         MemorySize: parseInt(value),
@@ -33,7 +33,7 @@ module.exports.setLambdaPower = (lambdaARN, value) => {
  * Publish a new Lambda Version (version number will be returned).
  */
 module.exports.publishLambdaVersion = (lambdaARN /*, alias*/) => {
-    // console.log('Publishing version for ', alias);
+    console.log('Publishing new version');
     const params = {
         FunctionName: lambdaARN,
     };
@@ -45,7 +45,7 @@ module.exports.publishLambdaVersion = (lambdaARN /*, alias*/) => {
  * Delete a given Lambda Version.
  */
 module.exports.deleteLambdaVersion = (lambdaARN, version) => {
-    // console.log('Deleting version ', version);
+    console.log('Deleting version ', version);
     const params = {
         FunctionName: lambdaARN,
         Qualifier: version,
@@ -58,7 +58,7 @@ module.exports.deleteLambdaVersion = (lambdaARN, version) => {
  * Create a new Lambda Alias and associate it with the given Lambda Version.
  */
 module.exports.createLambdaAlias = (lambdaARN, alias, version) => {
-    // console.log('Creating Alias ', alias);
+    console.log('Creating Alias ', alias);
     const params = {
         FunctionName: lambdaARN,
         FunctionVersion: version,
@@ -69,10 +69,24 @@ module.exports.createLambdaAlias = (lambdaARN, alias, version) => {
 };
 
 /**
+ * Create a new Lambda Alias and associate it with the given Lambda Version.
+ */
+module.exports.updateLambdaAlias = (lambdaARN, alias, version) => {
+    console.log('Updating Alias ', alias);
+    const params = {
+        FunctionName: lambdaARN,
+        FunctionVersion: version,
+        Name: alias,
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    return lambda.updateAlias(params).promise();
+};
+
+/**
  * Delete a given Lambda Alias.
  */
 module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
-    // console.log('Deleting alias ', alias);
+    console.log('Deleting alias ', alias);
     const params = {
         FunctionName: lambdaARN,
         Name: alias,
@@ -85,7 +99,7 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
  * Invoke a given Lambda Function:Alias with payload and return its logs.
  */
 module.exports.invokeLambda = (lambdaARN, alias, payload) => {
-    // console.log('Invoking alias ', alias);
+    console.log('Invoking alias ', alias);
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
@@ -100,13 +114,11 @@ module.exports.invokeLambda = (lambdaARN, alias, payload) => {
  * Compute average price and returns with average duration, given a RAM value and an average duration.
  */
 module.exports.computeStats = (minCost, minRAM, value, averageDuration) => {
-    // console.log('avg duration: ', averageDuration);
     // compute official price per 100ms
     const pricePer100ms = value * minCost / minRAM;
-    // console.log('price for 100ms: ', pricePer100ms);
     // quantize price to upper 100ms (billed duration) and compute avg price
     const averagePrice = Math.ceil(averageDuration / 100) * pricePer100ms;
-    // console.log('avg price: ', averagePrice);
+
     return {
         "averagePrice": averagePrice,
         "averageDuration": averageDuration,
@@ -117,7 +129,6 @@ module.exports.computeStats = (minCost, minRAM, value, averageDuration) => {
  * Copute average duration
  */
 module.exports.computeAverageDuration = (results) => {
-
     if (!results || !results.length) {
         return 0;
     }
@@ -144,7 +155,7 @@ module.exports.computeAverageDuration = (results) => {
         .slice(toBeDiscarded, -toBeDiscarded)  // discard first/last values
         .reduce(_add, 0)  // sum all together
         / (results.length - 2 * toBeDiscarded)  // divide by N
-        ;
+    ;
 
     return averageDuration;
 };
