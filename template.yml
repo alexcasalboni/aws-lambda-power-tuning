@@ -51,6 +51,7 @@ Resources:
                 - lambda:PublishVersion
                 - lambda:UpdateFunctionConfiguration
                 - lambda:CreateAlias
+                - lambda:UpdateAlias
               Resource: '*'
 
   executor:
