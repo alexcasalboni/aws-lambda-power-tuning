@@ -1,41 +1,48 @@
 'use strict';
 
 /**
- * Receive avg prices and decides which config works better.
+ * Receive average cost and decide which power config wins.
  */
-module.exports.handler = (event, context, callback) => {
+module.exports.handler = async(event, context) => {
 
     if (!Array.isArray(event) || !event.length) {
-        const error = new Error('Wrong input ' + JSON.stringify(event));
-        callback(error);
-        throw error;  // TODO useless?
+        throw new Error('Wrong input ' + JSON.stringify(event));
     }
 
-    // clean up input event (too much data from previous steps)
-    const stats = event.map(function (p) {
-        if (p.stats && p.stats.averageDuration) {  // handle empty results from executor
+    // extract from input event
+    const stats = extractStatistics(event);
+
+    // compute optimal configuration
+    const optimal = findCheapest(stats);
+
+    // TODO add more "optimal" strategies besides cheapest?
+
+    return optimal;
+};
+
+
+const extractStatistics = (event) => {
+    return event.map(p => {
+        // handle empty results from executor
+        if (p.stats && p.stats.averageDuration) {
             return {
-                'power': p.value,
-                'cost': p.stats.averagePrice,
-                'duration': p.stats.averageDuration
+                power: p.value,
+                cost: p.stats.averagePrice,
+                duration: p.stats.averageDuration,
             };
         }
     });
+};
 
+const findCheapest = (stats) => {
     // sort by cost
-    stats.sort(function (p1, p2) {
+    stats.sort((p1, p2) => {
         return p1.cost - p2.cost;
-    }
-    );
+    });
 
-    console.log(stats);  // logging is free, right?
+    // logging is free, right?
+    console.log('Stats: ', stats);
 
-    // just return th first one
-    const cheapest = stats[0];
-
-    // TODO check for same-cost configuration and improve selection?
-
-    callback(null, cheapest);
-    return Promise.resolve(cheapest);
-
+    // just return the first one
+    return stats[0];
 };

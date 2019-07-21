@@ -2,88 +2,95 @@
 
 const utils = require('./utils');
 
-const minRAM = parseInt(process.env.minRAM);
+const minRAM = parseInt(process.env.minRAM, 10);
 const minCost = parseFloat(process.env.minCost);
 const powerValues = process.env.powerValues.split(',');
 
 /**
- * Execute given function N times in parallel, until every invokation is over.
+ * Execute the given function N times in series or in parallel.
+ * Then compute execution statistics (averate cost and duration).
  */
-module.exports.handler = (event, context, callback) => {
-
+module.exports.handler = async(event, context) => {
     // read input from event
-    const lambdaARN = event.lambdaARN;
-    const value = parseInt(event.value);
-    const num = parseInt(event.num);
-    const enableParallel = event.parallelInvocation || false;
-    var payload = event.payload;
+    const {lambdaARN, value, num, enableParallel, payload} = extractDataFromInput(event);
 
+    validateInput(lambdaARN, value, num); // may throw
+
+    if (powerValues.indexOf('' + value) === -1) {
+        console.log('Not executing for ' + value);
+        return 'Not executing for ' + value;
+    }
+
+    const lambdaAlias = 'RAM' + value;
+    let results;
+
+    if (enableParallel) {
+        results = await runInParallel(num, lambdaARN, lambdaAlias, payload);
+    } else {
+        results = await runInSeries(num, lambdaARN, lambdaAlias, payload);
+    }
+
+    return computeStatistics(results, value);
+};
+
+const validateInput = (lambdaARN, value, num) => {
     if (!lambdaARN) {
-        const error = new Error('Missing or empty lambdaARN');
-        callback(error);
-        throw error;  // TODO useless?
+        throw new Error('Missing or empty lambdaARN');
     }
     if (!value || isNaN(value)) {
-        const error = new Error('Invalid value: ' + value);
-        callback(error);
-        throw error;  // TODO useless?
+        throw new Error('Invalid value: ' + value);
     }
     if (!num || isNaN(num)) {
-        const error = new Error('Invalid num: ' + num);
-        callback(error);
-        throw error;  // TODO useless?
+        throw new Error('Invalid num: ' + num);
     }
-    if (powerValues.indexOf(event.value) === -1) {
-        console.log("Not executing for " + value);
-        callback(null, "Not executing");
-        return Promise.resolve("Not executing");
-    }
+};
 
+const extractDataFromInput = (event) => {
+    return {
+        lambdaARN: event.lambdaARN,
+        value: parseInt(event.value, 10),
+        num: parseInt(event.num, 10),
+        enableParallel: !!event.parallelInvocation,
+        payload: convertPayload(event.payload),
+    };
+};
+
+const convertPayload = (payload) => {
     if (typeof payload !== 'string' && typeof payload !== 'undefined') {
         console.log('Converting payload to string from ', typeof payload);
         payload = JSON.stringify(payload);
     }
+    return payload;
+};
 
-    // create list of promises (same params)
-    const lambdaAlias = 'RAM' + value;
-    const invocations = utils.range(num).map(function () {
-        return utils.invokeLambda.bind(null, lambdaARN, lambdaAlias, payload);
+const runInParallel = async(num, lambdaARN, lambdaAlias, payload) => {
+    const results = [];
+    // run all invocations in parallel ...
+    const invocations = utils.range(num).map(async() => {
+        const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payload);
+        results.push(data);
     });
+    // ... and wait for results
+    await Promise.all(invocations);
+    return results;
+};
 
-    // initialize promise
-    var queue = Promise.resolve();
-    var seriesResults = [];
-
-    if (enableParallel) {
-        // invoke in parallel
-        queue = Promise.all(invocations.map(function (f) {
-            return f();
-        }));
-    } else {
-        // invoke in series
-        invocations.forEach(function (invocation) {
-            queue = queue
-                .then(invocation)
-                .then(function (result) {
-                    seriesResults.push(result);
-                    return Promise.resolve(null);  // null result!
-                });
-        });
+const runInSeries = async(num, lambdaARN, lambdaAlias, payload) => {
+    const results = [];
+    for (let i = 0; i < num; i++) {
+        // run invocations in series
+        const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payload);
+        results.push(data);
     }
+    return results;
+};
 
-    // proceed with aggregation and cost computation
-    return queue
-        .then(function (parallelResults) {
-            // aggregate results (either parallel or series)
-            return utils.computeAverageDuration(parallelResults || seriesResults);
-        })
-        .then(utils.computeStats.bind(null, minCost, minRAM, value))  // compute stats
-        .then(function (stats) {
-            callback(null, stats);
-            return Promise.resolve(stats);
-        })
-        .catch(function (err) {
-            console.error(err);
-            callback(err);
-        });
+const computeStatistics = (results, value) => {
+    // use results (which include logs) to compute average duration ...
+    const averageDuration = utils.computeAverageDuration(results);
+    console.log('Average duration: ', averageDuration);
+    // ... and overall statistics
+    const stats = utils.computeStats(minCost, minRAM, value, averageDuration);
+    console.log('Stats: ', stats);
+    return stats;
 };

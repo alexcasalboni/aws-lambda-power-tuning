@@ -1,85 +1,75 @@
 'use strict';
 
 const utils = require('./utils');
-
-const SENTINEL = 'OK';
-
 const powerValues = process.env.powerValues.split(',');
 
-
 /**
- * Initialize versions & aliases for next branches.
+ * Initialize versions & aliases so we can execute everything in parallel.
  */
-module.exports.handler = (event, context, callback) => {
+module.exports.handler = async(event, context) => {
 
     const lambdaARN = event.lambdaARN;
     const num = event.num;
 
+    validateInput(lambdaARN, num); // may throw
+
+    // reminder: configuration updates must run sequencially
+    // (otherwise you get a ResourceConflictException)
+    for (let i = 0; i < powerValues.length; i++){
+        const value = powerValues[i];
+        const alias = 'RAM' + value;
+        const aliasExists = await verifyAliasExistance(lambdaARN, alias);
+        console.log('aliasExists: ' + aliasExists);
+        await createPowerConfiguration(lambdaARN, value, alias, aliasExists);
+    }
+
+    return 'OK';
+};
+
+const validateInput = (lambdaARN, num) => {
     if (!lambdaARN) {
         throw new Error('Missing or empty lambdaARN');
     }
-
     if (!powerValues.length) {
         throw new Error('Missing or empty env.powerValues');
     }
-
     if (!num || num < 5) {
-        throw new Error('Missing num or num below 5')
+        throw new Error('Missing num or num below 5');
     }
-
-    var queue = Promise.resolve();
-
-    powerValues.forEach(function(value) {
-
-        const alias = 'RAM' + value;
-
-        queue = queue
-            // alias should not exist (check it first)
-            .then(utils.checkLambdaAlias.bind(null, lambdaARN, alias))
-            .catch(function(error) {
-                if (error.message && error.message === 'Interrupt') {
-                    // break chain is something went wrong in previous loop
-                    return Promise.reject(error);
-                } else {
-                    // proceed with sentinel (alias doesn't exist yet)
-                    return Promise.resolve(SENTINEL);
-                }
-            })
-            .then(function(data) {
-                // proceed to next value, if sentinel
-                if (data != SENTINEL) {
-                    throw new Error('Alias already exists');
-                }
-                // proceed to next promise otherwise
-                return Promise.resolve(SENTINEL);
-            })
-            .then(utils.setLambdaPower.bind(null, lambdaARN, value))
-            .then(utils.publishLambdaVersion.bind(null, lambdaARN, alias))
-            // createLambdaAlias could throw the same 'Alias already exists' error
-            .then(function(data) {
-                return utils.createLambdaAlias(lambdaARN, alias, data.Version);
-            })
-            .catch(function(error) {
-                if (error.message && error.message.includes('Alias already exists')) {
-                    // proceed to next value if alias already exists
-                    return Promise.resolve(SENTINEL);
-                } else {
-                    console.error(error);
-                    throw new Error("Interrupt");
-                }
-            });
-
-    });
-
-
-    return queue
-        .then(function() {
-            callback(null, SENTINEL);  // end of function
-        })
-        .catch(function(err) {
-            console.error(err);
-            callback(err);
-        });
-
 };
 
+const verifyAliasExistance = async(lambdaARN, alias) => {
+    try {
+        await utils.checkLambdaAlias(lambdaARN, alias);
+        return true;
+    } catch (error) {
+        if (error.code === 'ResourceNotFoundException') {
+            // OK, the alias isn't supposed to exist
+            console.log('OK, even if missing alias ');
+            return false;
+        } else {
+            console.log('error during alias check:');
+            throw error; // a real error :)
+        }
+    }
+};
+
+const createPowerConfiguration = async(lambdaARN, value, alias, aliasExists) => {
+    try {
+        await utils.setLambdaPower(lambdaARN, value);
+        const {Version} = await utils.publishLambdaVersion(lambdaARN);
+        if (aliasExists) {
+            await utils.updateLambdaAlias(lambdaARN, alias, Version);
+        } else {
+            await utils.createLambdaAlias(lambdaARN, alias, Version);
+        }
+    } catch (error) {
+        if (error.message && error.message.includes('Alias already exists')) {
+            // shouldn't happen, but nothing we can do in that case
+            console.log('OK, even if: ', error);
+        } else {
+            console.log('error during inizialization for value ' + value);
+            throw error; // a real error :)
+        }
+    }
+};
