@@ -2,7 +2,7 @@
 
 const utils = require('./utils');
 
-const minRAM = parseInt(process.env.minRAM);
+const minRAM = parseInt(process.env.minRAM, 10);
 const minCost = parseFloat(process.env.minCost);
 const powerValues = process.env.powerValues.split(',');
 
@@ -10,16 +10,15 @@ const powerValues = process.env.powerValues.split(',');
  * Execute the given function N times in series or in parallel.
  * Then compute execution statistics (averate cost and duration).
  */
-module.exports.handler = async (event, context) => {
+module.exports.handler = async(event, context) => {
     // read input from event
     const {lambdaARN, value, num, enableParallel, payload} = extractDataFromInput(event);
 
-    validateInput(lambdaARN, value, num);  // may throw
+    validateInput(lambdaARN, value, num); // may throw
 
-    if (powerValues.indexOf(""+value) === -1) {
-        // throw new Error("type: " + typeof (""+value) + "powerValue: " + powerValues + ", value: "+ value + ", index: "+ powerValues.indexOf(value));
-        console.log("Not executing for " + value);
-        return "Not executing for " + value;
+    if (powerValues.indexOf('' + value) === -1) {
+        console.log('Not executing for ' + value);
+        return 'Not executing for ' + value;
     }
 
     const lambdaAlias = 'RAM' + value;
@@ -44,17 +43,17 @@ const validateInput = (lambdaARN, value, num) => {
     if (!num || isNaN(num)) {
         throw new Error('Invalid num: ' + num);
     }
-}
+};
 
 const extractDataFromInput = (event) => {
     return {
         lambdaARN: event.lambdaARN,
-        value: parseInt(event.value),
-        num: parseInt(event.num),
+        value: parseInt(event.value, 10),
+        num: parseInt(event.num, 10),
         enableParallel: !!event.parallelInvocation,
         payload: convertPayload(event.payload),
     };
-}
+};
 
 const convertPayload = (payload) => {
     if (typeof payload !== 'string' && typeof payload !== 'undefined') {
@@ -62,12 +61,12 @@ const convertPayload = (payload) => {
         payload = JSON.stringify(payload);
     }
     return payload;
-}
+};
 
-const runInParallel = async (num, lambdaARN, lambdaAlias, payload) => {
+const runInParallel = async(num, lambdaARN, lambdaAlias, payload) => {
     const results = [];
     // run all invocations in parallel ...
-    const invocations = utils.range(num).map(async () => {
+    const invocations = utils.range(num).map(async() => {
         const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payload);
         results.push(data);
     });
@@ -76,22 +75,22 @@ const runInParallel = async (num, lambdaARN, lambdaAlias, payload) => {
     return results;
 };
 
-const runInSeries = async (num, lambdaARN, lambdaAlias, payload) => {
+const runInSeries = async(num, lambdaARN, lambdaAlias, payload) => {
     const results = [];
-    for (let i=0; i<num; i++) {
+    for (let i = 0; i < num; i++) {
         // run invocations in series
         const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payload);
         results.push(data);
     }
     return results;
-}
+};
 
 const computeStatistics = (results, value) => {
     // use results (which include logs) to compute average duration ...
     const averageDuration = utils.computeAverageDuration(results);
-    console.log("Average duration: ", averageDuration);
+    console.log('Average duration: ', averageDuration);
     // ... and overall statistics
     const stats = utils.computeStats(minCost, minRAM, value, averageDuration);
-    console.log("Stats: ", stats);
+    console.log('Stats: ', stats);
     return stats;
-}
+};

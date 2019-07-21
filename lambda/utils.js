@@ -1,3 +1,5 @@
+'use strict';
+
 const AWS = require('aws-sdk');
 
 // local reference to this module
@@ -23,7 +25,7 @@ module.exports.setLambdaPower = (lambdaARN, value) => {
     console.log('Setting power to ', value);
     const params = {
         FunctionName: lambdaARN,
-        MemorySize: parseInt(value),
+        MemorySize: parseInt(value, 10),
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.updateFunctionConfiguration(params).promise();
@@ -104,14 +106,14 @@ module.exports.invokeLambda = (lambdaARN, alias, payload) => {
         FunctionName: lambdaARN,
         Qualifier: alias,
         Payload: payload,
-        LogType: 'Tail',  // will return logs
+        LogType: 'Tail', // will return logs
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.invoke(params).promise();
 };
 
 /**
- * Compute average price and returns with average duration, given a RAM value and an average duration.
+ * Compute average price and returns with average duration.
  */
 module.exports.computeStats = (minCost, minRAM, value, averageDuration) => {
     // compute official price per 100ms
@@ -120,8 +122,8 @@ module.exports.computeStats = (minCost, minRAM, value, averageDuration) => {
     const averagePrice = Math.ceil(averageDuration / 100) * pricePer100ms;
 
     return {
-        "averagePrice": averagePrice,
-        "averageDuration": averageDuration,
+        averagePrice: averagePrice,
+        averageDuration: averageDuration,
     };
 };
 
@@ -134,7 +136,7 @@ module.exports.computeAverageDuration = (results) => {
     }
 
     // 20% of durations will be discarted (trimmed mean)
-    const toBeDiscarded = parseInt(results.length * 20 / 100);
+    const toBeDiscarded = parseInt(results.length * 20 / 100, 10);
 
     // build a list of floats by parsing logs
     const durations = results.map(result => {
@@ -151,10 +153,10 @@ module.exports.computeAverageDuration = (results) => {
 
     // compute trimmed mean (discard 20% of low/high values)
     const averageDuration = durations
-        .sort()  // sort numerically
-        .slice(toBeDiscarded, -toBeDiscarded)  // discard first/last values
-        .reduce(_add, 0)  // sum all together
-        / (results.length - 2 * toBeDiscarded)  // divide by N
+        .sort() // sort numerically
+        .slice(toBeDiscarded, -toBeDiscarded) // discard first/last values
+        .reduce(_add, 0) // sum all together
+        / (results.length - 2 * toBeDiscarded) // divide by N
     ;
 
     return averageDuration;
@@ -190,9 +192,9 @@ module.exports.range = (n) => {
 };
 
 module.exports.lambdaClientFromARN = (lambdaARN) => {
-    if (typeof lambdaARN !== "string" || lambdaARN.split(':').length !== 7) {
-        throw new Error("Invalid ARN: " + lambdaARN);
+    if (typeof lambdaARN !== 'string' || lambdaARN.split(':').length !== 7) {
+        throw new Error('Invalid ARN: ' + lambdaARN);
     }
-    region = lambdaARN.split(':')[3];
-    return new AWS.Lambda({region: region});
-}
+    const region = lambdaARN.split(':')[3];
+    return new AWS.Lambda({region});
+};

@@ -6,21 +6,21 @@ const powerValues = process.env.powerValues.split(',');
 /**
  * Delete aliases and versions.
  */
-module.exports.handler = async (event, context) => {
-  
+module.exports.handler = async(event, context) => {
+
     const lambdaARN = event.lambdaARN;
 
-    validateInput(lambdaARN);  // may throw
+    validateInput(lambdaARN); // may throw
 
-    const ops = powerValues.map(async (value) => {
+    const ops = powerValues.map(async(value) => {
         const alias = 'RAM' + value;
-        await cleanup(lambdaARN, alias);  // may throw
+        await cleanup(lambdaARN, alias); // may throw
     });
 
     // run everything in parallel and wait until completed
     await Promise.all(ops);
 
-    return "OK";
+    return 'OK';
 };
 
 const validateInput = (lambdaARN) => {
@@ -30,9 +30,9 @@ const validateInput = (lambdaARN) => {
     if (!powerValues.length) {
         throw new Error('Missing or empty env.powerValues');
     }
-}
+};
 
-const cleanup = async (lambdaARN, alias) => {
+const cleanup = async(lambdaARN, alias) => {
     try {
         // check if it exists and fetch version ID
         const {FunctionVersion} = await utils.checkLambdaAlias(lambdaARN, alias);
@@ -51,4 +51,4 @@ const cleanup = async (lambdaARN, alias) => {
             throw error;
         }
     }
-}
+};

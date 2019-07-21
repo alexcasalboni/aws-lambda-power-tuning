@@ -3,7 +3,7 @@
 /**
  * Receive average cost and decide which power config wins.
  */
-module.exports.handler = async (event, context) => {
+module.exports.handler = async(event, context) => {
 
     if (!Array.isArray(event) || !event.length) {
         throw new Error('Wrong input ' + JSON.stringify(event));
@@ -11,7 +11,7 @@ module.exports.handler = async (event, context) => {
 
     // extract from input event
     const stats = extractStatistics(event);
-    
+
     // compute optimal configuration
     const optimal = findCheapest(stats);
 
@@ -23,15 +23,16 @@ module.exports.handler = async (event, context) => {
 
 const extractStatistics = (event) => {
     return event.map(p => {
-        if (p.stats && p.stats.averageDuration) {  // handle empty results from executor
+        // handle empty results from executor
+        if (p.stats && p.stats.averageDuration) {
             return {
-                'power': p.value,
-                'cost': p.stats.averagePrice,
-                'duration': p.stats.averageDuration
+                power: p.value,
+                cost: p.stats.averagePrice,
+                duration: p.stats.averageDuration,
             };
         }
     });
-}
+};
 
 const findCheapest = (stats) => {
     // sort by cost
@@ -40,8 +41,8 @@ const findCheapest = (stats) => {
     });
 
     // logging is free, right?
-    console.log("Stats: ", stats);
+    console.log('Stats: ', stats);
 
     // just return the first one
     return stats[0];
-}
+};
