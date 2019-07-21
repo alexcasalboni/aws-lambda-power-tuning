@@ -20,7 +20,8 @@
   "licence": "Apache",
   "scripts": {
     "test": "mocha",
-    "coverage": "istanbul cover _mocha --report lcovonly -- -R spec"
+    "coverage": "istanbul cover _mocha --report lcovonly -- -R spec",
+    "lint": "jslint --ignore-path .gitignore ."
   },
   "dependencies": {},
   "devDependencies": {

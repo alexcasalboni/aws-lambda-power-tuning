@@ -4,6 +4,7 @@
 # Dependency directories
 node_modules
 jspm_packages
+venv
 
 # Serverless directories
 .serverless
