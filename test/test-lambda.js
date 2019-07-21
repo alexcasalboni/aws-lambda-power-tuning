@@ -9,6 +9,7 @@ AWS.mock('Lambda', 'updateFunctionConfiguration', {});
 AWS.mock('Lambda', 'publishVersion', {});
 AWS.mock('Lambda', 'deleteFunction', {});
 AWS.mock('Lambda', 'createAlias', {});
+AWS.mock('Lambda', 'updateAlias', {});
 AWS.mock('Lambda', 'deleteAlias', {});
 AWS.mock('Lambda', 'invoke', {});
 
@@ -55,15 +56,19 @@ describe('Lambda Functions', async () => {
 
         var setLambdaPowerCounter,
             publishLambdaVersionCounter,
-            createLambdaAliasCounter;
+            createLambdaAliasCounter,
+            updateLambdaAliasCounter;
 
         beforeEach('mock utilities', () => {
             setLambdaPowerCounter = 0;
             publishLambdaVersionCounter = 0;
             createLambdaAliasCounter = 0;
+            updateLambdaAliasCounter = 0;
             // TODO use real mock (not override!)
             utils.checkLambdaAlias = async () => {
-                throw new Error('alias is not defined');
+                const error = new Error('alias is not defined');
+                error.code = 'ResourceNotFoundException';
+                throw error;
             };
             utils.setLambdaPower = async () => {
                 setLambdaPowerCounter++;
@@ -75,6 +80,10 @@ describe('Lambda Functions', async () => {
             };
             utils.createLambdaAlias = async () => {
                 createLambdaAliasCounter++;
+                return 'OK';
+            };
+            utils.updateLambdaAlias = async () => {
+                updateLambdaAliasCounter++;
                 return 'OK';
             };
         });
@@ -111,12 +120,20 @@ describe('Lambda Functions', async () => {
             expect(createLambdaAliasCounter).to.be(powerValues.length);
         });
 
-        it('should work fine if an alias already exists', async () => {
+        it('should update an alias if it already exists', async () => {
             // TODO use real mock (not override!)
-            utils.checkLambdaAlias = async () => {
-                return { FunctionVersion: '1' };
+            utils.checkLambdaAlias = async (lambdaARN, alias) => {
+                if (alias === 'RAM128') {
+                    return { FunctionVersion: '1' };
+                } else {
+                    const error = new Error('alias is not defined');
+                    error.code = 'ResourceNotFoundException';
+                    throw error;
+                }
             };
             await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
+            expect(updateLambdaAliasCounter).to.be(1);
+            expect(createLambdaAliasCounter).to.be(powerValues.length-1);
         });
 
         it('should explode if something goes wrong during power set', async () => {
