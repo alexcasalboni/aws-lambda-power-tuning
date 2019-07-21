@@ -1,0 +1,14 @@
+{
+    "parserOptions": {
+        "ecmaVersion": 2017
+    },
+
+    "env": {
+        "es6": true,
+        "mocha": true
+    },
+    "rules": {
+        "indent": ["error", 4]
+    },
+    "extends": "strongloop"
+}
