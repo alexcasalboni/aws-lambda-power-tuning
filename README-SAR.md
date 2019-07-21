@@ -60,6 +60,7 @@ Initializer, cleaner and finalizer are executed only once, while the executor is
 
 ## CHANGELOG (SAR versioning)
 
+* *1.2.1*: Node.js refactor and updated IAM permissions (added lambda:UpdateAlias)
 * *1.2.0*: updated IAM permissions (least privilege for actions)
 * *1.1.1*: updated docs
 * *1.1.0*: cross-region invocation support
