@@ -2,15 +2,13 @@
 
 const utils = require('./utils');
 
-const SENTINEL = 'OK';
-
 const powerValues = process.env.powerValues.split(',');
 
 
 /**
  * Initialize versions & aliases for next branches.
  */
-module.exports.handler = (event, context, callback) => {
+module.exports.handler = async (event, context) => {
 
     const lambdaARN = event.lambdaARN;
     const num = event.num;
@@ -27,59 +25,39 @@ module.exports.handler = (event, context, callback) => {
         throw new Error('Missing num or num below 5')
     }
 
-    var queue = Promise.resolve();
-
-    powerValues.forEach(function(value) {
+    // map or forEach?
+    const ops = powerValues.map(async (value) => {
 
         const alias = 'RAM' + value;
 
-        queue = queue
-            // alias should not exist (check it first)
-            .then(utils.checkLambdaAlias.bind(null, lambdaARN, alias))
-            .catch(function(error) {
-                if (error.message && error.message === 'Interrupt') {
-                    // break chain is something went wrong in previous loop
-                    return Promise.reject(error);
-                } else {
-                    // proceed with sentinel (alias doesn't exist yet)
-                    return Promise.resolve(SENTINEL);
-                }
-            })
-            .then(function(data) {
-                // proceed to next value, if sentinel
-                if (data != SENTINEL) {
-                    throw new Error('Alias already exists');
-                }
-                // proceed to next promise otherwise
-                return Promise.resolve(SENTINEL);
-            })
-            .then(utils.setLambdaPower.bind(null, lambdaARN, value))
-            .then(utils.publishLambdaVersion.bind(null, lambdaARN, alias))
-            // createLambdaAlias could throw the same 'Alias already exists' error
-            .then(function(data) {
-                return utils.createLambdaAlias(lambdaARN, alias, data.Version);
-            })
-            .catch(function(error) {
-                if (error.message && error.message.includes('Alias already exists')) {
-                    // proceed to next value if alias already exists
-                    return Promise.resolve(SENTINEL);
-                } else {
-                    console.error(error);
-                    throw new Error("Interrupt");
-                }
-            });
+        try {
+            await utils.checkLambdaAlias(lambdaARN, alias);
+        } catch (error) {
+            if (error.message && error.message.includes('alias is not defined')) {
+                // OK, the alias isn't supposed to exist
+                console.log("OK, even if missing alias ");
+            } else {
+                throw error;  // a real error :)
+            }
+        }
 
+        try {
+            await utils.setLambdaPower(lambdaARN, value);
+            const {Version} = await utils.publishLambdaVersion(lambdaARN);
+            await utils.createLambdaAlias(lambdaARN, alias, Version);
+        } catch (error) {
+            if (error.message && error.message.includes('Alias already exists')) {
+                // shouldn't happen, but nothing we can do in that case
+                console.log("OK, even if: ", error);
+            } else {
+                throw error;  // a real error :)
+            }
+        }
     });
 
+    // run everything in parallel and wait until completed
+    await Promise.all(ops);
 
-    return queue
-        .then(function() {
-            callback(null, SENTINEL);  // end of function
-        })
-        .catch(function(err) {
-            console.error(err);
-            callback(err);
-        });
-
+    return "OK";
 };
 

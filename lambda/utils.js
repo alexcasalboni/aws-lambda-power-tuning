@@ -6,7 +6,7 @@ const utils = module.exports;
 /**
  * Check whether a Lambda Alias exists or not, and return its data.
  */
-module.exports.checkLambdaAlias = function (lambdaARN, alias) {
+module.exports.checkLambdaAlias = (lambdaARN, alias) => {
     // console.log('Checking alias ', alias);
     const params = {
         FunctionName: lambdaARN,
@@ -19,7 +19,7 @@ module.exports.checkLambdaAlias = function (lambdaARN, alias) {
 /**
  * Update a given Lambda Function's memory size (always $LATEST version).
  */
-module.exports.setLambdaPower = function (lambdaARN, value) {
+module.exports.setLambdaPower = (lambdaARN, value) => {
     // console.log('Setting power to ', value);
     const params = {
         FunctionName: lambdaARN,
@@ -32,7 +32,7 @@ module.exports.setLambdaPower = function (lambdaARN, value) {
 /**
  * Publish a new Lambda Version (version number will be returned).
  */
-module.exports.publishLambdaVersion = function (lambdaARN /*, alias*/) {
+module.exports.publishLambdaVersion = (lambdaARN /*, alias*/) => {
     // console.log('Publishing version for ', alias);
     const params = {
         FunctionName: lambdaARN,
@@ -44,7 +44,7 @@ module.exports.publishLambdaVersion = function (lambdaARN /*, alias*/) {
 /**
  * Delete a given Lambda Version.
  */
-module.exports.deleteLambdaVersion = function (lambdaARN, version) {
+module.exports.deleteLambdaVersion = (lambdaARN, version) => {
     // console.log('Deleting version ', version);
     const params = {
         FunctionName: lambdaARN,
@@ -57,7 +57,7 @@ module.exports.deleteLambdaVersion = function (lambdaARN, version) {
 /**
  * Create a new Lambda Alias and associate it with the given Lambda Version.
  */
-module.exports.createLambdaAlias = function (lambdaARN, alias, version) {
+module.exports.createLambdaAlias = (lambdaARN, alias, version) => {
     // console.log('Creating Alias ', alias);
     const params = {
         FunctionName: lambdaARN,
@@ -71,7 +71,7 @@ module.exports.createLambdaAlias = function (lambdaARN, alias, version) {
 /**
  * Delete a given Lambda Alias.
  */
-module.exports.deleteLambdaAlias = function (lambdaARN, alias) {
+module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
     // console.log('Deleting alias ', alias);
     const params = {
         FunctionName: lambdaARN,
@@ -84,7 +84,7 @@ module.exports.deleteLambdaAlias = function (lambdaARN, alias) {
 /**
  * Invoke a given Lambda Function:Alias with payload and return its logs.
  */
-module.exports.invokeLambda = function (lambdaARN, alias, payload) {
+module.exports.invokeLambda = (lambdaARN, alias, payload) => {
     // console.log('Invoking alias ', alias);
     const params = {
         FunctionName: lambdaARN,
@@ -99,7 +99,7 @@ module.exports.invokeLambda = function (lambdaARN, alias, payload) {
 /**
  * Compute average price and returns with average duration, given a RAM value and an average duration.
  */
-module.exports.computeStats = function (minCost, minRAM, value, averageDuration) {
+module.exports.computeStats = (minCost, minRAM, value, averageDuration) => {
     // console.log('avg duration: ', averageDuration);
     // compute official price per 100ms
     const pricePer100ms = value * minCost / minRAM;
@@ -107,13 +107,16 @@ module.exports.computeStats = function (minCost, minRAM, value, averageDuration)
     // quantize price to upper 100ms (billed duration) and compute avg price
     const averagePrice = Math.ceil(averageDuration / 100) * pricePer100ms;
     // console.log('avg price: ', averagePrice);
-    return Promise.resolve({ "averagePrice": averagePrice, "averageDuration": averageDuration });
+    return {
+        "averagePrice": averagePrice,
+        "averageDuration": averageDuration,
+    };
 };
 
 /**
  * Copute average duration
  */
-module.exports.computeAverageDuration = function (results) {
+module.exports.computeAverageDuration = (results) => {
 
     if (!results || !results.length) {
         return 0;
@@ -123,7 +126,7 @@ module.exports.computeAverageDuration = function (results) {
     const toBeDiscarded = parseInt(results.length * 20 / 100);
 
     // build a list of floats by parsing logs
-    const durations = results.map(function (result) {
+    const durations = results.map(result => {
         const log = utils.base64decode(result.LogResult || '');
         return utils.extractDuration(log);
     });
@@ -143,13 +146,13 @@ module.exports.computeAverageDuration = function (results) {
         / (results.length - 2 * toBeDiscarded)  // divide by N
         ;
 
-    return Promise.resolve(averageDuration);
+    return averageDuration;
 };
 
 /**
  * Extract duration (in ms) from a given Lambda's CloudWatch log.
  */
-module.exports.extractDuration = function (log) {
+module.exports.extractDuration = (log) => {
     // extract duration from log (anyone can suggest a regex?)
     const durationSplit = log.split('\tDuration: ');
     if (durationSplit.length < 2) return 0;
@@ -161,21 +164,21 @@ module.exports.extractDuration = function (log) {
 /**
  * Encode a given string to base64.
  */
-module.exports.base64decode = function (str) {
-    return new Buffer(str, 'base64').toString();
+module.exports.base64decode = (str) => {
+    return Buffer.from(str, 'base64').toString();
 };
 
 /**
  * Generate a list of size n.
  */
-module.exports.range = function (n) {
+module.exports.range = (n) => {
     if (n === null || typeof n === 'undefined') {
         n = -1;
     }
     return Array.from(Array(n).keys());
 };
 
-module.exports.lambdaClientFromARN = function (lambdaARN) {
+module.exports.lambdaClientFromARN = (lambdaARN) => {
     if (typeof lambdaARN !== "string" || lambdaARN.split(':').length !== 7) {
         throw new Error("Invalid ARN: " + lambdaARN);
     }

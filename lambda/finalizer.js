@@ -3,16 +3,14 @@
 /**
  * Receive avg prices and decides which config works better.
  */
-module.exports.handler = (event, context, callback) => {
+module.exports.handler = (event, context) => {
 
     if (!Array.isArray(event) || !event.length) {
-        const error = new Error('Wrong input ' + JSON.stringify(event));
-        callback(error);
-        throw error;  // TODO useless?
+        throw new Error('Wrong input ' + JSON.stringify(event));
     }
 
     // clean up input event (too much data from previous steps)
-    const stats = event.map(function (p) {
+    const stats = event.map(p => {
         if (p.stats && p.stats.averageDuration) {  // handle empty results from executor
             return {
                 'power': p.value,
@@ -23,10 +21,9 @@ module.exports.handler = (event, context, callback) => {
     });
 
     // sort by cost
-    stats.sort(function (p1, p2) {
+    stats.sort((p1, p2) => {
         return p1.cost - p2.cost;
-    }
-    );
+    });
 
     console.log(stats);  // logging is free, right?
 
@@ -35,7 +32,5 @@ module.exports.handler = (event, context, callback) => {
 
     // TODO check for same-cost configuration and improve selection?
 
-    callback(null, cheapest);
-    return Promise.resolve(cheapest);
-
+    return cheapest;
 };

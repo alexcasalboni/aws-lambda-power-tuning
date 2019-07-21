@@ -7,57 +7,47 @@ const powerValues = process.env.powerValues.split(',');
 /**
  * Clean aliases and versions.
  */
-module.exports.handler = (event, context, callback) => {
+module.exports.handler = async (event, context) => {
   
     const lambdaARN = event.lambdaARN;
 
     if (!lambdaARN) {
-        const error = new Error('Missing or empty lambdaARN');
-        callback(error);
-        throw error;  // TODO useless?
+        throw new Error('Missing or empty lambdaARN');
     }
 
     if (!powerValues.length) {
-        const error = new Error('Missing or empty env.powerValues');
-        callback(error);
-        throw error;  // TODO useless?
+        throw new Error('Missing or empty env.powerValues');
     }
 
-    const aliasRemovals = powerValues.map(function(value) {
+    // map or forEach?
+    const ops = powerValues.map(async (value) => {
 
         const alias = 'RAM' + value;
-        var functionVersion = null;
 
-        return Promise.resolve()
-            .then(utils.checkLambdaAlias.bind(null, lambdaARN, alias))
-            .then(function(data) {
-                // workaround to pass functionVersion to deleteLambdaVersion
-                functionVersion = data.FunctionVersion;
-            })
-            .then(utils.deleteLambdaAlias.bind(null, lambdaARN, alias))
-            .then(function() {
-                return utils.deleteLambdaVersion(lambdaARN, functionVersion);
-            })
-            .catch(function(error) {
-                if (error.message.includes('version is not defined')) {
-                    console.error('Version is not defined: ', error.message, error.stack);
-                    return Promise.resolve('OK');
-                } else if (error.message.includes('alias is not defined')) {
-                    console.error('Alias is not defined: ', error.message, error.stack);
-                    return Promise.resolve('OK');
-                }
-            });
+        try {
+            // check if it exists and fetch version ID
+            const {FunctionVersion} = await utils.checkLambdaAlias(lambdaARN, alias);
+            // delete both alias and version (could be done in parallel!)
+            await utils.deleteLambdaAlias(lambdaARN, alias);
+            await utils.deleteLambdaVersion(lambdaARN, FunctionVersion);
+
+        } catch (error) {
+            if (error.message.includes('version is not defined')) {
+                // shouldn't happen, but nothing we can/should do here
+                console.error('OK, even if version is not defined');
+            } else if (error.message.includes('alias is not defined')) {
+                // shouldn't happen, but nothing we can/should do here
+                console.error('OK, even if alias is not defined');
+            } else {
+                console.error(error);
+                throw error;
+            }
+        }
     });
 
-    return Promise
-        .all(aliasRemovals)
-        .then(function() {
-            callback(null, 'OK');
-        })
-        .catch(function(err) {
-            console.error(err);
-            callback(err);
-        });
+    // run everything in parallel and wait until completed
+    await Promise.all(ops);
 
+    return "OK";
 };
 
