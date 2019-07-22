@@ -49,6 +49,10 @@ The AWS Step Functions state machine will return the following outputs:
 
 If something goes wrong during the initialization or execution states, the `CleanUpOnError` step will be executed. All versions and alises will be deleted as expected (the same happens in the `Cleaner` step).
 
+### Retry policy
+
+The executor will retry twice in case any invocation fails. This is helpful in case of execution timeouts or memory errors. You will find the failed execution's stack trace in the `CleanUpOnError` state input.
+
 ### How do I know which executor failed and why?
 
 You can inspect the "Execution event history" and look for the corresponding `TaskStateAborted` event type.
@@ -69,6 +73,7 @@ Initializer, cleaner and finalizer are executed only once, while the executor is
 
 ## CHANGELOG (SAR versioning)
 
+* *1.3.1*: retry policies and failed invocations management
 * *1.3.0*: implemented error handling
 * *1.2.1*: Node.js refactor and updated IAM permissions (added lambda:UpdateAlias)
 * *1.2.0*: updated IAM permissions (least privilege for actions)
