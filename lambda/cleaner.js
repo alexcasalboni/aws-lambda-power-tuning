@@ -40,12 +40,9 @@ const cleanup = async(lambdaARN, alias) => {
         await utils.deleteLambdaAlias(lambdaARN, alias);
         await utils.deleteLambdaVersion(lambdaARN, FunctionVersion);
     } catch (error) {
-        if (error.message.includes('version is not defined')) {
-            // shouldn't happen, but nothing we can/should do here
-            console.error('OK, even if version is not defined');
-        } else if (error.message.includes('alias is not defined')) {
-            // shouldn't happen, but nothing we can/should do here
-            console.error('OK, even if alias is not defined');
+        if (error.code === 'ResourceNotFoundException') {
+            console.error('OK, even if version/alias was not found');
+            console.error(error);
         } else {
             console.error(error);
             throw error;

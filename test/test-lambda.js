@@ -188,7 +188,9 @@ describe('Lambda Functions', async() => {
         it('should work fine even if the version does not exist', async() => {
             // TODO use real mock (not override!)
             utils.deleteLambdaVersion = async() => {
-                throw new Error('version is not defined');
+                const error = new Error('version is not defined');
+                error.code = 'ResourceNotFoundException';
+                throw error;
             };
             await invokeForSuccess(handler, { lambdaARN: 'arnOK' });
         });
@@ -196,7 +198,9 @@ describe('Lambda Functions', async() => {
         it('should work fine even if the alias does not exist', async() => {
             // TODO use real mock (not override!)
             utils.deleteLambdaAlias = async() => {
-                throw new Error('alias is not defined');
+                const error = new Error('alias is not defined');
+                error.code = 'ResourceNotFoundException';
+                throw error;
             };
             await invokeForSuccess(handler, { lambdaARN: 'arnOK' });
         });
