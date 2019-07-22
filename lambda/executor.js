@@ -68,6 +68,10 @@ const runInParallel = async(num, lambdaARN, lambdaAlias, payload) => {
     // run all invocations in parallel ...
     const invocations = utils.range(num).map(async() => {
         const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payload);
+        // invocation errors return 200 and contain FunctionError and Payload
+        if (data.FunctionError) {
+            throw new Error('Invocation error: ' + data.Payload);
+        }
         results.push(data);
     });
     // ... and wait for results
@@ -80,6 +84,10 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payload) => {
     for (let i = 0; i < num; i++) {
         // run invocations in series
         const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payload);
+        // invocation errors return 200 and contain FunctionError and Payload
+        if (data.FunctionError) {
+            throw new Error('Invocation error: ' + data.Payload);
+        }
         results.push(data);
     }
     return results;

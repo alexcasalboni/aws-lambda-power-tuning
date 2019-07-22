@@ -131,7 +131,7 @@ Resources:
                       "Type": "Parallel",
                       "Next": "After Branching",
                       "Catch": [{
-                        "ErrorEquals": [ "States.ALL" ],
+                        "ErrorEquals": ["States.ALL"],
                         "Next": "CleanUpOnError",
                         "ResultPath": "$.error"
                       }],
@@ -149,7 +149,12 @@ Resources:
                                       "Type": "Task",
                                       "Resource": "${executorArn}",
                                       "ResultPath": "$.stats",
-                                      "End": true
+                                      "End": true,
+                                      "Retry": [{
+                                          "ErrorEquals": ["States.ALL"],
+                                          "IntervalSeconds": 3,
+                                          "MaxAttempts": 2
+                                      }]
                                   }
                               }
                           },
@@ -166,7 +171,12 @@ Resources:
                                       "Type": "Task",
                                       "Resource": "${executorArn}",
                                       "ResultPath": "$.stats",
-                                      "End": true
+                                      "End": true,
+                                      "Retry": [{
+                                          "ErrorEquals": ["States.ALL"],
+                                          "IntervalSeconds": 3,
+                                          "MaxAttempts": 2
+                                      }]
                                   }
                               }
                           },
@@ -183,7 +193,12 @@ Resources:
                                       "Type": "Task",
                                       "Resource": "${executorArn}",
                                       "ResultPath": "$.stats",
-                                      "End": true
+                                      "End": true,
+                                      "Retry": [{
+                                          "ErrorEquals": ["States.ALL"],
+                                          "IntervalSeconds": 3,
+                                          "MaxAttempts": 2
+                                      }]
                                   }
                               }
                           },
@@ -200,7 +215,12 @@ Resources:
                                       "Type": "Task",
                                       "Resource": "${executorArn}",
                                       "ResultPath": "$.stats",
-                                      "End": true
+                                      "End": true,
+                                      "Retry": [{
+                                          "ErrorEquals": ["States.ALL"],
+                                          "IntervalSeconds": 3,
+                                          "MaxAttempts": 2
+                                      }]
                                   }
                               }
                           },
@@ -217,7 +237,12 @@ Resources:
                                       "Type": "Task",
                                       "Resource": "${executorArn}",
                                       "ResultPath": "$.stats",
-                                      "End": true
+                                      "End": true,
+                                      "Retry": [{
+                                          "ErrorEquals": ["States.ALL"],
+                                          "IntervalSeconds": 3,
+                                          "MaxAttempts": 2
+                                      }]
                                   }
                               }
                           },
@@ -234,7 +259,12 @@ Resources:
                                       "Type": "Task",
                                       "Resource": "${executorArn}",
                                       "ResultPath": "$.stats",
-                                      "End": true
+                                      "End": true,
+                                      "Retry": [{
+                                          "ErrorEquals": ["States.ALL"],
+                                          "IntervalSeconds": 3,
+                                          "MaxAttempts": 2
+                                      }]
                                   }
                               }
                           }

@@ -37,14 +37,18 @@ const invokeForSuccess = async(handler, event) => {
 // utility to invoke handler (success case)
 const invokeForFailure = async(handler, event) => {
 
+    let result;
+
     try {
-        const result = await handler(event, fakeContext);
-        expect(result).to.be(null);
-        throw new Error('should have thrown an error, instead got: ', result);
+        result = await handler(event, fakeContext);
     } catch (error) {
         expect(error).to.not.be(null);
         return error;
     }
+
+    expect(result).to.be(null);
+    // throw new Error('should have thrown an error, instead got: ', result);
+
 };
 
 
@@ -302,6 +306,21 @@ describe('Lambda Functions', async() => {
                 });
                 expect(invokeLambdaCounter).to.be(num);
             });
+        });
+
+        it('should report an error if invocation fails', async() => {
+            utils.invokeLambda = async() => {
+                return {
+                    FunctionError: 'Unhandled',
+                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                };
+            };
+            await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                value: '1024',
+                num: 10,
+            });
+
         });
 
         it('should return price as output', async() => {
