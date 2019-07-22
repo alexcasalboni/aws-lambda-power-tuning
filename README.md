@@ -149,6 +149,7 @@ Please note that you can specify a subset of configuration values in the `PowerV
 
 ## CHANGELOG (SAR versioning)
 
+* *1.3.0*: implemented error handling
 * *1.2.1*: Node.js refactor and updated IAM permissions (added lambda:UpdateAlias)
 * *1.2.0*: updated IAM permissions (least privilege for actions)
 * *1.1.1*: updated docs
