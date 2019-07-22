@@ -113,7 +113,7 @@ You can inspect the "Execution event history" and look for the corresponding `Ta
 
 ![state-aborted](imgs/step-aborted-screenshot.png?raw=true)
 
-Additionally, you can inspect the `CleanUpOnError` status input. Here you will find the stack trace of the error.
+Additionally, you can inspect the `CleanUpOnError` state input. Here you will find the stack trace of the error.
 
 The following screenshots show what the visual workflow will look like in case of errors:
 

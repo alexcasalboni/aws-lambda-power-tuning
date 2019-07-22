@@ -45,6 +45,15 @@ The AWS Step Functions state machine will return the following outputs:
 * **cost**: the corresponding average cost (per invocation)
 * **duration**: the corresponding average duration (per invocation)
 
+## Error handling
+
+If something goes wrong during the initialization or execution states, the `CleanUpOnError` step will be executed. All versions and alises will be deleted as expected (the same happens in the `Cleaner` step).
+
+### How do I know which executor failed and why?
+
+You can inspect the "Execution event history" and look for the corresponding `TaskStateAborted` event type.
+
+Additionally, you can inspect the `CleanUpOnError` state input. Here you will find the stack trace of the error.
 
 ## State Machine Internals
 
