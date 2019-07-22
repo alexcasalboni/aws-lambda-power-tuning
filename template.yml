@@ -120,11 +120,21 @@ Resources:
                       "Type": "Task",
                       "Resource": "${initializerArn}",
                       "Next": "Branching",
-                      "ResultPath": "$.OK"
+                      "ResultPath": "$.OK",
+                      "Catch": [{
+                        "ErrorEquals": [ "States.ALL" ],
+                        "Next": "CleanUpOnError",
+                        "ResultPath": "$.error"
+                      }]
                   },
                   "Branching": {
                       "Type": "Parallel",
                       "Next": "After Branching",
+                      "Catch": [{
+                        "ErrorEquals": [ "States.ALL" ],
+                        "Next": "CleanUpOnError",
+                        "ResultPath": "$.error"
+                      }],
                       "Branches": [
                           {
                               "StartAt": "128MB",
@@ -258,6 +268,13 @@ Resources:
                               }
                           }
                       ]
+                  },
+                  "CleanUpOnError": {
+                      "Type": "Task",
+                      "ResultPath": null,
+                      "OutputPath": null,
+                      "Resource": "${cleanerArn}",
+                      "End": true
                   }
               }
           }'
