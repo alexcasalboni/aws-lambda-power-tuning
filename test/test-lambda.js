@@ -310,7 +310,6 @@ describe('Lambda Functions', async() => {
 
         it('should report an error if invocation fails', async() => {
             utils.invokeLambda = async() => {
-                console.log('YOOOO');
                 return {
                     FunctionError: 'Unhandled',
                     Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
