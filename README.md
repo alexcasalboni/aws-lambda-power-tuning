@@ -25,35 +25,35 @@ You can find this app in the [Serverless Application Repository](https://serverl
 
 In case you want to deploy it "manually", you can run `deploy.sh`.
 
-The script uses AWS SAM CLI to create a new CloudFormation stack in your account.
+The script uses [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli) to create a new CloudFormation stack in your account.
 
-First, install AWS SAM and configure your AWS credentials:
+First, install AWS SAM and [configure your AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-quick-configuration):
 
 
-```
+```bash
 $ pip install aws-sam-cli
 $ aws configure
 ```
 
 Now, you can clone this repository as follows:
 
-```
+```bash
 $ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
 ```
 
-Configure your bucket name and stack name in the deployment script: 
+Configure your deployment bucket name ([create one first!](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html)) and stack name in the deployment script: 
 
 
-```
+```bash
 # config
 BUCKET_NAME=your-sam-templates-bucket
 STACK_NAME=lambda-power-tuning
 PowerValues='128,512,1024,1536,3008'
 ```
 
-You can finally run it:
+You can finally deploy the serverless app:
 
-```
+```bash
 $ bash deploy.sh
 ```
 
@@ -72,7 +72,7 @@ The state machine name will depend on the stack name (default: `aws-lambda-power
 
 Here you can provide the execution input and an execution id (see section below for the full documentation):
 
-```
+```json
 {
     "lambdaARN": "your-lambda-function-arn",
     "num": 10
