@@ -19,9 +19,11 @@
   ],
   "licence": "Apache",
   "scripts": {
+    "deploy": "bash deploy.sh",
+    "execute": "bash execute.sh",
+    "lint": "jslint --ignore-path .gitignore .",
     "test": "mocha",
-    "coverage": "istanbul cover _mocha --report lcovonly -- -R spec",
-    "lint": "jslint --ignore-path .gitignore ."
+    "coverage": "istanbul cover _mocha --report lcovonly -- -R spec"
   },
   "dependencies": {},
   "devDependencies": {
