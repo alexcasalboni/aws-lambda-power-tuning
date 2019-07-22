@@ -14,7 +14,7 @@ The state machine is designed to be **quick** and **language agnostic**. You can
 
 The input function will be executed in your AWS account (i.e. real HTTP calls, SDK calls, cold starts, etc.). The state machine also supports cross-region access and you can enable parallel execution to generate results in just a few seconds.
 
-![state-machine](state-machine-screenshot.png?raw=true)
+![state-machine](imgs/state-machine-screenshot.png?raw=true)
 
 
 ## How to deploy the state machine (AWS Serverless Application Repository)
@@ -101,6 +101,30 @@ The AWS Step Functions state machine will return the following outputs:
 * **power**: the optimal power configuration
 * **cost**: the corresponding average cost (per invocation)
 * **duration**: the corresponding average duration (per invocation)
+
+
+## Error handling
+
+If something goes wrong during the initialization or execution states, the `CleanUpOnError` step will be executed. All versions and alises will be deleted as expected (the same happens in the `Cleaner` step).
+
+### How do I know which executor failed and why?
+
+You can inspect the "Execution event history" and look for the corresponding `TaskStateAborted` event type.
+
+![state-aborted](imgs/step-aborted-screenshot.png?raw=true)
+
+Additionally, you can inspect the `CleanUpOnError` status input. Here you will find the stack trace of the error.
+
+The following screenshots show what the visual workflow will look like in case of errors:
+
+#### Initialization error
+
+![state-aborted](imgs/initialization-error-screenshot.png?raw=true)
+
+#### Execution error
+
+![state-aborted](imgs/execution-error-screenshot.png?raw=true)
+
 
 
 ## State Machine Internals
