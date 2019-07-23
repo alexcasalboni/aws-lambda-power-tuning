@@ -19,7 +19,7 @@ module.exports.handler = async(event, context) => {
         const value = powerValues[i];
         const alias = 'RAM' + value;
         const aliasExists = await verifyAliasExistance(lambdaARN, alias);
-        console.log('aliasExists: ' + aliasExists);
+        // console.log('aliasExists: ' + aliasExists);
         await createPowerConfiguration(lambdaARN, value, alias, aliasExists);
     }
 

@@ -24,6 +24,7 @@ describe('Lambda Utils', () => {
         utils.publishLambdaVersion,
         utils.deleteLambdaVersion,
         utils.createLambdaAlias,
+        utils.updateLambdaAlias,
         utils.deleteLambdaAlias,
         utils.invokeLambda,
     ];
