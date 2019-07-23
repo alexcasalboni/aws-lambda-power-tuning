@@ -46,8 +46,7 @@ const invokeForFailure = async(handler, event) => {
         return error;
     }
 
-    return expect(result).to.be(null);
-    // throw new Error('should have thrown an error, instead got: ', result);
+    expect(result).to.be(null);
 
 };
 
