@@ -47,7 +47,6 @@ const invokeForFailure = async(handler, event) => {
     }
 
     expect(result).to.be(null);
-    // throw new Error('should have thrown an error, instead got: ', result);
 
 };
 
@@ -112,6 +111,25 @@ describe('Lambda Functions', async() => {
             expect(async() => {
                 await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
             }).to.not.throwError();
+        });
+
+        it('should explode if invoked with a low num', async() => {
+            const invalidEvents = [
+                { num: 0, lambdaARN: 'arnOK' },
+                { num: 1, lambdaARN: 'arnOK' },
+                { num: 2, lambdaARN: 'arnOK' },
+                { num: 3, lambdaARN: 'arnOK' },
+                { num: 4, lambdaARN: 'arnOK' },
+            ];
+            invalidEvents.forEach(event => {
+                expect(async() => {
+                    await invokeForFailure(handler, event);
+                }).to.not.throwError();
+            });
+
+            expect(async() => {
+                await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
+            }).to.not.throwError();
 
         });
 
@@ -142,10 +160,30 @@ describe('Lambda Functions', async() => {
             expect(createLambdaAliasCounter).to.be(powerValues.length - 1);
         });
 
+        it('should update an alias if it already exists (2)', async() => {
+            // TODO use real mock (not override!)
+            utils.createLambdaAlias = async(lambdaARN, alias) => {
+                createLambdaAliasCounter += 10;
+                throw new Error('Alias already exists');
+            };
+            await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
+            expect(createLambdaAliasCounter).to.be(powerValues.length * 10);
+        });
+
         it('should explode if something goes wrong during power set', async() => {
             // TODO use real mock (not override!)
             utils.setLambdaPower = async() => {
                 throw new Error('Something went wrong');
+            };
+            await invokeForFailure(handler, { lambdaARN: 'arnOK', num: 5 });
+        });
+
+        it('should fail is something goes wrong with the initialization API calls', async() => {
+            // TODO use real mock (not override!)
+            utils.checkLambdaAlias = async() => {
+                const error = new Error('very bad error');
+                error.code = 'VeryBadError';
+                throw error;
             };
             await invokeForFailure(handler, { lambdaARN: 'arnOK', num: 5 });
         });
@@ -207,6 +245,16 @@ describe('Lambda Functions', async() => {
                 throw error;
             };
             await invokeForSuccess(handler, { lambdaARN: 'arnOK' });
+        });
+
+        it('should fail is something goes wrong with the cleaup API calls', async() => {
+            // TODO use real mock (not override!)
+            utils.deleteLambdaVersion = async() => {
+                const error = new Error('very bad error');
+                error.code = 'VeryBadError';
+                throw error;
+            };
+            await invokeForFailure(handler, { lambdaARN: 'arnOK' });
         });
 
 
@@ -319,6 +367,22 @@ describe('Lambda Functions', async() => {
                 lambdaARN: 'arnOK',
                 value: '1024',
                 num: 10,
+            });
+
+        });
+
+        it('should report an error if invocation fails (parallel)', async() => {
+            utils.invokeLambda = async() => {
+                return {
+                    FunctionError: 'Unhandled',
+                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                };
+            };
+            await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                value: '1024',
+                num: 10,
+                parallelInvocation: true,
             });
 
         });
