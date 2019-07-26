@@ -449,8 +449,8 @@ describe('Lambda Functions', async() => {
         it('should return the fastest power configuration if speed strategy', async() => {
             const event = [
                 { strategy: 'speed', value: '128', stats: { averagePrice: 100, averageDuration: 300 } },
-                { strategy: 'speed',value: '256', stats: { averagePrice: 200, averageDuration: 200 } },
-                { strategy: 'speed',value: '512', stats: { averagePrice: 300, averageDuration: 100 } },
+                { strategy: 'speed', value: '256', stats: { averagePrice: 200, averageDuration: 200 } },
+                { strategy: 'speed', value: '512', stats: { averagePrice: 300, averageDuration: 100 } },
             ];
 
             const result = await invokeForSuccess(handler, event);
@@ -463,8 +463,8 @@ describe('Lambda Functions', async() => {
         it('should explode if invalid strategy', async() => {
             const event = [
                 { strategy: 'foobar', value: '128', stats: { averagePrice: 100, averageDuration: 300 } },
-                { strategy: 'foobar',value: '256', stats: { averagePrice: 200, averageDuration: 200 } },
-                { strategy: 'foobar',value: '512', stats: { averagePrice: 300, averageDuration: 100 } },
+                { strategy: 'foobar', value: '256', stats: { averagePrice: 200, averageDuration: 200 } },
+                { strategy: 'foobar', value: '512', stats: { averagePrice: 300, averageDuration: 100 } },
             ];
 
             expect(async() => {
