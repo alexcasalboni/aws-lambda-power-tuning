@@ -472,6 +472,21 @@ describe('Lambda Functions', async() => {
             }).to.not.throwError();
         });
 
+        it('should not explode if some configs have not been executed', async() => {
+            const event = [
+                { value: '128', stats: { averagePrice: 100, averageDuration: 300 } },
+                { value: '256', stats: 'not executed' },
+                { value: '512', stats: { averagePrice: 200, averageDuration: 100 } },
+                
+            ];
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('128');
+            expect(result.cost).to.be(100);
+            expect(result.duration).to.be(300);
+        });
+
     });
 
 });
