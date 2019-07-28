@@ -271,7 +271,12 @@ describe('Lambda Functions', async() => {
             // TODO use real mock (not override!)
             utils.invokeLambda = async() => {
                 invokeLambdaCounter++;
-                return 'OK';
+                // logs will always return 1ms duration with 128MB
+                return {
+                    StatusCode: 200,
+                    LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMTAwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
+                    ExecutedVersion: '$LATEST',
+                    Payload: '{}' };
             };
         });
 
@@ -316,6 +321,20 @@ describe('Lambda Functions', async() => {
                 num: 10,
                 parallelInvocation: true,
             });
+        });
+
+        it('should return statistics', async() => {
+            const response = await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: 10,
+            });
+
+            expect(response).to.be.an('object');
+            expect(response.averagePrice).to.be.a('number');
+            expect(response.averageDuration).to.be.a('number');
+            expect(response.totalCost).to.be.a('number');
+            expect(response.totalCost).to.be(process.env.minCost * 10);
         });
 
         it('should invoke the given cb, when done (custom payload)', async() => {
@@ -402,6 +421,7 @@ describe('Lambda Functions', async() => {
     describe('finalizer', () => {
 
         const handler = require('../lambda/finalizer').handler;
+        const fixedCost = require('../lambda/finalizer').fixedCost;
 
         it('should explode if invoked without invalid event', async() => {
             const invalidEvents = [
@@ -418,11 +438,11 @@ describe('Lambda Functions', async() => {
             });
         });
 
-        it('should return the cheapest power configuration if no strategy', async() => {
+        it('should also return the total cost of execution', async() => {
             const event = [
-                { value: '128', stats: { averagePrice: 100, averageDuration: 100 } },
-                { value: '256', stats: { averagePrice: 200, averageDuration: 300 } },
-                { value: '512', stats: { averagePrice: 30, averageDuration: 200 } },
+                { value: '128', stats: { averagePrice: 100, averageDuration: 100, totalCost: 1 } },
+                { value: '256', stats: { averagePrice: 200, averageDuration: 300, totalCost: 2 } },
+                { value: '512', stats: { averagePrice: 30, averageDuration: 200, totalCost: 3 } },
             ];
 
             const result = await invokeForSuccess(handler, event);
@@ -430,13 +450,33 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(30);
             expect(result.duration).to.be(200);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(fixedCost);
+            expect(result.stateMachine.lambdaCost).to.be(6);
+        });
+
+        it('should return the cheapest power configuration if no strategy', async() => {
+            const event = [
+                { value: '128', stats: { averagePrice: 100, averageDuration: 100, totalCost: 1 } },
+                { value: '256', stats: { averagePrice: 200, averageDuration: 300, totalCost: 3 } },
+                { value: '512', stats: { averagePrice: 30, averageDuration: 200, totalCost: 5 } },
+            ];
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('512');
+            expect(result.cost).to.be(30);
+            expect(result.duration).to.be(200);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(fixedCost);
+            expect(result.stateMachine.lambdaCost).to.be(9);
         });
 
         it('should return the cheapest power configuration if cost strategy', async() => {
             const event = [
-                { strategy: 'cost', value: '128', stats: { averagePrice: 100, averageDuration: 100 } },
-                { strategy: 'cost', value: '256', stats: { averagePrice: 200, averageDuration: 300 } },
-                { strategy: 'cost', value: '512', stats: { averagePrice: 30, averageDuration: 200 } },
+                { strategy: 'cost', value: '128', stats: { averagePrice: 100, averageDuration: 100, totalCost: 1 } },
+                { strategy: 'cost', value: '256', stats: { averagePrice: 200, averageDuration: 300, totalCost: 6 } },
+                { strategy: 'cost', value: '512', stats: { averagePrice: 30, averageDuration: 200, totalCost: 9 } },
             ];
 
             const result = await invokeForSuccess(handler, event);
@@ -444,13 +484,16 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(30);
             expect(result.duration).to.be(200);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(fixedCost);
+            expect(result.stateMachine.lambdaCost).to.be(16);
         });
 
         it('should return the fastest power configuration if speed strategy', async() => {
             const event = [
-                { strategy: 'speed', value: '128', stats: { averagePrice: 100, averageDuration: 300 } },
-                { strategy: 'speed', value: '256', stats: { averagePrice: 200, averageDuration: 200 } },
-                { strategy: 'speed', value: '512', stats: { averagePrice: 300, averageDuration: 100 } },
+                { strategy: 'speed', value: '128', stats: { averagePrice: 100, averageDuration: 300, totalCost: 1 } },
+                { strategy: 'speed', value: '256', stats: { averagePrice: 200, averageDuration: 200, totalCost: 1 } },
+                { strategy: 'speed', value: '512', stats: { averagePrice: 300, averageDuration: 100, totalCost: 1 } },
             ];
 
             const result = await invokeForSuccess(handler, event);
@@ -458,13 +501,16 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(300);
             expect(result.duration).to.be(100);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(fixedCost);
+            expect(result.stateMachine.lambdaCost).to.be(3);
         });
 
         it('should explode if invalid strategy', async() => {
             const event = [
-                { strategy: 'foobar', value: '128', stats: { averagePrice: 100, averageDuration: 300 } },
-                { strategy: 'foobar', value: '256', stats: { averagePrice: 200, averageDuration: 200 } },
-                { strategy: 'foobar', value: '512', stats: { averagePrice: 300, averageDuration: 100 } },
+                { strategy: 'foobar', value: '128', stats: { averagePrice: 100, averageDuration: 300, totalCost: 1 } },
+                { strategy: 'foobar', value: '256', stats: { averagePrice: 200, averageDuration: 200, totalCost: 1 } },
+                { strategy: 'foobar', value: '512', stats: { averagePrice: 300, averageDuration: 100, totalCost: 1 } },
             ];
 
             expect(async() => {
@@ -474,10 +520,10 @@ describe('Lambda Functions', async() => {
 
         it('should not explode if some configs have not been executed', async() => {
             const event = [
-                { value: '128', stats: { averagePrice: 100, averageDuration: 300 } },
+                { value: '128', stats: { averagePrice: 100, averageDuration: 300, totalCost: 1 } },
                 { value: '256', stats: 'not executed' },
-                { value: '512', stats: { averagePrice: 200, averageDuration: 100 } },
-                
+                { value: '512', stats: { averagePrice: 200, averageDuration: 100, totalCost: 1 } },
+
             ];
 
             const result = await invokeForSuccess(handler, event);
@@ -485,6 +531,10 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('128');
             expect(result.cost).to.be(100);
             expect(result.duration).to.be(300);
+            expect(result.totalCost).to.be(undefined);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(fixedCost);
+            expect(result.stateMachine.lambdaCost).to.be(2);
         });
 
     });

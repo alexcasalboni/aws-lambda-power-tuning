@@ -67,21 +67,20 @@ describe('Lambda Utils', () => {
         });
     });
 
-    describe('computeStats', () => {
+    describe('computePrice', () => {
         const minCost = 0.000000208; // $
         const minRAM = 128; // MB
         const value = 1024; // MB
         const averageDuration = 300; // ms
 
         it('should return the average price', () => {
-            const stats = utils.computeStats(minCost, minRAM, value, averageDuration);
-            expect(stats).to.be.an('object');
-            expect(stats.averagePrice).to.be(minCost * 8 * 3);
-            expect(stats.averageDuration).to.be(300);
+            const avgPrice = utils.computePrice(minCost, minRAM, value, averageDuration);
+            expect(avgPrice).to.be.a('number');
+            expect(avgPrice).to.be(minCost * 8 * 3);
         });
     });
 
-    describe('computeAverageDuration', () => {
+    describe('parseLogAndExtractDurations', () => {
         const results = [
             // 1s (will be discarted)
             { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMTAwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==', Payload: 'null' },
@@ -95,8 +94,26 @@ describe('Lambda Utils', () => {
             { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMy4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMTAwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==', Payload: 'null' },
         ];
 
-        it('should return the average price', () => {
-            const duration = utils.computeAverageDuration(results);
+        it('should return the list of durations', () => {
+            const durations = utils.parseLogAndExtractDurations(results);
+            expect(durations).to.be.a('array');
+            expect(durations.length).to.be(5);
+            expect(durations).to.eql([1, 1, 2, 3, 3]);
+        });
+        it('should return empty list if empty results', () => {
+            const durations = utils.parseLogAndExtractDurations([]);
+            expect(durations).to.be.an('array');
+            expect(durations.length).to.be(0);
+        });
+    });
+
+    describe('computeAverageDuration', () => {
+        const durations = [
+            1, 1, 2, 3, 3,
+        ];
+
+        it('should return the average duration', () => {
+            const duration = utils.computeAverageDuration(durations);
             expect(duration).to.be(2);
         });
         it('should return 0 if empty results', () => {

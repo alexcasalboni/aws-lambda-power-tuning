@@ -115,48 +115,54 @@ module.exports.invokeLambda = (lambdaARN, alias, payload) => {
 /**
  * Compute average price and returns with average duration.
  */
-module.exports.computeStats = (minCost, minRAM, value, averageDuration) => {
+module.exports.computePrice = (minCost, minRAM, value, duration) => {
     // compute official price per 100ms
     const pricePer100ms = value * minCost / minRAM;
     // quantize price to upper 100ms (billed duration) and compute avg price
-    const averagePrice = Math.ceil(averageDuration / 100) * pricePer100ms;
+    return Math.ceil(duration / 100) * pricePer100ms;
+};
 
-    return {
-        averagePrice: averagePrice,
-        averageDuration: averageDuration,
-    };
+module.exports.parseLogAndExtractDurations = (data) => {
+    return data.map(log => {
+        const logString = utils.base64decode(log.LogResult || '');
+        return utils.extractDuration(logString);
+    });
 };
 
 /**
  * Copute average duration
  */
-module.exports.computeAverageDuration = (results) => {
-    if (!results || !results.length) {
+module.exports.computeTotalCost = (minCost, minRAM, value, durations) => {
+    if (!durations || !durations.length) {
+        return 0;
+    }
+
+    // compute corresponding cost for each durationo
+    const costs = durations.map(duration => utils.computePrice(minCost, minRAM, value, duration));
+
+    // sum all together
+    return costs.reduce((a, b) => a + b, 0);
+};
+
+/**
+ * Copute average duration
+ */
+module.exports.computeAverageDuration = (durations) => {
+    if (!durations || !durations.length) {
         return 0;
     }
 
     // 20% of durations will be discarted (trimmed mean)
-    const toBeDiscarded = parseInt(results.length * 20 / 100, 10);
+    const toBeDiscarded = parseInt(durations.length * 20 / 100, 10);
 
-    // build a list of floats by parsing logs
-    const durations = results.map(result => {
-        const log = utils.base64decode(result.LogResult || '');
-        return utils.extractDuration(log);
-    });
-
-    /**
-     * Simply add the two given numbers (used to reduce a list).
-     */
-    function _add(a, b) {
-        return a + b;
-    }
+    const newN = durations.length - 2 * toBeDiscarded;
 
     // compute trimmed mean (discard 20% of low/high values)
     const averageDuration = durations
         .sort() // sort numerically
         .slice(toBeDiscarded, -toBeDiscarded) // discard first/last values
-        .reduce(_add, 0) // sum all together
-        / (results.length - 2 * toBeDiscarded) // divide by N
+        .reduce((a, b) => a + b, 0) // sum all together
+        / newN
     ;
 
     return averageDuration;

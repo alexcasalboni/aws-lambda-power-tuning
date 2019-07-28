@@ -6,6 +6,11 @@ const optimizationStrategies = {
     speed: () => findFastest,
 };
 
+// cost of 18 state transitions (AWS Step Functions)
+const fixedCostStepFunctions = +(0.000025 * 18).toFixed(5);
+
+module.exports.fixedCost = fixedCostStepFunctions;
+
 /**
  * Receive average cost and decide which power config wins.
  */
@@ -27,22 +32,33 @@ const findOptimalConfiguration = (event) => {
     const stats = extractStatistics(event);
     const strategy = getStrategy(event);
     const optimizationFunction = optimizationStrategies[strategy]();
-    return optimizationFunction(stats);
+    const optimal = optimizationFunction(stats);
+
+    // also compute total cost of optimization state machine & lambda
+    optimal.stateMachine = {};
+    optimal.stateMachine.executionCost = fixedCostStepFunctions;
+    optimal.stateMachine.lambdaCost = stats
+        .map((p) => p.totalCost || 0)
+        .reduce((a, b) => a + b, 0);
+
+    // the total cost of the optimal branch execution is not needed
+    delete optimal.totalCost;
+
+    return optimal;
 };
 
 
 const extractStatistics = (event) => {
     // generate a list of objects with only the relevant data/stats
-    return event.map(p => {
+    return event
         // handle empty results from executor
-        if (p.stats && p.stats.averageDuration) {
-            return {
-                power: p.value,
-                cost: p.stats.averagePrice,
-                duration: p.stats.averageDuration,
-            };
-        }
-    });
+        .filter(p => p && p.stats && p.stats.averageDuration)
+        .map(p => ({
+            power: p.value,
+            cost: p.stats.averagePrice,
+            duration: p.stats.averageDuration,
+            totalCost: p.stats.totalCost,
+        }));
 };
 
 const findCheapest = (stats) => {

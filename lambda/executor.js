@@ -95,10 +95,24 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payload) => {
 
 const computeStatistics = (results, value) => {
     // use results (which include logs) to compute average duration ...
-    const averageDuration = utils.computeAverageDuration(results);
+
+    const durations = utils.parseLogAndExtractDurations(results);
+
+    const averageDuration = utils.computeAverageDuration(durations);
     console.log('Average duration: ', averageDuration);
+
     // ... and overall statistics
-    const stats = utils.computeStats(minCost, minRAM, value, averageDuration);
+    const averagePrice = utils.computePrice(minCost, minRAM, value, averageDuration);
+
+    // .. and total cost (exact $)
+    const totalCost = utils.computeTotalCost(minCost, minRAM, value, durations);
+
+    const stats = {
+        averagePrice,
+        averageDuration,
+        totalCost,
+    };
+
     console.log('Stats: ', stats);
     return stats;
 };
