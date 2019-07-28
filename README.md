@@ -111,6 +111,8 @@ The AWS Step Functions state machine will return the following outputs:
 
 If something goes wrong during the initialization or execution states, the `CleanUpOnError` step will be executed. All versions and alises will be deleted as expected (the same happens in the `Cleaner` step).
 
+Note: the error `Lambda.Unknown` corresponds to unhandled errors in Lambda such as out-of-memory errors, function timeouts, and hitting the concurrent Lambda invoke limit. If you encounter it as input of `CleanUpOnError`, it's very likely that the Executor function has timed out and you'll need to enable `parallelInvocation`.
+
 ### Retry policy
 
 The executor will retry twice in case any invocation fails. This is helpful in case of execution timeouts or memory errors. You will find the failed execution's stack trace in the `CleanUpOnError` state input.
