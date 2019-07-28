@@ -418,7 +418,7 @@ describe('Lambda Functions', async() => {
             });
         });
 
-        it('should return the cheapest power configuration', async() => {
+        it('should return the cheapest power configuration if no strategy', async() => {
             const event = [
                 { value: '128', stats: { averagePrice: 100, averageDuration: 100 } },
                 { value: '256', stats: { averagePrice: 200, averageDuration: 300 } },
@@ -430,6 +430,61 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(30);
             expect(result.duration).to.be(200);
+        });
+
+        it('should return the cheapest power configuration if cost strategy', async() => {
+            const event = [
+                { strategy: 'cost', value: '128', stats: { averagePrice: 100, averageDuration: 100 } },
+                { strategy: 'cost', value: '256', stats: { averagePrice: 200, averageDuration: 300 } },
+                { strategy: 'cost', value: '512', stats: { averagePrice: 30, averageDuration: 200 } },
+            ];
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('512');
+            expect(result.cost).to.be(30);
+            expect(result.duration).to.be(200);
+        });
+
+        it('should return the fastest power configuration if speed strategy', async() => {
+            const event = [
+                { strategy: 'speed', value: '128', stats: { averagePrice: 100, averageDuration: 300 } },
+                { strategy: 'speed', value: '256', stats: { averagePrice: 200, averageDuration: 200 } },
+                { strategy: 'speed', value: '512', stats: { averagePrice: 300, averageDuration: 100 } },
+            ];
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('512');
+            expect(result.cost).to.be(300);
+            expect(result.duration).to.be(100);
+        });
+
+        it('should explode if invalid strategy', async() => {
+            const event = [
+                { strategy: 'foobar', value: '128', stats: { averagePrice: 100, averageDuration: 300 } },
+                { strategy: 'foobar', value: '256', stats: { averagePrice: 200, averageDuration: 200 } },
+                { strategy: 'foobar', value: '512', stats: { averagePrice: 300, averageDuration: 100 } },
+            ];
+
+            expect(async() => {
+                await invokeForFailure(handler, event);
+            }).to.not.throwError();
+        });
+
+        it('should not explode if some configs have not been executed', async() => {
+            const event = [
+                { value: '128', stats: { averagePrice: 100, averageDuration: 300 } },
+                { value: '256', stats: 'not executed' },
+                { value: '512', stats: { averagePrice: 200, averageDuration: 100 } },
+                
+            ];
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('128');
+            expect(result.cost).to.be(100);
+            expect(result.duration).to.be(300);
         });
 
     });
