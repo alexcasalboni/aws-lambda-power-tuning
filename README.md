@@ -100,11 +100,37 @@ The AWS Step Functions state machine accepts the following parameters:
 
 ## State Machine Output
 
-The AWS Step Functions state machine will return the following outputs:
+The state machine will return the following output:
 
-* **power**: the optimal power configuration
-* **cost**: the corresponding average cost (per invocation)
-* **duration**: the corresponding average duration (per invocation)
+```json
+{
+  "results": {
+    "power": "128",
+    "cost": 2.08e-7,
+    "duration": 2.9066666666666667,
+    "stateMachine": {
+      "executionCost": 0.00045,
+      "lambdaCost": 0.0005252
+    }
+  }
+}
+```
+
+More details on each value:
+
+* **results.power**: the optimal power configuration (RAM)
+* **results.cost**: the corresponding average cost (per invocation)
+* **results.duration**: the corresponding average duration (per invocation)
+* **results.stateMachine.executionCost**: the AWS Step Functions cost corresponding to this state machine execution (fixed value for "worst" case)
+* **results.stateMachine.lambdaCost**: the AWS Lambda cost corresponding to this state machine execution (depending on `num` and average execution time)
+
+## State machine cost
+
+There are three main costs associated with AWS Lambda Power Tuning:
+
+* AWS Step Functions cost: it corresponds to the number of state transitions during the state machine execution; this cost can be considered stable across executions and it's approximately $0.00045
+* AWS Lambda cost (your function's executions): it depends on three factors: 1) number of invocations that you configure as input (`num`), the power configurations that you are testing (`PowerValues` stack parameter), and the average invocation time of your function; for example, if you test all power configurations with `num: 100` and all invocations take less than 100ms, the Lambda cost will be approximately $0.001
+* AWS Lambda cost (`Initializer`, `Executor`, `Cleaner`, `Finalizer`): for most cases it's negligible, especially if you enable `parallelInvocation: true`; this cost is not included in the `results.stateMachine` output to keep the state machine simple and easy to read and debug
 
 
 ## Error handling
