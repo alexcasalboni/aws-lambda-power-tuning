@@ -421,7 +421,7 @@ describe('Lambda Functions', async() => {
     describe('finalizer', () => {
 
         const handler = require('../lambda/finalizer').handler;
-        const fixedCost = require('../lambda/finalizer').fixedCost;
+        const fixedCost = utils.fixedCostStepFunctions;
 
         it('should explode if invoked without invalid event', async() => {
             const invalidEvents = [

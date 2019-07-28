@@ -1,15 +1,12 @@
 'use strict';
 
+const utils = require('./utils');
+
 const defaultStrategy = 'cost';
 const optimizationStrategies = {
     cost: () => findCheapest,
     speed: () => findFastest,
 };
-
-// cost of 18 state transitions (AWS Step Functions)
-const fixedCostStepFunctions = +(0.000025 * 18).toFixed(5);
-
-module.exports.fixedCost = fixedCostStepFunctions;
 
 /**
  * Receive average cost and decide which power config wins.
@@ -36,7 +33,7 @@ const findOptimalConfiguration = (event) => {
 
     // also compute total cost of optimization state machine & lambda
     optimal.stateMachine = {};
-    optimal.stateMachine.executionCost = fixedCostStepFunctions;
+    optimal.stateMachine.executionCost = utils.fixedCostStepFunctions;
     optimal.stateMachine.lambdaCost = stats
         .map((p) => p.totalCost)
         .reduce((a, b) => a + b, 0);
