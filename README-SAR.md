@@ -38,7 +38,7 @@ The AWS Step Functions state machine accepts the following parameters:
 * **num** (required, integer): the # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)
 * **payload** (string or object): the static payload that will be used for every invocation
 * **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
-* **strategy** (string): it can be `"cost"` or `"speed"`; the default value is `"cost"`
+* **strategy** (string): it can be `"cost"` or `"speed"`(the default value is `"cost"`); if you use `"cost"` the state machine will suggest the cheapest option (disregarding its performance), while if you use `"speed"` the state machine will suggest the fastest option (disregarding its cost)
 
 
 ## State Machine Output
