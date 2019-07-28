@@ -71,9 +71,9 @@ More details on each value:
 
 There are three main costs associated with AWS Lambda Power Tuning:
 
-* AWS Step Functions cost: it corresponds to the number of state transitions during the state machine execution; this cost can be considered stable across executions and it's approximately $0.00045
-* AWS Lambda cost (your function's executions): it depends on three factors: 1) number of invocations that you configure as input (`num`), the power configurations that you are testing (`PowerValues` stack parameter), and the average invocation time of your function; for example, if you test all power configurations with `num: 100` and all invocations take less than 100ms, the Lambda cost will be approximately $0.001
-* AWS Lambda cost (`Initializer`, `Executor`, `Cleaner`, `Finalizer`): for most cases it's negligible, especially if you enable `parallelInvocation: true`; this cost is not included in the `results.stateMachine` output to keep the state machine simple and easy to read and debug
+* **AWS Step Functions cost**: it corresponds to the number of state transitions during the state machine execution; this cost can be considered stable across executions and it's approximately $0.00045
+* **AWS Lambda cost** related to your function's executions: it depends on three factors: 1) number of invocations that you configure as input (`num`), the power configurations that you are testing (`PowerValues` stack parameter), and the average invocation time of your function; for example, if you test all power configurations with `num: 100` and all invocations take less than 100ms, the Lambda cost will be approximately $0.001
+* **AWS Lambda cost** related to `Initializer`, `Executor`, `Cleaner`, and `Finalizer`: for most cases it's negligible, especially if you enable `parallelInvocation: true`; this cost is not included in the `results.stateMachine` output to keep the state machine simple and easy to read and debug
 
 ## Error handling
 
