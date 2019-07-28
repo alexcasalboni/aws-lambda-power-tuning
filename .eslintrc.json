@@ -8,7 +8,8 @@
         "mocha": true
     },
     "rules": {
-        "indent": ["error", 4]
+        "indent": ["error", 4],
+        "max-len": "off"
     },
     "extends": "strongloop"
 }
