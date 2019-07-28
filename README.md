@@ -77,8 +77,8 @@ Here you can provide the execution input and an execution id (see section below 
     "lambdaARN": "your-lambda-function-arn",
     "num": 10,
     "payload": "{}",
-    "parallelInvocation": false|true,
-    "strategy": "cost|speed"
+    "parallelInvocation": false,
+    "strategy": "cost"
 }
 ```
 

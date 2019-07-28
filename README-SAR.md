@@ -20,8 +20,8 @@ The state machine name will be prefixed with `powerTuningStateMachine`. Find it 
     "lambdaARN": "your-lambda-function-arn",
     "num": 10,
     "payload": "{}",
-    "parallelInvocation": false|true,
-    "strategy": "cost|speed"
+    "parallelInvocation": false,
+    "strategy": "cost"
 }
 ```
 
