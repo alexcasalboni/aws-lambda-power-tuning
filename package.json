@@ -21,7 +21,7 @@
   "scripts": {
     "deploy": "bash deploy.sh",
     "execute": "bash execute.sh",
-    "lint": "jslint --ignore-path .gitignore .",
+    "lint": "eslint --ignore-path .gitignore .",
     "test": "mocha",
     "coverage": "nyc --reporter=lcov npm run test"
   },

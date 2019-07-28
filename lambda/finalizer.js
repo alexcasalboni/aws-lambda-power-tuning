@@ -1,5 +1,7 @@
 'use strict';
 
+const utils = require('./utils');
+
 const defaultStrategy = 'cost';
 const optimizationStrategies = {
     cost: () => findCheapest,
@@ -27,22 +29,33 @@ const findOptimalConfiguration = (event) => {
     const stats = extractStatistics(event);
     const strategy = getStrategy(event);
     const optimizationFunction = optimizationStrategies[strategy]();
-    return optimizationFunction(stats);
+    const optimal = optimizationFunction(stats);
+
+    // also compute total cost of optimization state machine & lambda
+    optimal.stateMachine = {};
+    optimal.stateMachine.executionCost = utils.fixedCostStepFunctions;
+    optimal.stateMachine.lambdaCost = stats
+        .map((p) => p.totalCost)
+        .reduce((a, b) => a + b, 0);
+
+    // the total cost of the optimal branch execution is not needed
+    delete optimal.totalCost;
+
+    return optimal;
 };
 
 
 const extractStatistics = (event) => {
     // generate a list of objects with only the relevant data/stats
-    return event.map(p => {
+    return event
         // handle empty results from executor
-        if (p.stats && p.stats.averageDuration) {
-            return {
-                power: p.value,
-                cost: p.stats.averagePrice,
-                duration: p.stats.averageDuration,
-            };
-        }
-    });
+        .filter(p => p && p.stats && p.stats.averageDuration)
+        .map(p => ({
+            power: p.value,
+            cost: p.stats.averagePrice,
+            duration: p.stats.averageDuration,
+            totalCost: p.stats.totalCost,
+        }));
 };
 
 const findCheapest = (stats) => {
