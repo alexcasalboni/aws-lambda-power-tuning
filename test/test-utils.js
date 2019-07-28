@@ -105,6 +105,14 @@ describe('Lambda Utils', () => {
             expect(durations).to.be.an('array');
             expect(durations.length).to.be(0);
         });
+
+        it('should not explode if missing logs', () => {
+            const durations = utils.parseLogAndExtractDurations([
+                { StatusCode: 200, Payload: 'null' },
+            ]);
+            expect(durations).to.be.an('array');
+            expect(durations).to.eql([0]);
+        });
     });
 
     describe('computeAverageDuration', () => {

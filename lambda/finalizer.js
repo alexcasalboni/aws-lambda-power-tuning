@@ -38,7 +38,7 @@ const findOptimalConfiguration = (event) => {
     optimal.stateMachine = {};
     optimal.stateMachine.executionCost = fixedCostStepFunctions;
     optimal.stateMachine.lambdaCost = stats
-        .map((p) => p.totalCost || 0)
+        .map((p) => p.totalCost)
         .reduce((a, b) => a + b, 0);
 
     // the total cost of the optimal branch execution is not needed
