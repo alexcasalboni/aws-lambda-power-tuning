@@ -15,10 +15,13 @@ You will find the new state machine in the [Step Functions Console](https://cons
 
 The state machine name will be prefixed with `powerTuningStateMachine`. Find it and click "**Start execution**". Here you can provide the execution input and an execution id (see section below for the full documentation):
 
-```
+```json
 {
     "lambdaARN": "your-lambda-function-arn",
-    "num": 10
+    "num": 10,
+    "payload": "{}",
+    "parallelInvocation": false|true,
+    "strategy": "cost|speed"
 }
 ```
 
@@ -35,6 +38,7 @@ The AWS Step Functions state machine accepts the following parameters:
 * **num** (required, integer): the # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)
 * **payload** (string or object): the static payload that will be used for every invocation
 * **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
+* **strategy** (string): it can be `"cost"` or `"speed"`; the default value is `"cost"`
 
 
 ## State Machine Output
