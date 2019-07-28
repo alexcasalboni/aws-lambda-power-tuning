@@ -122,6 +122,24 @@ describe('Lambda Utils', () => {
         });
     });
 
+    describe('computeTotalCost', () => {
+        const minCost = 0.000000208; // $
+        const minRAM = 128; // MB
+        const value = 1024; // MB
+        const durations = [
+            100, 200, 200, 300, 400,
+        ];
+
+        it('should return the total cost', () => {
+            const duration = utils.computeTotalCost(minCost, minRAM, value, durations);
+            expect(duration).to.be(minCost * 8 * (1 + 2 + 2 + 3 + 4));
+        });
+        it('should return 0 if empty durations', () => {
+            const duration = utils.computeTotalCost(minCost, minRAM, value, []);
+            expect(duration).to.be(0);
+        });
+    });
+
     describe('base64decode', () => {
         it('should convert a string to base64', () => {
             expect(utils.base64decode('aGVsbG8gd29ybGQ=')).to.be('hello world');
