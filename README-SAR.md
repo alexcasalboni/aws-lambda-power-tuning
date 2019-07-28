@@ -105,6 +105,7 @@ Initializer, cleaner and finalizer are executed only once, while the executor is
 
 ## CHANGELOG (SAR versioning)
 
+* *2.0.0*: multiple optimization strategies (cost and speed), new output format with AWS Step Functions and AWS Lambda cost
 * *1.3.1*: retry policies and failed invocations management
 * *1.3.0*: implemented error handling
 * *1.2.1*: Node.js refactor and updated IAM permissions (added lambda:UpdateAlias)
