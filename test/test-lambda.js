@@ -455,6 +455,19 @@ describe('Lambda Functions', async() => {
             expect(result.stateMachine.lambdaCost).to.be(6);
         });
 
+        it('should also return visualization URL', async() => {
+            const event = [
+                { value: '128', stats: { averagePrice: 100, averageDuration: 100, totalCost: 1 } },
+                { value: '256', stats: { averagePrice: 200, averageDuration: 300, totalCost: 2 } },
+                { value: '512', stats: { averagePrice: 30, averageDuration: 200, totalCost: 3 } },
+            ];
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.visualization).to.be.a('string');
+        });
+
         it('should return the cheapest power configuration if no strategy', async() => {
             const event = [
                 { value: '128', stats: { averagePrice: 100, averageDuration: 100, totalCost: 1 } },
