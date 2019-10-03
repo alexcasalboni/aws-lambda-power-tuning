@@ -2,6 +2,8 @@
 
 const utils = require('./utils');
 
+const visualizationURL = process.env.visualizationURL;
+
 const defaultStrategy = 'cost';
 const optimizationStrategies = {
     cost: () => findCheapest,
@@ -37,6 +39,7 @@ const findOptimalConfiguration = (event) => {
     optimal.stateMachine.lambdaCost = stats
         .map((p) => p.totalCost)
         .reduce((a, b) => a + b, 0);
+    optimal.stateMachine.visualization = utils.buildVisualizationURL(stats, visualizationURL);
 
     // the total cost of the optimal branch execution is not needed
     delete optimal.totalCost;
