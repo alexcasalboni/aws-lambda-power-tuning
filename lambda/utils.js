@@ -214,7 +214,8 @@ module.exports.lambdaClientFromARN = (lambdaARN) => {
  */
 module.exports.buildVisualizationURL = (stats, baseURL) => {
 
-    function encode(inputList, EncodeType = Float32Array) {
+    function encode(inputList, EncodeType = null) {
+        EncodeType = EncodeType || Float32Array;
         inputList = new EncodeType(inputList);
         if (!(inputList instanceof Uint8Array)) {
             inputList = new Uint8Array(inputList.buffer);
