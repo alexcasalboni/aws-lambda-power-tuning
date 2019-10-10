@@ -21,6 +21,10 @@ Parameters:
     # Default: 128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024,1088,1152,1216,1280,1344,1408,1472,1536,3008
     # AllowedValues: ['128','192','256','320','384','448','512','576','640','704','768','832','896','960','1024','1088','1152','1216','1280','1344','1408','1472','1536','3008']
     Description: Comma-separated RAM values.
+  visualizationURL:
+    Type: String
+    Default: https://master.d19f2a8daatc3f.amplifyapp.com/
+    Description: Stats visualization URL
 
 Globals:
   Function:
@@ -31,7 +35,7 @@ Globals:
         powerValues: !Join [ ",", !Ref PowerValues ]
         minRAM: '128'
         minCost: '0.000000208'
-        visualizationURL: 'https://master.d19f2a8daatc3f.amplifyapp.com'
+        visualizationURL: !Ref visualizationURL
 
 Resources:
 
