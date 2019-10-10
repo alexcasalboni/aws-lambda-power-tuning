@@ -119,6 +119,7 @@ Initializer, cleaner and finalizer are executed only once, while the executor is
 
 ## CHANGELOG (SAR versioning)
 
+* *2.1.1*: custom domain for visualization URL
 * *2.1.0*: average statistics visualization (URL in state machine output)
 * *2.0.0*: multiple optimization strategies (cost and speed), new output format with AWS Step Functions and AWS Lambda cost
 * *1.3.1*: retry policies and failed invocations management
