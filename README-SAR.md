@@ -55,7 +55,8 @@ The state machine will return the following output:
     "duration": 2.9066666666666667,
     "stateMachine": {
       "executionCost": 0.00045,
-      "lambdaCost": 0.0005252
+      "lambdaCost": 0.0005252,
+      "visualization": "https://lambda-power-tuning.show/#<encoded_data>"
     }
   }
 }
