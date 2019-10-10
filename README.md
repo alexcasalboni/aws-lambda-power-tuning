@@ -202,6 +202,7 @@ Please note that you can specify a subset of configuration values in the `PowerV
 
 ## CHANGELOG (SAR versioning)
 
+* *2.1.0*: average statistics visualization (URL in state machine output)
 * *2.0.0*: multiple optimization strategies (cost and speed), new output format with AWS Step Functions and AWS Lambda cost
 * *1.3.1*: retry policies and failed invocations management
 * *1.3.0*: implemented error handling
