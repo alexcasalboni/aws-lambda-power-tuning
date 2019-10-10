@@ -207,3 +207,32 @@ module.exports.lambdaClientFromARN = (lambdaARN) => {
     const region = lambdaARN.split(':')[3];
     return new AWS.Lambda({region});
 };
+
+/**
+ * Generate a URL with encoded stats.
+ * Note: the URL hash is never sent to the server.
+ */
+module.exports.buildVisualizationURL = (stats, baseURL) => {
+
+    function encode(inputList, EncodeType = null) {
+        EncodeType = EncodeType || Float32Array;
+        inputList = new EncodeType(inputList);
+        if (!(inputList instanceof Uint8Array)) {
+            inputList = new Uint8Array(inputList.buffer);
+        }
+        return Buffer.from(inputList).toString('base64');
+    }
+
+    // sort by power
+    stats.sort((p1, p2) => {
+        return p1.power - p2.power;
+    });
+
+    const sizes = stats.map(p => p.power);
+    const times = stats.map(p => p.duration);
+    const costs = stats.map(p => p.cost);
+
+    const hash = encode(sizes, Int16Array) + ';' + encode(times) + ';' + encode(costs);
+
+    return baseURL + '#' + hash;
+};

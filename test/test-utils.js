@@ -188,4 +188,23 @@ describe('Lambda Utils', () => {
         });
     });
 
+    describe('buildVisualizationURL', () => {
+        it('should return the visualization URL based on stats', () => {
+            const stats = [
+                {power: 1, duration: 2, cost: 3},
+                {power: 2, duration: 2, cost: 2},
+                {power: 3, duration: 1, cost: 2},
+            ];
+            const prefix = 'https://prefix/';
+            const URL = utils.buildVisualizationURL(stats, prefix);
+            expect(URL).to.be.a('string');
+            expect(URL).to.contain('prefix');
+            expect(URL).to.contain('#');
+            expect(URL).to.contain(';');
+            expect(URL).to.contain('AQACAAMA'); // powers
+            expect(URL).to.contain('AAAAQAAAAEAAAIA'); // times
+            expect(URL).to.contain('AABAQAAAAEAAAABA'); // costs
+        });
+    });
+
 });
