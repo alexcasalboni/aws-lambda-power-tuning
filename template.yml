@@ -23,7 +23,7 @@ Parameters:
     Description: Comma-separated RAM values.
   visualizationURL:
     Type: String
-    Default: https://master.d19f2a8daatc3f.amplifyapp.com/
+    Default: https://lambda-power-tuning.show/
     Description: Stats visualization URL
 
 Globals:
