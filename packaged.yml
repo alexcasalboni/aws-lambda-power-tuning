@@ -1,0 +1,175 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: aws-lambda-power-tuning
+    Description: AWS Step Functions state machine to optimize Lambda functions
+    Author: Alex Casalboni
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: s3://rosh-sam-deployment/e3fc50a88d0a364313df4b21ef20c29e
+    ReadmeUrl: s3://rosh-sam-deployment/ec7c07e0acb781f55b60103c2c57a3bd
+    Labels:
+    - lambda
+    - power
+    - state-machine
+    - step-functions
+    - optimization
+    HomePageUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
+    SemanticVersion: 2.0.0
+    SourceCodeUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
+Parameters:
+  PowerValues:
+    Type: List<Number>
+    Default: 128,256,512,1024,1536,3008
+    Description: Comma-separated RAM values.
+Globals:
+  Function:
+    Runtime: nodejs8.10
+    MemorySize: 128
+    Environment:
+      Variables:
+        powerValues:
+          Fn::Join:
+          - ','
+          - Ref: PowerValues
+        minRAM: '128'
+        minCost: '0.000000208'
+Resources:
+  initializer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 300
+      CodeUri: s3://rosh-sam-deployment/964145def2d9e517dd692d1075b5e92e
+      Handler: initializer.handler
+      Policies:
+      - AWSLambdaExecute
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - lambda:GetAlias
+          - lambda:PublishVersion
+          - lambda:UpdateFunctionConfiguration
+          - lambda:CreateAlias
+          - lambda:UpdateAlias
+          Resource: '*'
+  executor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://rosh-sam-deployment/964145def2d9e517dd692d1075b5e92e
+      Handler: executor.handler
+      Timeout: 300
+      Policies:
+      - AWSLambdaExecute
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - lambda:InvokeFunction
+          Resource: '*'
+  cleaner:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://rosh-sam-deployment/964145def2d9e517dd692d1075b5e92e
+      Handler: cleaner.handler
+      Timeout: 60
+      Policies:
+      - AWSLambdaExecute
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - lambda:GetAlias
+          - lambda:DeleteAlias
+          - lambda:DeleteFunction
+          Resource: '*'
+  finalizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://rosh-sam-deployment/964145def2d9e517dd692d1075b5e92e
+      Handler: finalizer.handler
+      Timeout: 10
+      Policies:
+      - AWSLambdaExecute
+  statemachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              Fn::Sub: states.${AWS::Region}.amazonaws.com
+          Action: sts:AssumeRole
+  powerTuningStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn:
+        Fn::GetAtt:
+        - statemachineRole
+        - Arn
+      DefinitionString:
+        Fn::Sub:
+        - ' { "Comment": "AWS Lambda Power Tuning state machine", "StartAt": "Initializer",
+          "States": { "Initializer": { "Type": "Task", "Resource": "${initializerArn}",
+          "Next": "Branching", "ResultPath": null, "Catch": [{ "ErrorEquals": [ "States.ALL"
+          ], "Next": "CleanUpOnError", "ResultPath": "$.error" }] }, "Branching":
+          { "Type": "Parallel", "Next": "After Branching", "Catch": [{ "ErrorEquals":
+          ["States.ALL"], "Next": "CleanUpOnError", "ResultPath": "$.error" }], "Branches":
+          [ { "StartAt": "128MB", "States": { "128MB": { "Type": "Pass", "Result":
+          "128", "ResultPath": "$.value", "Next": "128MB Executor" }, "128MB Executor":
+          { "Type": "Task", "Resource": "${executorArn}", "ResultPath": "$.stats",
+          "End": true, "Retry": [{ "ErrorEquals": ["States.ALL"], "IntervalSeconds":
+          3, "MaxAttempts": 2 }] } } }, { "StartAt": "256MB", "States": { "256MB":
+          { "Type": "Pass", "Result": "256", "ResultPath": "$.value", "Next": "256MB
+          Executor" }, "256MB Executor": { "Type": "Task", "Resource": "${executorArn}",
+          "ResultPath": "$.stats", "End": true, "Retry": [{ "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 3, "MaxAttempts": 2 }] } } }, { "StartAt": "512MB", "States":
+          { "512MB": { "Type": "Pass", "Result": "512", "ResultPath": "$.value", "Next":
+          "512MB Executor" }, "512MB Executor": { "Type": "Task", "Resource": "${executorArn}",
+          "ResultPath": "$.stats", "End": true, "Retry": [{ "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 3, "MaxAttempts": 2 }] } } }, { "StartAt": "1024MB",
+          "States": { "1024MB": { "Type": "Pass", "Result": "1024", "ResultPath":
+          "$.value", "Next": "1024MB Executor" }, "1024MB Executor": { "Type": "Task",
+          "Resource": "${executorArn}", "ResultPath": "$.stats", "End": true, "Retry":
+          [{ "ErrorEquals": ["States.ALL"], "IntervalSeconds": 3, "MaxAttempts": 2
+          }] } } }, { "StartAt": "1536MB", "States": { "1536MB": { "Type": "Pass",
+          "Result": "1536", "ResultPath": "$.value", "Next": "1536MB Executor" },
+          "1536MB Executor": { "Type": "Task", "Resource": "${executorArn}", "ResultPath":
+          "$.stats", "End": true, "Retry": [{ "ErrorEquals": ["States.ALL"], "IntervalSeconds":
+          3, "MaxAttempts": 2 }] } } }, { "StartAt": "3008MB", "States": { "3008MB":
+          { "Type": "Pass", "Result": "3008", "ResultPath": "$.value", "Next": "3008MB
+          Executor" }, "3008MB Executor": { "Type": "Task", "Resource": "${executorArn}",
+          "ResultPath": "$.stats", "End": true, "Retry": [{ "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 3, "MaxAttempts": 2 }] } } } ] }, "After Branching":
+          { "Type": "Parallel", "Next": "Success", "Branches": [ { "StartAt": "Finalizer",
+          "States": { "Finalizer": { "Type": "Task", "Resource": "${finalizerArn}",
+          "End": true } } }, { "StartAt": "Cleaner", "States": { "Cleaner": { "Type":
+          "Task", "InputPath": "$[0]", "ResultPath": null, "OutputPath": null, "Resource":
+          "${cleanerArn}", "End": true } } } ] }, "Success": { "Type": "Pass", "Parameters":
+          { "results.$": "$[0]" }, "End": true }, "CleanUpOnError": { "Type": "Task",
+          "ResultPath": null, "OutputPath": null, "Resource": "${cleanerArn}", "End":
+          true } } }'
+        - initializerArn:
+            Fn::GetAtt:
+            - initializer
+            - Arn
+          executorArn:
+            Fn::GetAtt:
+            - executor
+            - Arn
+          cleanerArn:
+            Fn::GetAtt:
+            - cleaner
+            - Arn
+          finalizerArn:
+            Fn::GetAtt:
+            - finalizer
+            - Arn
+Outputs:
+  StateMachineARN:
+    Value:
+      Ref: powerTuningStateMachine

@@ -5,9 +5,11 @@ const utils = require('./utils');
 const visualizationURL = process.env.visualizationURL;
 
 const defaultStrategy = 'cost';
+const defaultBalancedWeight = 0.5;
 const optimizationStrategies = {
     cost: () => findCheapest,
     speed: () => findFastest,
+    balanced: () => findBalanced,
 };
 
 /**
@@ -27,11 +29,19 @@ const getStrategy = (event) => {
     return event[0].strategy || defaultStrategy;
 };
 
+const getBalancedWeight = (event) => {
+    // extract weight used by balanced strategy or fallback to default (0.5)
+    const w = ("balancedWeight" in event[0]) ?  event[0].balancedWeight : defaultBalancedWeight;
+    // weight must be between 0 and 1
+    return Math.min(Math.max(w, 0.0), 1.0);
+};
+
 const findOptimalConfiguration = (event) => {
     const stats = extractStatistics(event);
     const strategy = getStrategy(event);
+    const balancedWeight = getBalancedWeight(event);
     const optimizationFunction = optimizationStrategies[strategy]();
-    const optimal = optimizationFunction(stats);
+    const optimal = optimizationFunction(stats, balancedWeight);
 
     // also compute total cost of optimization state machine & lambda
     optimal.stateMachine = {};
@@ -51,7 +61,7 @@ const findOptimalConfiguration = (event) => {
 const extractStatistics = (event) => {
     // generate a list of objects with only the relevant data/stats
     return event
-        // handle empty results from executor
+    // handle empty results from executor
         .filter(p => p && p.stats && p.stats.averageDuration)
         .map(p => ({
             power: p.value,
@@ -82,6 +92,28 @@ const findFastest = (stats) => {
     stats.sort((p1, p2) => {
         return p1.duration - p2.duration;
     });
+
+    console.log('Stats: ', stats);
+
+    // just return the first one
+    return stats[0];
+};
+
+const findBalanced = (stats, w) => {
+    // choose a balanced configuration, w is a number between 0 and 1 that express trade-off
+    // between cost and time (0 = min time, 1 = min cost)
+    console.log('Finding balanced configuration with balancedWeight = ', w);
+
+
+    // compute max cost and max duration
+    const maxCost = Math.max(...stats.map(x => x["cost"]));
+    const maxDuration = Math.max(...stats.map(x => x["duration"]));
+
+    // formula for balanced value of a configuration ( value is minimized )
+    const getValue = x => w * x["cost"] / maxCost + (1 - w) * x["duration"] / maxDuration;
+
+    // sort stats by value
+    stats.sort((x, y) => getValue(x) - getValue(y));
 
     console.log('Stats: ', stats);
 

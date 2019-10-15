@@ -11,3 +11,5 @@ venv
 
 # ignore serverless.yml
 serverless.yml
+
+.idea/
