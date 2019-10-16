@@ -31,9 +31,9 @@ const getStrategy = (event) => {
 
 const getBalancedWeight = (event) => {
     // extract weight used by balanced strategy or fallback to default (0.5)
-    const w = ("balancedWeight" in event[0]) ?  event[0].balancedWeight : defaultBalancedWeight;
+    const weight = ("balancedWeight" in event[0]) ?  event[0].balancedWeight : defaultBalancedWeight;
     // weight must be between 0 and 1
-    return Math.min(Math.max(w, 0.0), 1.0);
+    return Math.min(Math.max(weight, 0.0), 1.0);
 };
 
 const findOptimalConfiguration = (event) => {
@@ -99,10 +99,10 @@ const findFastest = (stats) => {
     return stats[0];
 };
 
-const findBalanced = (stats, w) => {
-    // choose a balanced configuration, w is a number between 0 and 1 that express trade-off
+const findBalanced = (stats, weight) => {
+    // choose a balanced configuration, weight is a number between 0 and 1 that express trade-off
     // between cost and time (0 = min time, 1 = min cost)
-    console.log('Finding balanced configuration with balancedWeight = ', w);
+    console.log('Finding balanced configuration with balancedWeight = ', weight);
 
 
     // compute max cost and max duration
@@ -110,7 +110,7 @@ const findBalanced = (stats, w) => {
     const maxDuration = Math.max(...stats.map(x => x["duration"]));
 
     // formula for balanced value of a configuration ( value is minimized )
-    const getValue = x => w * x["cost"] / maxCost + (1 - w) * x["duration"] / maxDuration;
+    const getValue = x => weight * x["cost"] / maxCost + (1 - weight) * x["duration"] / maxDuration;
 
     // sort stats by value
     stats.sort((x, y) => getValue(x) - getValue(y));
