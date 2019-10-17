@@ -31,7 +31,10 @@ const getStrategy = (event) => {
 
 const getBalancedWeight = (event) => {
     // extract weight used by balanced strategy or fallback to default (0.5)
-    const weight = ("balancedWeight" in event[0]) ?  event[0].balancedWeight : defaultBalancedWeight;
+    let weight = event[0].balancedWeight;
+    if (typeof weight === 'undefined') {
+        weight = defaultBalancedWeight;
+    }
     // weight must be between 0 and 1
     return Math.min(Math.max(weight, 0.0), 1.0);
 };
