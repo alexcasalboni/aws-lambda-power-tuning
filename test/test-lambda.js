@@ -519,6 +519,75 @@ describe('Lambda Functions', async() => {
             expect(result.stateMachine.lambdaCost).to.be(3);
         });
 
+        it('should return the cheapest power configuration if balanced strategy with weight = 1', async() => {
+            const event = [
+                { strategy: 'balanced', balancedWeight: 1, value: '128', stats: { averagePrice: 100, averageDuration: 100, totalCost: 1 } },
+                { strategy: 'balanced', balancedWeight: 1, value: '256', stats: { averagePrice: 200, averageDuration: 300, totalCost: 6 } },
+                { strategy: 'balanced', balancedWeight: 1, value: '512', stats: { averagePrice: 30, averageDuration: 200, totalCost: 9 } },
+            ];
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('512');
+            expect(result.cost).to.be(30);
+            expect(result.duration).to.be(200);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(fixedCost);
+            expect(result.stateMachine.lambdaCost).to.be(16);
+        });
+
+        it('should return the fastest power configuration if balanced strategy with weight = 0', async() => {
+            const event = [
+                { strategy: 'balanced', balancedWeight: 0, value: '128', stats: { averagePrice: 100, averageDuration: 300, totalCost: 1 } },
+                { strategy: 'balanced', balancedWeight: 0, value: '256', stats: { averagePrice: 200, averageDuration: 200, totalCost: 1 } },
+                { strategy: 'balanced', balancedWeight: 0, value: '512', stats: { averagePrice: 300, averageDuration: 100, totalCost: 1 } },
+            ];
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('512');
+            expect(result.cost).to.be(300);
+            expect(result.duration).to.be(100);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(fixedCost);
+            expect(result.stateMachine.lambdaCost).to.be(3);
+        });
+
+        it('should return a balanced power configuration if balanced strategy with default weight', async() => {
+            const event = [
+                { strategy: 'balanced', value: '128', stats: { averagePrice: 101, averageDuration: 300, totalCost: 1 } },
+                { strategy: 'balanced', value: '256', stats: { averagePrice: 200, averageDuration: 200, totalCost: 1 } },
+                { strategy: 'balanced', value: '512', stats: { averagePrice: 300, averageDuration: 101, totalCost: 1 } },
+            ];
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('256');
+            expect(result.cost).to.be(200);
+            expect(result.duration).to.be(200);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(fixedCost);
+            expect(result.stateMachine.lambdaCost).to.be(3);
+        });
+
+        it('should return a balanced power configuration if balanced strategy with custom weight', async() => {
+            const event = [
+                { strategy: 'balanced', balancedWeight: 0.3, value: '128', stats: { averagePrice: 100, averageDuration: 300, totalCost: 1 } },
+                { strategy: 'balanced', balancedWeight: 0.3, value: '256', stats: { averagePrice: 200, averageDuration: 200, totalCost: 1 } },
+                { strategy: 'balanced', balancedWeight: 0.3, value: '512', stats: { averagePrice: 300, averageDuration: 100, totalCost: 1 } },
+                { strategy: 'balanced', balancedWeight: 0.3, value: '1024', stats: { averagePrice: 1000, averageDuration: 50, totalCost: 1 } },
+            ];
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('512');
+            expect(result.cost).to.be(300);
+            expect(result.duration).to.be(100);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(fixedCost);
+            expect(result.stateMachine.lambdaCost).to.be(4);
+        });
+
         it('should explode if invalid strategy', async() => {
             const event = [
                 { strategy: 'foobar', value: '128', stats: { averagePrice: 100, averageDuration: 300, totalCost: 1 } },
