@@ -20,7 +20,7 @@ Parameters:
     Default: 128,256,512,1024,1536,3008
     # Default: 128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024,1088,1152,1216,1280,1344,1408,1472,1536,3008
     # AllowedValues: ['128','192','256','320','384','448','512','576','640','704','768','832','896','960','1024','1088','1152','1216','1280','1344','1408','1472','1536','3008']
-    Description: Comma-separated RAM values.
+    Description: Default RAM values, used only if not provided as execution input (comma-separated).
   visualizationURL:
     Type: String
     Default: https://lambda-power-tuning.show/
@@ -32,7 +32,7 @@ Globals:
     MemorySize: 128
     Environment:
       Variables:
-        powerValues: !Join [ ",", !Ref PowerValues ]
+        defaultPowerValues: !Join [ ",", !Ref PowerValues ]
         minRAM: '128'
         minCost: '0.000000208'
         visualizationURL: !Ref visualizationURL
@@ -127,7 +127,7 @@ Resources:
                       "Type": "Task",
                       "Resource": "${initializerArn}",
                       "Next": "Branching",
-                      "ResultPath": null,
+                      "ResultPath": "$.powerValues",
                       "Catch": [{
                         "ErrorEquals": [ "States.ALL" ],
                         "Next": "CleanUpOnError",
@@ -135,182 +135,48 @@ Resources:
                       }]
                   },
                   "Branching": {
-                      "Type": "Parallel",
-                      "Next": "After Branching",
+                      "Type": "Map",
+                      "Next": "Cleaner",
+                      "ItemsPath": "$.powerValues",
+                      "ResultPath": "$.stats",
+                      "Parameters": {
+                        "value.$": "$$.Map.Item.Value",
+                        "lambdaARN.$": "$.lambdaARN",
+                        "num.$": "$.num",
+                        "payload.$": "$.payload",
+                        "parallelInvocation.$": "$.parallelInvocation"
+                      },
+                      "MaxConcurrency": 0,
                       "Catch": [{
                         "ErrorEquals": ["States.ALL"],
                         "Next": "CleanUpOnError",
                         "ResultPath": "$.error"
                       }],
-                      "Branches": [
-                          {
-                              "StartAt": "128MB",
-                              "States": {
-                                  "128MB": {
-                                      "Type": "Pass",
-                                      "Result": "128",
-                                      "ResultPath": "$.value",
-                                      "Next": "128MB Executor"
-                                  },
-                                  "128MB Executor": {
-                                      "Type": "Task",
-                                      "Resource": "${executorArn}",
-                                      "ResultPath": "$.stats",
-                                      "End": true,
-                                      "Retry": [{
-                                          "ErrorEquals": ["States.ALL"],
-                                          "IntervalSeconds": 3,
-                                          "MaxAttempts": 2
-                                      }]
-                                  }
-                              }
-                          },
-                          {
-                              "StartAt": "256MB",
-                              "States": {
-                                  "256MB": {
-                                      "Type": "Pass",
-                                      "Result": "256",
-                                      "ResultPath": "$.value",
-                                      "Next": "256MB Executor"
-                                  },
-                                  "256MB Executor": {
-                                      "Type": "Task",
-                                      "Resource": "${executorArn}",
-                                      "ResultPath": "$.stats",
-                                      "End": true,
-                                      "Retry": [{
-                                          "ErrorEquals": ["States.ALL"],
-                                          "IntervalSeconds": 3,
-                                          "MaxAttempts": 2
-                                      }]
-                                  }
-                              }
-                          },
-                          {
-                              "StartAt": "512MB",
-                              "States": {
-                                  "512MB": {
-                                      "Type": "Pass",
-                                      "Result": "512",
-                                      "ResultPath": "$.value",
-                                      "Next": "512MB Executor"
-                                  },
-                                  "512MB Executor": {
-                                      "Type": "Task",
-                                      "Resource": "${executorArn}",
-                                      "ResultPath": "$.stats",
-                                      "End": true,
-                                      "Retry": [{
-                                          "ErrorEquals": ["States.ALL"],
-                                          "IntervalSeconds": 3,
-                                          "MaxAttempts": 2
-                                      }]
-                                  }
-                              }
-                          },
-                          {
-                              "StartAt": "1024MB",
-                              "States": {
-                                  "1024MB": {
-                                      "Type": "Pass",
-                                      "Result": "1024",
-                                      "ResultPath": "$.value",
-                                      "Next": "1024MB Executor"
-                                  },
-                                  "1024MB Executor": {
-                                      "Type": "Task",
-                                      "Resource": "${executorArn}",
-                                      "ResultPath": "$.stats",
-                                      "End": true,
-                                      "Retry": [{
-                                          "ErrorEquals": ["States.ALL"],
-                                          "IntervalSeconds": 3,
-                                          "MaxAttempts": 2
-                                      }]
-                                  }
-                              }
-                          },
-                          {
-                              "StartAt": "1536MB",
-                              "States": {
-                                  "1536MB": {
-                                      "Type": "Pass",
-                                      "Result": "1536",
-                                      "ResultPath": "$.value",
-                                      "Next": "1536MB Executor"
-                                  },
-                                  "1536MB Executor": {
-                                      "Type": "Task",
-                                      "Resource": "${executorArn}",
-                                      "ResultPath": "$.stats",
-                                      "End": true,
-                                      "Retry": [{
-                                          "ErrorEquals": ["States.ALL"],
-                                          "IntervalSeconds": 3,
-                                          "MaxAttempts": 2
-                                      }]
-                                  }
-                              }
-                          },
-                          {
-                              "StartAt": "3008MB",
-                              "States": {
-                                  "3008MB": {
-                                      "Type": "Pass",
-                                      "Result": "3008",
-                                      "ResultPath": "$.value",
-                                      "Next": "3008MB Executor"
-                                  },
-                                  "3008MB Executor": {
-                                      "Type": "Task",
-                                      "Resource": "${executorArn}",
-                                      "ResultPath": "$.stats",
-                                      "End": true,
-                                      "Retry": [{
-                                          "ErrorEquals": ["States.ALL"],
-                                          "IntervalSeconds": 3,
-                                          "MaxAttempts": 2
-                                      }]
-                                  }
+                      "Iterator": {
+                          "StartAt": "Executor",
+                          "States": {
+                              "Executor": {
+                                  "Type": "Task",
+                                  "Resource": "${executorArn}",
+                                  "End": true,
+                                  "Retry": [{
+                                      "ErrorEquals": ["States.ALL"],
+                                      "IntervalSeconds": 3,
+                                      "MaxAttempts": 2
+                                  }]
                               }
                           }
-                      ]
+                      }
                   },
-                  "After Branching": {
-                      "Type": "Parallel",
-                      "Next": "Success",
-                      "Branches": [
-                          {
-                              "StartAt": "Finalizer",
-                              "States": {
-                                  "Finalizer": {
-                                      "Type": "Task",
-                                      "Resource": "${finalizerArn}",
-                                      "End": true
-                                  }
-                              }
-                          },
-                          {
-                              "StartAt": "Cleaner",
-                              "States": {
-                                  "Cleaner": {
-                                      "Type": "Task",
-                                      "InputPath": "$[0]",
-                                      "ResultPath": null,
-                                      "OutputPath": null,
-                                      "Resource": "${cleanerArn}",
-                                      "End": true
-                                  }
-                              }
-                          }
-                      ]
+                  "Cleaner": {
+                      "Type": "Task",
+                      "Next": "Finalizer",
+                      "ResultPath": null,
+                      "Resource": "${cleanerArn}"
                   },
-                  "Success": {
-                      "Type": "Pass",
-                      "Parameters": {
-                          "results.$": "$[0]"
-                      },
+                  "Finalizer": {
+                      "Type": "Task",
+                      "Resource": "${finalizerArn}",
                       "End": true
                   },
                   "CleanUpOnError": {
