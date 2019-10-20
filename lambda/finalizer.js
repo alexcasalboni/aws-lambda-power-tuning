@@ -17,7 +17,7 @@ const optimizationStrategies = {
  */
 module.exports.handler = async(event, context) => {
 
-    if (!Array.isArray(event) || !event.length) {
+    if (!Array.isArray(event.stats) || !event.stats.length) {
         throw new Error('Wrong input ' + JSON.stringify(event));
     }
 
@@ -26,12 +26,12 @@ module.exports.handler = async(event, context) => {
 
 const getStrategy = (event) => {
     // extract strategy name or fallback to default (cost)
-    return event[0].strategy || defaultStrategy;
+    return event.strategy || defaultStrategy;
 };
 
 const getBalancedWeight = (event) => {
     // extract weight used by balanced strategy or fallback to default (0.5)
-    let weight = event[0].balancedWeight;
+    let weight = event.balancedWeight;
     if (typeof weight === 'undefined') {
         weight = defaultBalancedWeight;
     }
@@ -48,7 +48,7 @@ const findOptimalConfiguration = (event) => {
 
     // also compute total cost of optimization state machine & lambda
     optimal.stateMachine = {};
-    optimal.stateMachine.executionCost = utils.fixedCostStepFunctions;
+    optimal.stateMachine.executionCost = utils.stepFunctionsCost(event.stats.length);
     optimal.stateMachine.lambdaCost = stats
         .map((p) => p.totalCost)
         .reduce((a, b) => a + b, 0);
@@ -63,14 +63,14 @@ const findOptimalConfiguration = (event) => {
 
 const extractStatistics = (event) => {
     // generate a list of objects with only the relevant data/stats
-    return event
+    return event.stats
     // handle empty results from executor
-        .filter(p => p && p.stats && p.stats.averageDuration)
-        .map(p => ({
-            power: p.value,
-            cost: p.stats.averagePrice,
-            duration: p.stats.averageDuration,
-            totalCost: p.stats.totalCost,
+        .filter(stat => stat && stat.averageDuration)
+        .map(stat => ({
+            power: stat.value,
+            cost: stat.averagePrice,
+            duration: stat.averageDuration,
+            totalCost: stat.totalCost,
         }));
 };
 

@@ -5,8 +5,8 @@ const AWS = require('aws-sdk');
 // local reference to this module
 const utils = module.exports;
 
-// cost of 18 state transitions (AWS Step Functions)
-module.exports.fixedCostStepFunctions = +(0.000025 * 18).toFixed(5);
+// cost of 5+N state transitions (AWS Step Functions)
+module.exports.stepFunctionsCost = (nPower) => +(0.000025 * (5 + nPower)).toFixed(5);
 
 /**
  * Check whether a Lambda Alias exists or not, and return its data.

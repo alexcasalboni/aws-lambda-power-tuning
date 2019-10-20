@@ -1,16 +1,15 @@
 'use strict';
 
 const utils = require('./utils');
-const powerValues = process.env.powerValues.split(',');
 
 /**
  * Delete aliases and versions.
  */
 module.exports.handler = async(event, context) => {
 
-    const lambdaARN = event.lambdaARN;
+    const {lambdaARN, powerValues} = event;
 
-    validateInput(lambdaARN); // may throw
+    validateInput(lambdaARN, powerValues); // may throw
 
     const ops = powerValues.map(async(value) => {
         const alias = 'RAM' + value;
@@ -23,12 +22,12 @@ module.exports.handler = async(event, context) => {
     return 'OK';
 };
 
-const validateInput = (lambdaARN) => {
+const validateInput = (lambdaARN, powerValues) => {
     if (!lambdaARN) {
         throw new Error('Missing or empty lambdaARN');
     }
-    if (!powerValues.length) {
-        throw new Error('Missing or empty env.powerValues');
+    if (!powerValues || !powerValues.length) {
+        throw new Error('Missing or empty power values');
     }
 };
 

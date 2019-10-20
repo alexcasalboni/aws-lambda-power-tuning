@@ -4,7 +4,6 @@ const utils = require('./utils');
 
 const minRAM = parseInt(process.env.minRAM, 10);
 const minCost = parseFloat(process.env.minCost);
-const powerValues = process.env.powerValues.split(',');
 
 /**
  * Execute the given function N times in series or in parallel.
@@ -15,11 +14,6 @@ module.exports.handler = async(event, context) => {
     const {lambdaARN, value, num, enableParallel, payload} = extractDataFromInput(event);
 
     validateInput(lambdaARN, value, num); // may throw
-
-    if (powerValues.indexOf('' + value) === -1) {
-        console.log('Not executing for ' + value);
-        return 'Not executing for ' + value;
-    }
 
     const lambdaAlias = 'RAM' + value;
     let results;
@@ -111,6 +105,7 @@ const computeStatistics = (results, value) => {
         averagePrice,
         averageDuration,
         totalCost,
+        value,
     };
 
     console.log('Stats: ', stats);
