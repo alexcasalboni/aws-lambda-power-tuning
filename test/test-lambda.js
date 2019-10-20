@@ -17,7 +17,7 @@ AWS.mock('Lambda', 'invoke', {});
 
 // mock environment variables and context
 const powerValues = [128, 256, 512, 1024];
-process.env.powerValues = powerValues.join(',');
+process.env.defaultPowerValues = powerValues.join(',');
 process.env.minRAM = 128;
 process.env.minCost = 2.08e-7;
 const fakeContext = {};
