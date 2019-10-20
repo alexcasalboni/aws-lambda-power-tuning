@@ -109,11 +109,11 @@ const findBalanced = (stats, weight) => {
 
 
     // compute max cost and max duration
-    const maxCost = Math.max(...stats.map(x => x["cost"]));
-    const maxDuration = Math.max(...stats.map(x => x["duration"]));
+    const maxCost = Math.max(...stats.map(x => x['cost']));
+    const maxDuration = Math.max(...stats.map(x => x['duration']));
 
     // formula for balanced value of a configuration ( value is minimized )
-    const getValue = x => weight * x["cost"] / maxCost + (1 - weight) * x["duration"] / maxDuration;
+    const getValue = x => weight * x['cost'] / maxCost + (1 - weight) * x['duration'] / maxDuration;
 
     // sort stats by value
     stats.sort((x, y) => getValue(x) - getValue(y));

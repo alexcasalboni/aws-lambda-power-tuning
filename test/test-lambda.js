@@ -413,7 +413,6 @@ describe('Lambda Functions', async() => {
     describe('finalizer', () => {
 
         const handler = require('../lambda/finalizer').handler;
-        const fixedCost = utils.stepFunctionsCost;
 
         it('should explode if invoked without invalid event', async() => {
             const invalidEvents = [
@@ -436,7 +435,7 @@ describe('Lambda Functions', async() => {
                     { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
                     { value: '256', averagePrice: 200, averageDuration: 300, totalCost: 2 },
                     { value: '512', averagePrice: 30, averageDuration: 200, totalCost: 3 },
-                ]
+                ],
             };
 
             const result = await invokeForSuccess(handler, event);
@@ -455,7 +454,7 @@ describe('Lambda Functions', async() => {
                     { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
                     { value: '256', averagePrice: 200, averageDuration: 300, totalCost: 2 },
                     { value: '512', averagePrice: 30, averageDuration: 200, totalCost: 3 },
-                ]
+                ],
             };
 
             const result = await invokeForSuccess(handler, event);
@@ -470,7 +469,7 @@ describe('Lambda Functions', async() => {
                     { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
                     { value: '256', averagePrice: 200, averageDuration: 300, totalCost: 3 },
                     { value: '512', averagePrice: 30, averageDuration: 200, totalCost: 5 },
-                ]
+                ],
             };
 
             const result = await invokeForSuccess(handler, event);
@@ -490,7 +489,7 @@ describe('Lambda Functions', async() => {
                     { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
                     { value: '256', averagePrice: 200, averageDuration: 300, totalCost: 6 },
                     { value: '512', averagePrice: 30, averageDuration: 200, totalCost: 9 },
-                ]
+                ],
             };
 
             const result = await invokeForSuccess(handler, event);
@@ -510,7 +509,7 @@ describe('Lambda Functions', async() => {
                     { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
                     { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
                     { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
-                ]
+                ],
             };
 
             const result = await invokeForSuccess(handler, event);
@@ -531,7 +530,7 @@ describe('Lambda Functions', async() => {
                     { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
                     { value: '256', averagePrice: 200, averageDuration: 300, totalCost: 6 },
                     { value: '512', averagePrice: 30, averageDuration: 200, totalCost: 9 },
-                ]
+                ],
             };
 
             const result = await invokeForSuccess(handler, event);
@@ -552,7 +551,7 @@ describe('Lambda Functions', async() => {
                     { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
                     { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
                     { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
-                ]
+                ],
             };
 
             const result = await invokeForSuccess(handler, event);
@@ -572,7 +571,7 @@ describe('Lambda Functions', async() => {
                     { value: '128', averagePrice: 101, averageDuration: 300, totalCost: 1 },
                     { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
                     { value: '512', averagePrice: 300, averageDuration: 101, totalCost: 1 },
-                ]
+                ],
             };
 
             const result = await invokeForSuccess(handler, event);
@@ -590,11 +589,11 @@ describe('Lambda Functions', async() => {
                 strategy: 'balanced',
                 balancedWeight: 0.3,
                 stats: [
-                    { value: '128',  averagePrice: 100, averageDuration: 300, totalCost: 1 },
-                    { value: '256',  averagePrice: 200, averageDuration: 200, totalCost: 1 },
-                    { value: '512',  averagePrice: 300, averageDuration: 100, totalCost: 1 },
+                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
                     { value: '1024', averagePrice: 1000, averageDuration: 50, totalCost: 1 },
-                ]
+                ],
             };
 
             const result = await invokeForSuccess(handler, event);
@@ -614,7 +613,7 @@ describe('Lambda Functions', async() => {
                     { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
                     { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
                     { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
-                ]
+                ],
             };
 
             expect(async() => {

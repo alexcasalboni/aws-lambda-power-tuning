@@ -15,7 +15,7 @@ module.exports.handler = async(event, context) => {
 
     if (!powerValues || powerValues.length === 0) {
         powerValues = defaultPowerValues;
-    }  
+    }
 
     // reminder: configuration updates must run sequencially
     // (otherwise you get a ResourceConflictException)
