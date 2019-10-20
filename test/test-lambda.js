@@ -115,6 +115,7 @@ describe('Lambda Functions', async() => {
 
         it('should explode if invoked with a low num', async() => {
             const invalidEvents = [
+                { num: -1, lambdaARN: 'arnOK' },
                 { num: 0, lambdaARN: 'arnOK' },
                 { num: 1, lambdaARN: 'arnOK' },
                 { num: 2, lambdaARN: 'arnOK' },
@@ -133,8 +134,16 @@ describe('Lambda Functions', async() => {
 
         });
 
-        it('should invoke the given cb, when done', async() => {
+        it('should invoke the given cb without powerValues as input', async() => {
             await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
+        });
+
+        it('should invoke the given cb with empty powerValues as input', async() => {
+            await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5, powerValues: [] });
+        });
+
+        it('should invoke the given cb with powerValues as input', async() => {
+            await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5, powerValues: [128, 256, 512] });
         });
 
         it('should create N aliases and verions', async() => {
