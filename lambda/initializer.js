@@ -9,13 +9,9 @@ const defaultPowerValues = process.env.defaultPowerValues.split(',');
 module.exports.handler = async(event, context) => {
 
     const {lambdaARN, num} = event;
-    var powerValues = event.powerValues;
+    const powerValues = extractPowerValues(event);
 
     validateInput(lambdaARN, num); // may throw
-
-    if (!powerValues || powerValues.length === 0) {
-        powerValues = defaultPowerValues;
-    }
 
     // reminder: configuration updates must run sequencially
     // (otherwise you get a ResourceConflictException)
@@ -25,6 +21,22 @@ module.exports.handler = async(event, context) => {
         const aliasExists = await verifyAliasExistance(lambdaARN, alias);
         // console.log('aliasExists: ' + aliasExists);
         await createPowerConfiguration(lambdaARN, value, alias, aliasExists);
+    }
+
+    return powerValues;
+};
+
+const extractPowerValues = (event) => {
+    var powerValues = event.powerValues;  // could be undefined
+
+    // auto-generate all possible values if ALL
+    if (powerValues === 'ALL') {
+        powerValues = utils.allPowerValues();
+    }
+
+    // use default list of values (defined at deploy-time) if not provided
+    if (!powerValues || powerValues.length === 0) {
+        powerValues = defaultPowerValues;
     }
 
     return powerValues;

@@ -146,6 +146,11 @@ describe('Lambda Functions', async() => {
             await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5, powerValues: [128, 256, 512] });
         });
 
+        it('should invoke the given cb with powerValues=ALL as input', async() => {
+            const generatedValues = await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5, powerValues: 'ALL' });
+            expect(generatedValues.length).to.be(46)
+        });
+
         it('should create N aliases and verions', async() => {
             await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
             expect(setLambdaPowerCounter).to.be(powerValues.length);

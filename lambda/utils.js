@@ -8,6 +8,16 @@ const utils = module.exports;
 // cost of 5+N state transitions (AWS Step Functions)
 module.exports.stepFunctionsCost = (nPower) => +(0.000025 * (5 + nPower)).toFixed(5);
 
+
+module.exports.allPowerValues = () => {
+    const increment = 64;
+    const powerValues = [];
+    for (let value = 128; value <= 3008; value += increment) {
+        powerValues.push(value);
+    }
+    return powerValues;
+}
+
 /**
  * Check whether a Lambda Alias exists or not, and return its data.
  */

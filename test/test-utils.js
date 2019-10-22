@@ -207,4 +207,27 @@ describe('Lambda Utils', () => {
         });
     });
 
+    describe('allPowerValues', () => {
+
+        it('should return a list of integers between 128 and 3008', () => {
+            const values = utils.allPowerValues();
+            expect(values).to.be.an('array');
+            values.forEach((val) => {
+                expect(val).to.be.a('number');
+                expect(val).to.be.greaterThan(127);
+                expect(val).to.be.lessThan(3009);
+            });
+        });
+
+        it('should return a list of integers at intervals of 64', () => {
+            const values = utils.allPowerValues();
+            let val1, val2;
+            for (let i=0; i<values.length - 1; i++) {
+                val1 = values[i];
+                val2 = values[i + 1];
+                expect(val2-val1).to.be(64);
+            }
+        });
+    });
+
 });
