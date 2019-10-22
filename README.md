@@ -166,20 +166,7 @@ The executor will retry twice in case any invocation fails. This is helpful in c
 
 You can inspect the "Execution event history" and look for the corresponding `TaskStateAborted` event type.
 
-![state-aborted](imgs/step-aborted-screenshot.png?raw=true)
-
 Additionally, you can inspect the `CleanUpOnError` state input. Here you will find the stack trace of the error.
-
-The following screenshots show what the visual workflow will look like in case of errors:
-
-#### Initialization error
-
-![state-aborted](imgs/initialization-error-screenshot.png?raw=true)
-
-#### Execution error
-
-![state-aborted](imgs/execution-error-screenshot.png?raw=true)
-
 
 
 ## State Machine Internals
