@@ -11,7 +11,7 @@ Metadata:
     ReadmeUrl: README-SAR.md
     Labels: ['lambda', 'power', 'state-machine', 'step-functions', 'optimization']
     HomePageUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
-    SemanticVersion: 2.1.2
+    SemanticVersion: 2.1.3
     SourceCodeUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
 
 Parameters: 
@@ -28,7 +28,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: nodejs8.10
+    Runtime: nodejs10.x
     MemorySize: 128
     Environment:
       Variables:
