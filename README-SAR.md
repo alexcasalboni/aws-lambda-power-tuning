@@ -2,9 +2,9 @@
 
 AWS Lambda Power Tuning is an AWS Step Functions state machine that helps you optimize your Lambda functions in a data-driven way.
 
-The state machine is designed to be **quick** and **language agnostic**. You can provide **any Lambda function as input** and the state machine will **run it with multiple power configurations, analyze execution logs and suggest you the best configuration to minimize cost**.
+The state machine is designed to be **quick** and **language agnostic**. You can provide **any Lambda function as input** and the state machine will **run it with multiple power configurations (from 128MB to 3GB), analyze execution logs and suggest you the best configuration to minimize cost or maximize performance**.
 
-The input function will be executed in your AWS account (i.e. real HTTP calls, SDK calls, cold starts, etc.). The state machine also supports cross-region access and you can enable parallel execution to generate results in just a few seconds.
+The input function will be executed in your AWS account - performing real HTTP calls, SDK calls, cold starts, etc. The state machine also supports cross-region invocations and you can enable parallel execution to generate results in just a few seconds.
 
 Last but not least, the state machine will generate a dynamic visualization of average cost and speed for each power configuration (more details below).
 
@@ -20,6 +20,7 @@ The state machine name will be prefixed with `powerTuningStateMachine`. Find it 
 ```json
 {
     "lambdaARN": "your-lambda-function-arn",
+    "powerValues": [128, 256, 512, 1024, 2048, 3008],
     "num": 10,
     "payload": "{}",
     "parallelInvocation": false,
@@ -37,6 +38,7 @@ Once the execution has completed, you will find the execution results in the "**
 The AWS Step Functions state machine accepts the following parameters:
 
 * **lambdaARN** (required, string): unique identifier of the Lambda function you want to optimize
+* **powerValues** (optional, string or list of integers): the list of power values to be tested; if not provided, the default values configured at deploy-time are used (by default: 128MB, 256MB, 512MB, 1024MB, 1536MB, and 3008MB); you can provide any power values between 128MB and 3,008MB in 64 MB increments; if you provide the string `"ALL"` instead of a list, all possible power configurations will be tested
 * **num** (required, integer): the # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)
 * **payload** (string or object): the static payload that will be used for every invocation
 * **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
@@ -86,8 +88,8 @@ Optionally, you could deploy your own custom visualization tool and configure th
 
 There are three main costs associated with AWS Lambda Power Tuning:
 
-* **AWS Step Functions cost**: it corresponds to the number of state transitions during the state machine execution; this cost can be considered stable across executions and it's approximately $0.00045
-* **AWS Lambda cost** related to your function's executions: it depends on three factors: 1) number of invocations that you configure as input (`num`), the power configurations that you are testing (`PowerValues` stack parameter), and the average invocation time of your function; for example, if you test all power configurations with `num: 100` and all invocations take less than 100ms, the Lambda cost will be approximately $0.001
+* **AWS Step Functions cost**: it corresponds to the number of state transitions during the state machine execution; this cost depends on the number of tested power values, and it's approximately `0.000025 * (5 + N)` where `N` is the number of power values; for example, if you test 6 power values, the state machine cost will be $0.000275
+* **AWS Lambda cost** related to your function's executions: it depends on three factors: 1) number of invocations that you configure as input (`num`), the number of tested power configurations (`powerValues`), and the average invocation time of your function; for example, if you test all the default power configurations with `num: 100` and all invocations take less than 100ms, the Lambda cost will be approximately $0.001
 * **AWS Lambda cost** related to `Initializer`, `Executor`, `Cleaner`, and `Finalizer`: for most cases it's negligible, especially if you enable `parallelInvocation: true`; this cost is not included in the `results.stateMachine` output to keep the state machine simple and easy to read and debug
 
 ## Error handling
@@ -120,6 +122,7 @@ Initializer, cleaner and finalizer are executed only once, while the executor is
 
 ## CHANGELOG (SAR versioning)
 
+* *3.0.0*: dynamic parallelism (powerValues as execution parameter)
 * *2.1.3*: upgraded runtime to Node.js 10.x
 * *2.1.2*: new balanced optimization strategy
 * *2.1.1*: custom domain for visualization URL

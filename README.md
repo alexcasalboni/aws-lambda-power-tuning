@@ -80,7 +80,7 @@ Here you can provide the execution input and an execution id (see section below 
 ```json
 {
     "lambdaARN": "your-lambda-function-arn",
-    "powerValues": [128,256, 512, 1024, 1536, 2048, 2560, 3008],
+    "powerValues": [128, 256, 512, 1024, 2048, 3008],
     "num": 10,
     "payload": "{}",
     "parallelInvocation": false,
