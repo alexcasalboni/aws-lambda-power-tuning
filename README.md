@@ -105,6 +105,9 @@ The AWS Step Functions state machine accepts the following parameters:
 * **strategy** (string): it can be `"cost"` or `"speed"` or `"balanced"` (the default value is `"cost"`); if you use `"cost"` the state machine will suggest the cheapest option (disregarding its performance), while if you use `"speed"` the state machine will suggest the fastest option (disregarding its cost). When using `"balanced"` the state machine will choose a compromise between `"cost"` and `"speed"` according to the parameter `"balancedWeight"`
 * **balancedWeight** (number between 0.0 and 1.0, by default is 0.5): parameter that express the trade-off between cost and time, 0.0 is equivalent to `"speed"` strategy, 1.0 is equivalent to `"cost"` strategy
 
+
+Additionally, you can specify a list of power values at deploy-time in the `PowerValues` CloudFormation parameter. These power values will be used as the default in case no `powerValues` input parameter is provided.
+
 ## State Machine Output
 
 The state machine will return the following output:
@@ -178,15 +181,9 @@ The AWS Step Functions state machine is composed of four Lambda functions:
 * **cleaner**: delete all the previously generated aliases and versions
 * **finalizer**: compute the optimal power value (current logic: lowest average cost per invocation)
 
-Initializer, cleaner and finalizer are executed only once, while the executor is used by N parallel branches of the state machine (one for each configured power value). By default, the executor will execute the given Lambda function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`. Please note that the total invocation time should stay below 300 seconds (5 min), which means that the average duration of your functions should stay below 3 seconds with `num=100`, 30 seconds with `num=10`, and so on.
+Initializer, cleaner and finalizer are executed only once, while the executor is used by N parallel branches of the state machine (one for each configured power value). By default, the executor will execute the given Lambda function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`.
 
-## Note about the previous version of this project
-
-This project used to require a generation step to dynamically create the required steps based on which memory/power configurations you wanted to test.
-
-The new version of this project doesn't require any generation step.
-
-Please note that you can specify a list of power values in the `PowerValues` CloudFormation parameter, that will be used as the default in case no `powerValues` input parameter is provided.
+Please note that the total invocation time should stay below 300 seconds (5 min), which means that the average duration of your functions should stay below 3 seconds with `num=100`, 30 seconds with `num=10`, and so on. In case you need more time, you can edit the `Timeout` property in the `template.yml` file and redeploy.
 
 
 ## CHANGELOG (SAR versioning)
