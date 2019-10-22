@@ -28,7 +28,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: nodejs8.10
+    Runtime: nodejs10.x
     MemorySize: 128
     Environment:
       Variables:
