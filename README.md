@@ -202,6 +202,7 @@ Please note that you can specify a subset of configuration values in the `PowerV
 
 ## CHANGELOG (SAR versioning)
 
+* *2.1.3*: upgraded runtime to Node.js 10.x
 * *2.1.2*: new balanced optimization strategy
 * *2.1.1*: custom domain for visualization URL
 * *2.1.0*: average statistics visualization (URL in state machine output)
