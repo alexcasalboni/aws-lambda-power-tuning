@@ -27,7 +27,7 @@ module.exports.handler = async(event, context) => {
 };
 
 const extractPowerValues = (event) => {
-    var powerValues = event.powerValues;  // could be undefined
+    var powerValues = event.powerValues; // could be undefined
 
     // auto-generate all possible values if ALL
     if (powerValues === 'ALL') {

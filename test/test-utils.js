@@ -222,10 +222,10 @@ describe('Lambda Utils', () => {
         it('should return a list of integers at intervals of 64', () => {
             const values = utils.allPowerValues();
             let val1, val2;
-            for (let i=0; i<values.length - 1; i++) {
+            for (let i = 0; i < values.length - 1; i++) {
                 val1 = values[i];
                 val2 = values[i + 1];
-                expect(val2-val1).to.be(64);
+                expect(val2 - val1).to.be(64);
             }
         });
     });

@@ -16,7 +16,7 @@ module.exports.allPowerValues = () => {
         powerValues.push(value);
     }
     return powerValues;
-}
+};
 
 /**
  * Check whether a Lambda Alias exists or not, and return its data.
