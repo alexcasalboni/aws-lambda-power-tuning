@@ -30,6 +30,7 @@ Globals:
   Function:
     Runtime: nodejs10.x
     MemorySize: 128
+    Timeout: 300
     Environment:
       Variables:
         defaultPowerValues: !Join [ ",", !Ref PowerValues ]
@@ -42,7 +43,6 @@ Resources:
   initializer:
     Type: AWS::Serverless::Function
     Properties:
-      Timeout: 300
       CodeUri: lambda
       Handler: initializer.handler
       Policies:
@@ -63,7 +63,6 @@ Resources:
     Properties:
       CodeUri: lambda
       Handler: executor.handler
-      Timeout: 300
       Policies:
         - AWSLambdaExecute # Managed Policy
         - Version: '2012-10-17' # Policy Document
@@ -78,7 +77,6 @@ Resources:
     Properties:
       CodeUri: lambda
       Handler: cleaner.handler
-      Timeout: 60
       Policies:
         - AWSLambdaExecute # Managed Policy
         - Version: '2012-10-17' # Policy Document
