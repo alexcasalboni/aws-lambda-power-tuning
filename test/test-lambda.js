@@ -224,6 +224,12 @@ describe('Lambda Functions', async() => {
             });
         });
 
+        it('should explode if invoked without powerValues', async() => {
+            expect(async() => {
+                await invokeForFailure(handler, {lambdaARN: 'arnOK'});
+            }).to.not.throwError();
+        });
+
         beforeEach('mock utilities', () => {
             // TODO use real mock (not override!)
             utils.checkLambdaAlias = async() => {

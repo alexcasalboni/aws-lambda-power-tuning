@@ -227,9 +227,7 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
     function encode(inputList, EncodeType = null) {
         EncodeType = EncodeType || Float32Array;
         inputList = new EncodeType(inputList);
-        if (!(inputList instanceof Uint8Array)) {
-            inputList = new Uint8Array(inputList.buffer);
-        }
+        inputList = new Uint8Array(inputList.buffer);
         return Buffer.from(inputList).toString('base64');
     }
 
@@ -242,7 +240,11 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
     const times = stats.map(p => p.duration);
     const costs = stats.map(p => p.cost);
 
-    const hash = encode(sizes, Int16Array) + ';' + encode(times) + ';' + encode(costs);
+    const hash = [
+        encode(sizes, Int16Array),
+        encode(times),
+        encode(costs),
+    ].join(';');
 
     return baseURL + '#' + hash;
 };
