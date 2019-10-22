@@ -5,8 +5,18 @@ const AWS = require('aws-sdk');
 // local reference to this module
 const utils = module.exports;
 
-// cost of 18 state transitions (AWS Step Functions)
-module.exports.fixedCostStepFunctions = +(0.000025 * 18).toFixed(5);
+// cost of 5+N state transitions (AWS Step Functions)
+module.exports.stepFunctionsCost = (nPower) => +(0.000025 * (5 + nPower)).toFixed(5);
+
+
+module.exports.allPowerValues = () => {
+    const increment = 64;
+    const powerValues = [];
+    for (let value = 128; value <= 3008; value += increment) {
+        powerValues.push(value);
+    }
+    return powerValues;
+};
 
 /**
  * Check whether a Lambda Alias exists or not, and return its data.
@@ -217,9 +227,7 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
     function encode(inputList, EncodeType = null) {
         EncodeType = EncodeType || Float32Array;
         inputList = new EncodeType(inputList);
-        if (!(inputList instanceof Uint8Array)) {
-            inputList = new Uint8Array(inputList.buffer);
-        }
+        inputList = new Uint8Array(inputList.buffer);
         return Buffer.from(inputList).toString('base64');
     }
 
@@ -232,7 +240,11 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
     const times = stats.map(p => p.duration);
     const costs = stats.map(p => p.cost);
 
-    const hash = encode(sizes, Int16Array) + ';' + encode(times) + ';' + encode(costs);
+    const hash = [
+        encode(sizes, Int16Array),
+        encode(times),
+        encode(costs),
+    ].join(';');
 
     return baseURL + '#' + hash;
 };

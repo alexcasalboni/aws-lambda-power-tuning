@@ -33,7 +33,7 @@
     "eslint": "^6.1.0",
     "eslint-config-strongloop": "^2.1.0",
     "expect.js": "^0.3.1",
-    "nyc": "^14.1.1",
-    "mocha": "^3.2.0"
+    "mocha": "^6.2.2",
+    "nyc": "^14.1.1"
   }
 }
