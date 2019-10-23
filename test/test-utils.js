@@ -20,7 +20,7 @@ describe('Lambda Utils', () => {
 
     // I'm dynamically generating tests for all these utilities
     const lambdaUtilities = [
-        utils.checkLambdaAlias,
+        utils.getLambdaAlias,
         utils.setLambdaPower,
         utils.publishLambdaVersion,
         utils.deleteLambdaVersion,

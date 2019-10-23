@@ -72,7 +72,7 @@ describe('Lambda Functions', async() => {
             createLambdaAliasCounter = 0;
             updateLambdaAliasCounter = 0;
             // TODO use real mock (not override!)
-            utils.checkLambdaAlias = async() => {
+            utils.getLambdaAlias = async() => {
                 const error = new Error('alias is not defined');
                 error.code = 'ResourceNotFoundException';
                 throw error;
@@ -169,7 +169,7 @@ describe('Lambda Functions', async() => {
 
         it('should update an alias if it already exists', async() => {
             // TODO use real mock (not override!)
-            utils.checkLambdaAlias = async(lambdaARN, alias) => {
+            utils.getLambdaAlias = async(lambdaARN, alias) => {
                 if (alias === 'RAM128') {
                     return { FunctionVersion: '1' };
                 } else {
@@ -203,7 +203,7 @@ describe('Lambda Functions', async() => {
 
         it('should fail is something goes wrong with the initialization API calls', async() => {
             // TODO use real mock (not override!)
-            utils.checkLambdaAlias = async() => {
+            utils.getLambdaAlias = async() => {
                 const error = new Error('very bad error');
                 error.code = 'VeryBadError';
                 throw error;
@@ -241,7 +241,7 @@ describe('Lambda Functions', async() => {
 
         beforeEach('mock utilities', () => {
             // TODO use real mock (not override!)
-            utils.checkLambdaAlias = async() => {
+            utils.getLambdaAlias = async() => {
                 return { FunctionVersion: '1' };
             };
             utils.deleteLambdaAlias = async() => {
