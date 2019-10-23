@@ -34,7 +34,7 @@ const validateInput = (lambdaARN, powerValues) => {
 const cleanup = async(lambdaARN, alias) => {
     try {
         // check if it exists and fetch version ID
-        const {FunctionVersion} = await utils.checkLambdaAlias(lambdaARN, alias);
+        const {FunctionVersion} = await utils.getLambdaAlias(lambdaARN, alias);
         // delete both alias and version (could be done in parallel!)
         await utils.deleteLambdaAlias(lambdaARN, alias);
         await utils.deleteLambdaVersion(lambdaARN, FunctionVersion);
