@@ -60,7 +60,7 @@ describe('Lambda Functions', async() => {
         const handler = require('../lambda/initializer').handler;
 
         var setLambdaPowerCounter,
-            getLambdaPowerCounter,  
+            getLambdaPowerCounter,
             publishLambdaVersionCounter,
             createLambdaAliasCounter,
             updateLambdaAliasCounter;
@@ -163,6 +163,7 @@ describe('Lambda Functions', async() => {
             // +1 because it will also reset power to its initial value
             expect(setLambdaPowerCounter).to.be(powerValues.length + 1);
 
+            expect(getLambdaPowerCounter).to.be(1);
             expect(publishLambdaVersionCounter).to.be(powerValues.length);
             expect(createLambdaAliasCounter).to.be(powerValues.length);
         });
@@ -439,9 +440,9 @@ describe('Lambda Functions', async() => {
 
     });
 
-    describe('finalizer', () => {
+    describe('analyzer', () => {
 
-        const handler = require('../lambda/finalizer').handler;
+        const handler = require('../lambda/analyzer').handler;
 
         it('should explode if invoked without invalid event', async() => {
             const invalidEvents = [
@@ -648,6 +649,98 @@ describe('Lambda Functions', async() => {
             expect(async() => {
                 await invokeForFailure(handler, event);
             }).to.not.throwError();
+        });
+
+    });
+
+    describe('optimizer', async() => {
+
+        const handler = require('../lambda/optimizer').handler;
+
+        var setLambdaPowerCounter,
+            publishLambdaVersionCounter,
+            createLambdaAliasCounter,
+            updateLambdaAliasCounter;
+
+        beforeEach('mock utilities', () => {
+            setLambdaPowerCounter = 0;
+            publishLambdaVersionCounter = 0;
+            createLambdaAliasCounter = 0;
+            updateLambdaAliasCounter = 0;
+            // TODO use real mock (not override!)
+            utils.getLambdaAlias = async() => {
+                const error = new Error('alias is not defined');
+                error.code = 'ResourceNotFoundException';
+                throw error;
+            };
+            utils.setLambdaPower = async() => {
+                setLambdaPowerCounter++;
+                return 'OK';
+            };
+            utils.publishLambdaVersion = async() => {
+                publishLambdaVersionCounter++;
+                return { Version: 1 };
+            };
+            utils.createLambdaAlias = async() => {
+                createLambdaAliasCounter++;
+                return 'OK';
+            };
+            utils.updateLambdaAlias = async() => {
+                updateLambdaAliasCounter++;
+                return 'OK';
+            };
+        });
+
+        it('should not do anything if invoked without autoOptimize', async() => {
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                analysis: {power: 128},
+            });
+            expect(setLambdaPowerCounter).to.be(0);
+            expect(publishLambdaVersionCounter).to.be(0);
+            expect(createLambdaAliasCounter).to.be(0);
+            expect(updateLambdaAliasCounter).to.be(0);
+        });
+
+        it('should update power if invoked with autoOptimize', async() => {
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                analysis: {power: 128},
+                autoOptimize: true,
+            });
+            expect(setLambdaPowerCounter).to.be(1);
+            expect(publishLambdaVersionCounter).to.be(0);
+            expect(createLambdaAliasCounter).to.be(0);
+            expect(updateLambdaAliasCounter).to.be(0);
+        });
+
+        it('should create alias if invoked with autoOptimizeAlias', async() => {
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                analysis: {power: 128},
+                autoOptimize: true,
+                autoOptimizeAlias: 'prod',
+            });
+            expect(setLambdaPowerCounter).to.be(1);
+            expect(publishLambdaVersionCounter).to.be(1);
+            expect(createLambdaAliasCounter).to.be(1);
+            expect(updateLambdaAliasCounter).to.be(0);
+        });
+
+        it('should update alias if invoked with autoOptimizeAlias and alias already exists', async() => {
+            utils.getLambdaAlias = async() => {
+                return { FunctionVersion: '1' };
+            };
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                analysis: {power: 128},
+                autoOptimize: true,
+                autoOptimizeAlias: 'prod',
+            });
+            expect(setLambdaPowerCounter).to.be(1);
+            expect(publishLambdaVersionCounter).to.be(1);
+            expect(createLambdaAliasCounter).to.be(0);
+            expect(updateLambdaAliasCounter).to.be(1);
         });
 
     });

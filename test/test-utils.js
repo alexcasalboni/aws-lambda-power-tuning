@@ -55,7 +55,7 @@ describe('Lambda Utils', () => {
     });
 
     describe('getLambdaPower', () => {
-        it('should return the memory value', async () => {
+        it('should return the memory value', async() => {
             const value = await getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
             expect(value).to.be(1024);
         });
