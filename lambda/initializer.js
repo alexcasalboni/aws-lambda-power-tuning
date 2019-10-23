@@ -20,9 +20,7 @@ module.exports.handler = async(event, context) => {
     // (otherwise you get a ResourceConflictException)
     for (let value of powerValues){
         const alias = 'RAM' + value;
-        const aliasExists = await verifyAliasExistance(lambdaARN, alias);
-        // console.log('aliasExists: ' + aliasExists);
-        await createPowerConfiguration(lambdaARN, value, alias, aliasExists);
+        await utils.createPowerConfiguration(lambdaARN, value, alias);
     }
 
     await utils.setLambdaPower(lambdaARN, initialPower);
@@ -52,41 +50,5 @@ const validateInput = (lambdaARN, num) => {
     }
     if (!num || num < 5) {
         throw new Error('Missing num or num below 5');
-    }
-};
-
-const verifyAliasExistance = async(lambdaARN, alias) => {
-    try {
-        await utils.checkLambdaAlias(lambdaARN, alias);
-        return true;
-    } catch (error) {
-        if (error.code === 'ResourceNotFoundException') {
-            // OK, the alias isn't supposed to exist
-            console.log('OK, even if missing alias ');
-            return false;
-        } else {
-            console.log('error during alias check:');
-            throw error; // a real error :)
-        }
-    }
-};
-
-const createPowerConfiguration = async(lambdaARN, value, alias, aliasExists) => {
-    try {
-        await utils.setLambdaPower(lambdaARN, value);
-        const {Version} = await utils.publishLambdaVersion(lambdaARN);
-        if (aliasExists) {
-            await utils.updateLambdaAlias(lambdaARN, alias, Version);
-        } else {
-            await utils.createLambdaAlias(lambdaARN, alias, Version);
-        }
-    } catch (error) {
-        if (error.message && error.message.includes('Alias already exists')) {
-            // shouldn't happen, but nothing we can do in that case
-            console.log('OK, even if: ', error);
-        } else {
-            console.log('error during inizialization for value ' + value);
-            throw error; // a real error :)
-        }
     }
 };
