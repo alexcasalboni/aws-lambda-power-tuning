@@ -52,6 +52,7 @@ Resources:
             - Effect: Allow
               Action:
                 - lambda:GetAlias
+                - lambda:GetFunctionConfiguration
                 - lambda:PublishVersion
                 - lambda:UpdateFunctionConfiguration
                 - lambda:CreateAlias

@@ -8,6 +8,7 @@ const utils = require('../lambda/utils');
 
 // AWS SDK mocks
 AWS.mock('Lambda', 'getAlias', {});
+AWS.mock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024});
 AWS.mock('Lambda', 'updateFunctionConfiguration', {});
 AWS.mock('Lambda', 'publishVersion', {});
 AWS.mock('Lambda', 'deleteFunction', {});
@@ -29,11 +30,13 @@ describe('Lambda Utils', () => {
         utils.invokeLambda,
     ];
 
+    // TODO fix me (use proper mocking in test-lambda.js)
+    const getLambdaPower = utils.getLambdaPower;
+
     // just returns the utility name for convenience
     function _fname(func) {
         const keys = Object.keys(utils);
-        for (var i = 0; i < keys.length; i++) {
-            var name = keys[i];
+        for (let name of keys) {
             if (utils[name] === func) {
                 return name;
             }
@@ -48,6 +51,13 @@ describe('Lambda Utils', () => {
                 expect(result).to.be.a(Promise);
             });
             // TODO add more tests!
+        });
+    });
+
+    describe('getLambdaPower', () => {
+        it('should return the memory value', async () => {
+            const value = await getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
+            expect(value).to.be(1024);
         });
     });
 
