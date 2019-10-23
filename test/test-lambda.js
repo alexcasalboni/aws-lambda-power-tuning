@@ -691,6 +691,25 @@ describe('Lambda Functions', async() => {
             };
         });
 
+        it('should explode if invoked without lambdaARN or optimal power', async() => {
+            const invalidEvents = [
+                {},
+                { lambdaARN: null },
+                { lambdaARN: '' },
+                { lambdaARN: false },
+                { lambdaARN: 0 },
+                { lambdaARN: '', analysis: null },
+                { lambdaARN: 'arnOK', analysis: {} },
+                { lambdaARN: 'arnOK', analysis: { power: null} },
+            ];
+            invalidEvents.forEach(event => {
+                expect(async() => {
+                    const error = await invokeForFailure(handler, event);
+                }).to.not.throwError();
+            });
+
+        });
+
         it('should not do anything if invoked without autoOptimize', async() => {
             await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',

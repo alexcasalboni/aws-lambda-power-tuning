@@ -9,7 +9,7 @@ module.exports.handler = async(event, context) => {
 
     const {lambdaARN, analysis, autoOptimize, autoOptimizeAlias} = event;
 
-    const optimalValue = analysis.power;
+    const optimalValue = (analysis || {}).power;
 
     validateInput(lambdaARN, optimalValue); // may throw
 
