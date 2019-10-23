@@ -60,12 +60,14 @@ describe('Lambda Functions', async() => {
         const handler = require('../lambda/initializer').handler;
 
         var setLambdaPowerCounter,
+            getLambdaPowerCounter,  
             publishLambdaVersionCounter,
             createLambdaAliasCounter,
             updateLambdaAliasCounter;
 
         beforeEach('mock utilities', () => {
             setLambdaPowerCounter = 0;
+            getLambdaPowerCounter = 0;
             publishLambdaVersionCounter = 0;
             createLambdaAliasCounter = 0;
             updateLambdaAliasCounter = 0;
@@ -74,6 +76,10 @@ describe('Lambda Functions', async() => {
                 const error = new Error('alias is not defined');
                 error.code = 'ResourceNotFoundException';
                 throw error;
+            };
+            utils.getLambdaPower = async() => {
+                getLambdaPowerCounter++;
+                return 1024;
             };
             utils.setLambdaPower = async() => {
                 setLambdaPowerCounter++;
@@ -151,9 +157,12 @@ describe('Lambda Functions', async() => {
             expect(generatedValues.length).to.be(46);
         });
 
-        it('should create N aliases and verions', async() => {
+        it('should create N aliases and versions', async() => {
             await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
-            expect(setLambdaPowerCounter).to.be(powerValues.length);
+
+            // +1 because it will also reset power to its initial value
+            expect(setLambdaPowerCounter).to.be(powerValues.length + 1);
+
             expect(publishLambdaVersionCounter).to.be(powerValues.length);
             expect(createLambdaAliasCounter).to.be(powerValues.length);
         });

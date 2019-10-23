@@ -3,6 +3,8 @@
 const utils = require('./utils');
 const defaultPowerValues = process.env.defaultPowerValues.split(',');
 
+console.log("found default values: " + defaultPowerValues);
+
 /**
  * Initialize versions & aliases so we can execute everything in parallel.
  */
@@ -13,15 +15,19 @@ module.exports.handler = async(event, context) => {
 
     validateInput(lambdaARN, num); // may throw
 
+    // fetch initial $LATEST value so we can reset it later
+    const initialPower = await utils.getLambdaPower(lambdaARN);
+
     // reminder: configuration updates must run sequencially
     // (otherwise you get a ResourceConflictException)
-    for (let i = 0; i < powerValues.length; i++){
-        const value = powerValues[i];
+    for (let value of powerValues){
         const alias = 'RAM' + value;
         const aliasExists = await verifyAliasExistance(lambdaARN, alias);
         // console.log('aliasExists: ' + aliasExists);
         await createPowerConfiguration(lambdaARN, value, alias, aliasExists);
     }
+
+    await utils.setLambdaPower(lambdaARN, initialPower);
 
     return powerValues;
 };
@@ -45,9 +51,6 @@ const extractPowerValues = (event) => {
 const validateInput = (lambdaARN, num) => {
     if (!lambdaARN) {
         throw new Error('Missing or empty lambdaARN');
-    }
-    if (!defaultPowerValues.length) {
-        throw new Error('Missing or empty env.defaultPowerValues');
     }
     if (!num || num < 5) {
         throw new Error('Missing num or num below 5');

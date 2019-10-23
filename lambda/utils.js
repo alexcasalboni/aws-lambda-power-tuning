@@ -32,6 +32,20 @@ module.exports.checkLambdaAlias = (lambdaARN, alias) => {
 };
 
 /**
+ * Retrieve a given Lambda Function's memory size (always $LATEST version)
+ */
+module.exports.getLambdaPower = async (lambdaARN) => {
+    console.log('Getting current power value');
+    const params = {
+        FunctionName: lambdaARN,
+        Qualifier: '$LATEST',
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    const config = await lambda.getFunctionConfiguration(params).promise();
+    return config.MemorySize;
+};
+
+/**
  * Update a given Lambda Function's memory size (always $LATEST version).
  */
 module.exports.setLambdaPower = (lambdaARN, value) => {
