@@ -3,8 +3,6 @@
 const utils = require('./utils');
 const defaultPowerValues = process.env.defaultPowerValues.split(',');
 
-console.log("found default values: " + defaultPowerValues);
-
 /**
  * Initialize versions & aliases so we can execute everything in parallel.
  */
