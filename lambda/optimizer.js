@@ -10,11 +10,11 @@ module.exports.handler = async(event, context) => {
     const {lambdaARN, analysis, autoOptimize, autoOptimizeAlias} = event;
 
     const optimalValue = analysis.power;
-    
+
     validateInput(lambdaARN, optimalValue); // may throw
 
     if (!autoOptimize) {
-        return console.log("Not optimizing");
+        return console.log('Not optimizing');
     }
 
     if (!autoOptimizeAlias) {
@@ -25,7 +25,7 @@ module.exports.handler = async(event, context) => {
         await utils.createPowerConfiguration(lambdaARN, optimalValue, autoOptimizeAlias);
     }
 
-    return "OK";    
+    return 'OK';
 };
 
 const validateInput = (lambdaARN, optimalValue) => {

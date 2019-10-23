@@ -77,7 +77,7 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
 /**
  * Retrieve a given Lambda Function's memory size (always $LATEST version)
  */
-module.exports.getLambdaPower = async (lambdaARN) => {
+module.exports.getLambdaPower = async(lambdaARN) => {
     console.log('Getting current power value');
     const params = {
         FunctionName: lambdaARN,
