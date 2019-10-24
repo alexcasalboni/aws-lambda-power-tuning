@@ -704,7 +704,7 @@ describe('Lambda Functions', async() => {
             ];
             invalidEvents.forEach(event => {
                 expect(async() => {
-                    const error = await invokeForFailure(handler, event);
+                    await invokeForFailure(handler, event);
                 }).to.not.throwError();
             });
 

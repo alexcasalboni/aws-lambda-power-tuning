@@ -61,6 +61,27 @@ describe('Lambda Utils', () => {
         });
     });
 
+    describe('verifyAliasExistance', () => {
+
+        it('should return true if the alias exists', async() => {
+            utils.getLambdaAlias = async() => {
+                return { FunctionVersion: '1' };
+            };
+            const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
+            expect(aliasExists).to.be(true);
+        });
+
+        it('should return false if the alias does not exists', async() => {
+            utils.getLambdaAlias = async() => {
+                const error = new Error('alias is not defined');
+                error.code = 'ResourceNotFoundException';
+                throw error;
+            };
+            const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
+            expect(aliasExists).to.be(false);
+        });
+    });
+
     describe('extractDuration', () => {
         const log =
             'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n' +
