@@ -196,7 +196,7 @@ Additionally, you can inspect the `CleanUpOnError` state input. Here you will fi
 
 ## State Machine Internals
 
-The AWS Step Functions state machine is composed of four Lambda functions:
+The AWS Step Functions state machine is composed of five Lambda functions:
 
 * **initializer**: create N versions and aliases corresponding to the power values provided as input (e.g. 128MB, 256MB, etc.)
 * **executor**: execute the given Lambda function `num` times, extract execution time from logs, and compute average cost per invocation
