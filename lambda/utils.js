@@ -5,8 +5,8 @@ const AWS = require('aws-sdk');
 // local reference to this module
 const utils = module.exports;
 
-// cost of 5+N state transitions (AWS Step Functions)
-module.exports.stepFunctionsCost = (nPower) => +(0.000025 * (5 + nPower)).toFixed(5);
+// cost of 6+N state transitions (AWS Step Functions)
+module.exports.stepFunctionsCost = (nPower) => +(0.000025 * (6 + nPower)).toFixed(5);
 
 
 module.exports.allPowerValues = () => {
