@@ -89,14 +89,32 @@ Resources:
                 - lambda:DeleteFunction  # only by version/qualifier
               Resource: '*'
 
-  finalizer:
+  analyzer:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: lambda
-      Handler: finalizer.handler
+      Handler: analyzer.handler
       Timeout: 10
       Policies:
         - AWSLambdaExecute # Managed Policy
+
+  optimizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: optimizer.handler
+      Policies:
+        - AWSLambdaExecute # Managed Policy
+        - Version: '2012-10-17' # Policy Document
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetAlias
+                - lambda:PublishVersion
+                - lambda:UpdateFunctionConfiguration
+                - lambda:CreateAlias
+                - lambda:UpdateAlias
+              Resource: '*'
 
   statemachineRole:
     Type: AWS::IAM::Role
@@ -169,13 +187,21 @@ Resources:
                   },
                   "Cleaner": {
                       "Type": "Task",
-                      "Next": "Finalizer",
+                      "Next": "Analyzer",
                       "ResultPath": null,
                       "Resource": "${cleanerArn}"
                   },
-                  "Finalizer": {
+                  "Analyzer": {
                       "Type": "Task",
-                      "Resource": "${finalizerArn}",
+                      "Resource": "${analyzerArn}",
+                      "ResultPath": "$.analysis",
+                      "Next": "Optimizer"
+                  },
+                  "Optimizer": {
+                      "Type": "Task",
+                      "Resource": "${optimizerArn}",
+                      "ResultPath": null,
+                      "OutputPath": "$.analysis",
                       "End": true
                   },
                   "CleanUpOnError": {
@@ -190,7 +216,8 @@ Resources:
           - initializerArn: !GetAtt initializer.Arn
             executorArn: !GetAtt executor.Arn
             cleanerArn: !GetAtt cleaner.Arn
-            finalizerArn: !GetAtt finalizer.Arn
+            analyzerArn: !GetAtt analyzer.Arn
+            optimizerArn: !GetAtt optimizer.Arn
 
 Outputs:
   StateMachineARN:

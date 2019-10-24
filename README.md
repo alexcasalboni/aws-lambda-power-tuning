@@ -12,7 +12,7 @@ AWS Lambda Power Tuning is an AWS Step Functions state machine that helps you op
 
 The state machine is designed to be **quick** and **language agnostic**. You can provide **any Lambda function as input** and the state machine will **run it with multiple power configurations (from 128MB to 3GB), analyze execution logs and suggest you the best configuration to minimize cost or maximize performance**.
 
-The input function will be executed in your AWS account - performing real HTTP calls, SDK calls, cold starts, etc. The state machine also supports cross-region invocations and you can enable parallel execution to generate results in just a few seconds.
+The input function will be executed in your AWS account - performing real HTTP calls, SDK calls, cold starts, etc. The state machine also supports cross-region invocations and you can enable parallel execution to generate results in just a few seconds. Optionally, you can configure the state machine to automatically optimize the function and the end of its execution.
 
 ![state-machine](imgs/state-machine-screenshot.png?raw=true)
 
@@ -82,7 +82,7 @@ Here you can provide the execution input and an execution id (see section below 
     "lambdaARN": "your-lambda-function-arn",
     "powerValues": [128, 256, 512, 1024, 2048, 3008],
     "num": 10,
-    "payload": "{}",
+    "payload": {},
     "parallelInvocation": false,
     "strategy": "cost"
 }
@@ -104,9 +104,31 @@ The AWS Step Functions state machine accepts the following parameters:
 * **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
 * **strategy** (string): it can be `"cost"` or `"speed"` or `"balanced"` (the default value is `"cost"`); if you use `"cost"` the state machine will suggest the cheapest option (disregarding its performance), while if you use `"speed"` the state machine will suggest the fastest option (disregarding its cost). When using `"balanced"` the state machine will choose a compromise between `"cost"` and `"speed"` according to the parameter `"balancedWeight"`
 * **balancedWeight** (number between 0.0 and 1.0, by default is 0.5): parameter that express the trade-off between cost and time, 0.0 is equivalent to `"speed"` strategy, 1.0 is equivalent to `"cost"` strategy
+* **autoOptimize** (false by default): if `true`, the state machine will apply the optimal configuration at the end of its execution
+* **autoOptimizeAlias** (string): if provided - and only if `autoOptimize` if `true`, the state machine will create or update this alias with the new optimal power value
 
 
 Additionally, you can specify a list of power values at deploy-time in the `PowerValues` CloudFormation parameter. These power values will be used as the default in case no `powerValues` input parameter is provided.
+
+### Usage in CI/CD pipelines
+
+If you want to run the state machine as part of your continuous integration pipeline and automatically fine-tune your functions at every deployment, you can execute it with the script `execute.sh` (or similar) by providing the following input parameters:
+
+```json
+{
+    "lambdaARN": "...",
+    "num": 10,
+    "payload": {},
+    "powerValues": [128, 256, 512, ...],
+    "autoOptimize": true,
+    "autoOptimizeAlias": "prod"
+}
+```
+
+Of course, you can use different alias names such as `dev`, `test`, `production`, etc.
+
+If you don't configure any alias name, the state machine will only update the `$LATEST` alias.
+
 
 ## State Machine Output
 
@@ -152,7 +174,7 @@ There are three main costs associated with AWS Lambda Power Tuning:
 
 * **AWS Step Functions cost**: it corresponds to the number of state transitions during the state machine execution; this cost depends on the number of tested power values, and it's approximately `0.000025 * (5 + N)` where `N` is the number of power values; for example, if you test 6 power values, the state machine cost will be $0.000275
 * **AWS Lambda cost** related to your function's executions: it depends on three factors: 1) number of invocations that you configure as input (`num`), the number of tested power configurations (`powerValues`), and the average invocation time of your function; for example, if you test all the default power configurations with `num: 100` and all invocations take less than 100ms, the Lambda cost will be approximately $0.001
-* **AWS Lambda cost** related to `Initializer`, `Executor`, `Cleaner`, and `Finalizer`: for most cases it's negligible, especially if you enable `parallelInvocation: true`; this cost is not included in the `results.stateMachine` output to keep the state machine simple and easy to read and debug
+* **AWS Lambda cost** related to `Initializer`, `Executor`, `Cleaner`, and `Analyzer`: for most cases it's negligible, especially if you enable `parallelInvocation: true`; this cost is not included in the `results.stateMachine` output to keep the state machine simple and easy to read and debug
 
 
 ## Error handling
@@ -179,9 +201,10 @@ The AWS Step Functions state machine is composed of four Lambda functions:
 * **initializer**: create N versions and aliases corresponding to the power values provided as input (e.g. 128MB, 256MB, etc.)
 * **executor**: execute the given Lambda function `num` times, extract execution time from logs, and compute average cost per invocation
 * **cleaner**: delete all the previously generated aliases and versions
-* **finalizer**: compute the optimal power value (current logic: lowest average cost per invocation)
+* **analyzer**: compute the optimal power value (current logic: lowest average cost per invocation)
+* **optimizer**: automatically set the power to its optimal value (only if `autoOptimize` is `true`)
 
-Initializer, cleaner and finalizer are executed only once, while the executor is used by N parallel branches of the state machine (one for each configured power value). By default, the executor will execute the given Lambda function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`.
+Initializer, cleaner, analyzer, and optimizer are executed only once, while the executor is used by N parallel branches of the state machine (one for each configured power value). By default, the executor will execute the given Lambda function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`.
 
 Please note that the total invocation time should stay below 300 seconds (5 min), which means that the average duration of your functions should stay below 3 seconds with `num=100`, 30 seconds with `num=10`, and so on. In case you need more time, you can edit the `Timeout` property in the `template.yml` file and redeploy.
 

@@ -21,7 +21,7 @@ module.exports.allPowerValues = () => {
 /**
  * Check whether a Lambda Alias exists or not, and return its data.
  */
-module.exports.checkLambdaAlias = (lambdaARN, alias) => {
+module.exports.getLambdaAlias = (lambdaARN, alias) => {
     console.log('Checking alias ', alias);
     const params = {
         FunctionName: lambdaARN,
@@ -32,9 +32,52 @@ module.exports.checkLambdaAlias = (lambdaARN, alias) => {
 };
 
 /**
+ * Return true if alias exist, false if it doesn't.
+ */
+module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
+    try {
+        await utils.getLambdaAlias(lambdaARN, alias);
+        return true;
+    } catch (error) {
+        if (error.code === 'ResourceNotFoundException') {
+            // OK, the alias isn't supposed to exist
+            console.log('OK, even if missing alias ');
+            return false;
+        } else {
+            console.log('error during alias check:');
+            throw error; // a real error :)
+        }
+    }
+};
+
+/**
+ * Update power, publish new version, and create/update alias.
+ */
+module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
+    try {
+        await utils.setLambdaPower(lambdaARN, value);
+        const {Version} = await utils.publishLambdaVersion(lambdaARN);
+        const aliasExists = await utils.verifyAliasExistance(lambdaARN, alias);
+        if (aliasExists) {
+            await utils.updateLambdaAlias(lambdaARN, alias, Version);
+        } else {
+            await utils.createLambdaAlias(lambdaARN, alias, Version);
+        }
+    } catch (error) {
+        if (error.message && error.message.includes('Alias already exists')) {
+            // shouldn't happen, but nothing we can do in that case
+            console.log('OK, even if: ', error);
+        } else {
+            console.log('error during config creation for value ' + value);
+            throw error; // a real error :)
+        }
+    }
+};
+
+/**
  * Retrieve a given Lambda Function's memory size (always $LATEST version)
  */
-module.exports.getLambdaPower = async (lambdaARN) => {
+module.exports.getLambdaPower = async(lambdaARN) => {
     console.log('Getting current power value');
     const params = {
         FunctionName: lambdaARN,

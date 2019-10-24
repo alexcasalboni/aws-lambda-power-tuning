@@ -20,7 +20,7 @@ describe('Lambda Utils', () => {
 
     // I'm dynamically generating tests for all these utilities
     const lambdaUtilities = [
-        utils.checkLambdaAlias,
+        utils.getLambdaAlias,
         utils.setLambdaPower,
         utils.publishLambdaVersion,
         utils.deleteLambdaVersion,
@@ -55,9 +55,30 @@ describe('Lambda Utils', () => {
     });
 
     describe('getLambdaPower', () => {
-        it('should return the memory value', async () => {
+        it('should return the memory value', async() => {
             const value = await getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
             expect(value).to.be(1024);
+        });
+    });
+
+    describe('verifyAliasExistance', () => {
+
+        it('should return true if the alias exists', async() => {
+            utils.getLambdaAlias = async() => {
+                return { FunctionVersion: '1' };
+            };
+            const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
+            expect(aliasExists).to.be(true);
+        });
+
+        it('should return false if the alias does not exists', async() => {
+            utils.getLambdaAlias = async() => {
+                const error = new Error('alias is not defined');
+                error.code = 'ResourceNotFoundException';
+                throw error;
+            };
+            const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
+            expect(aliasExists).to.be(false);
         });
     });
 
