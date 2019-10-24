@@ -1,6 +1,8 @@
 {
     "lambdaARN": "arn:aws:lambda:XXX:YYY:function:ZZZ",
+    "powerValues": [128, 256, 512, 3008],
     "num": 5,
+    "payload": {},
     "parallelInvocation": true,
-    "payload": "{}"
+    "strategy": "cost"
 }
