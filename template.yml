@@ -25,6 +25,10 @@ Parameters:
     Type: String
     Default: https://lambda-power-tuning.show/
     Description: Stats visualization URL
+  lambdaResource:
+    Type: String
+    Default: '*'
+    Description: AWS Lambda resource (or prefix) to be used for IAM policies
 
 Globals:
   Function:
@@ -57,7 +61,7 @@ Resources:
                 - lambda:UpdateFunctionConfiguration
                 - lambda:CreateAlias
                 - lambda:UpdateAlias
-              Resource: '*'
+              Resource: !Ref lambdaResource
 
   executor:
     Type: AWS::Serverless::Function
@@ -71,7 +75,7 @@ Resources:
             - Effect: Allow
               Action:
                 - lambda:InvokeFunction
-              Resource: '*'
+              Resource: !Ref lambdaResource
 
   cleaner:
     Type: AWS::Serverless::Function
@@ -87,7 +91,7 @@ Resources:
                 - lambda:GetAlias
                 - lambda:DeleteAlias
                 - lambda:DeleteFunction  # only by version/qualifier
-              Resource: '*'
+              Resource: !Ref lambdaResource
 
   analyzer:
     Type: AWS::Serverless::Function
@@ -114,7 +118,7 @@ Resources:
                 - lambda:UpdateFunctionConfiguration
                 - lambda:CreateAlias
                 - lambda:UpdateAlias
-              Resource: '*'
+              Resource: !Ref lambdaResource
 
   statemachineRole:
     Type: AWS::IAM::Role

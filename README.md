@@ -83,7 +83,7 @@ Here you can provide the execution input and an execution id (see section below 
     "powerValues": [128, 256, 512, 1024, 2048, 3008],
     "num": 10,
     "payload": {},
-    "parallelInvocation": false,
+    "parallelInvocation": true,
     "strategy": "cost"
 }
 ```
@@ -167,6 +167,21 @@ If you don't want to use the visualization tool, you can simply ignore the `stat
 Website repository: [matteo-ronchetti/aws-lambda-power-tuning-ui](https://github.com/matteo-ronchetti/aws-lambda-power-tuning-ui)
 
 Optionally, you could deploy your own custom visualization tool and configure the CloudFormation Parameter named `visualizationURL` with your own URL.
+
+## Security
+
+All the IAM roles used by the state machine adopt the least privilege best practice, meaning that only a minimal set of `Actions` are granted to each Lambda function.
+
+For example, the Executor function can only call `lambda:InvokeFunction`. The Analyzer function doesn't require any permission at all. On the other hand, the Initializer, Cleaner, and Optimizer functions require a broader set of actions.
+
+Although the default resource is `"*"`, you can optionally configure the `lambdaResource` CloudFormation parameter at deploy-time to constrain the IAM permission even more.
+
+For example, you could use a mix of the following:
+
+* Same-region prefix: `arn:aws:lambda:us-east-1:*:function:*`
+* Function name prefix: `arn:aws:lambda:*:*:function:my-prefix-*`
+* Function name suffix: `arn:aws:lambda:*:*:function:*-dev`
+* By account ID: `arn:aws:lambda:*:ACCOUNT_ID:function:*`
 
 ## State machine cost
 
