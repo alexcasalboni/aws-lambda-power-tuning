@@ -532,6 +532,26 @@ describe('Lambda Functions', async() => {
             expect(result.stateMachine.lambdaCost).to.be(16);
         });
 
+        it('should return the cheapest and fastest power configuration if cost strategy and same cost', async() => {
+            const event = {
+                strategy: 'cost',
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
+                    { value: '256', averagePrice: 100, averageDuration: 90, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 200, totalCost: 9 },
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('256');
+            expect(result.cost).to.be(100);
+            expect(result.duration).to.be(90);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
+            expect(result.stateMachine.lambdaCost).to.be(11);
+        });
+
         it('should return the fastest power configuration if speed strategy', async() => {
             const event = {
                 strategy: 'speed',
@@ -547,6 +567,26 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(300);
             expect(result.duration).to.be(100);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
+            expect(result.stateMachine.lambdaCost).to.be(3);
+        });
+
+        it('should return the fastest and cheapest power configuration if speed strategy and same duration', async() => {
+            const event = {
+                strategy: 'speed',
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 200, totalCost: 1 },
+                    { value: '256', averagePrice: 90, averageDuration: 200, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 400, totalCost: 1 },
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be('256');
+            expect(result.cost).to.be(90);
+            expect(result.duration).to.be(200);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
             expect(result.stateMachine.lambdaCost).to.be(3);
