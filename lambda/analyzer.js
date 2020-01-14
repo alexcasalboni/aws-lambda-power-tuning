@@ -79,6 +79,10 @@ const findCheapest = (stats) => {
 
     // sort by cost
     stats.sort((p1, p2) => {
+        if (p1.cost === p2.cost) {
+            // return fastest if same cost
+            return p1.duration - p2.duration;
+        }
         return p1.cost - p2.cost;
     });
 
@@ -93,6 +97,10 @@ const findFastest = (stats) => {
 
     // sort by duration/speed
     stats.sort((p1, p2) => {
+        if (p1.duration === p2.duration) {
+            // return cheapest if same speed
+            return p1.cost - p2.cost;
+        }
         return p1.duration - p2.duration;
     });
 
