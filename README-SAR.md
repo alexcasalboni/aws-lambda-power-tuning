@@ -163,6 +163,7 @@ Please note that the total invocation time should stay below 300 seconds (5 min)
 
 ## CHANGELOG (SAR versioning)
 
+* *3.1.2*: improved optimal selection when same speed/cost
 * *3.1.1*: customizable least-privilege (lambdaResource CFN param)
 * *3.1.0*: $LATEST power reset and optional auto-tuning (new Optimizer step)
 * *3.0.0*: dynamic parallelism (powerValues as execution parameter)
