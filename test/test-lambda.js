@@ -436,6 +436,21 @@ describe('Lambda Functions', async() => {
             expect(counters.C).to.be(60);
         });
 
+        it('should invoke the given cb, when done (not enough weight)', async() => {
+            const weightedPayload = [
+                { payload: {test: 'A'}, weight: 10 },
+                { payload: {test: 'B'}, weight: 60 },
+                { payload: {test: 'C'}, weight: 30 },
+            ];
+
+            await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: 5,  // num is too low here (10% of 5 is 0.5, not enough times for payload A)
+                payload: weightedPayload,
+            });
+        });
+
         it('should explode if invalid weighted payloads', async() => {
             const invalidWeightedPayloads = [
                 [], // empty array
