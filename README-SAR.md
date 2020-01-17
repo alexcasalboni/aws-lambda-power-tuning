@@ -40,7 +40,7 @@ The AWS Step Functions state machine accepts the following parameters:
 * **lambdaARN** (required, string): unique identifier of the Lambda function you want to optimize
 * **powerValues** (optional, string or list of integers): the list of power values to be tested; if not provided, the default values configured at deploy-time are used (by default: 128MB, 256MB, 512MB, 1024MB, 1536MB, and 3008MB); you can provide any power values between 128MB and 3,008MB in 64 MB increments; if you provide the string `"ALL"` instead of a list, all possible power configurations will be tested
 * **num** (required, integer): the # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)
-* **payload** (string or object): the static payload that will be used for every invocation
+* **payload** (string, object, or list): the static payload that will be used for every invocation (object or string); when using a list, a weighted payload is expected in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not perentages); more details below in the Weighted Payloads section
 * **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
 * **strategy** (string): it can be `"cost"` or `"speed"` or `"balanced"` (the default value is `"cost"`); if you use `"cost"` the state machine will suggest the cheapest option (disregarding its performance), while if you use `"speed"` the state machine will suggest the fastest option (disregarding its cost). When using `"balanced"` the state machine will choose a compromise between `"cost"` and `"speed"` according to the parameter `"balancedWeight"`
 * **balancedWeight** (number between 0.0 and 1.0, by default is 0.5): parameter that express the trade-off between cost and time, 0.0 is equivalent to `"speed"` strategy, 1.0 is equivalent to `"cost"` strategy
@@ -68,6 +68,29 @@ If you want to run the state machine as part of your continuous integration pipe
 Of course, you can use different alias names such as `dev`, `test`, `production`, etc.
 
 If you don't configure any alias name, the state machine will only update the `$LATEST` alias.
+
+### Weighted Payloads
+
+Weighted payloads can be used in scenarios where the payload structure and the corresponding performance/speed can vary a lot in production and you'd like to include multiple payloads in the tuning process.
+
+You can use weighted payloads as follows in the execution input:
+
+```json
+{
+    ...
+    "payload": [
+        { "payload": {...}, "weight": 5 },
+        { "payload": {...}, "weight": 15 },
+        { "payload": {...}, "weight": 30 }
+    ]
+}
+```
+
+In the example above the weights `5`, `15` and `30` are used as relative weights. They will correspond to `10%` (5 out of 50), `30%` (15 out of 50), and `60%` (30 out of 50) respectively - meaning that the corresponding payload will be used 10%, 30% and 60% of the time.
+
+For example, if `num=100` the first payload will be used 10 times, the second 30 times, and the third 60 times.
+
+To simplify these calculations, you could use weights that sum up to 100.
 
 ## State Machine Output
 
