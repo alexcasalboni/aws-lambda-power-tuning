@@ -295,13 +295,16 @@ describe('Lambda Functions', async() => {
 
         const handler = require('../lambda/executor').handler;
 
-        var invokeLambdaCounter;
+        var invokeLambdaCounter,
+            invokeLambdaPayloads;
 
         beforeEach('mock utilities', () => {
             invokeLambdaCounter = 0;
+            invokeLambdaPayloads = [];
             // TODO use real mock (not override!)
-            utils.invokeLambda = async() => {
+            utils.invokeLambda = async(_arn, _alias, payload) => {
                 invokeLambdaCounter++;
+                invokeLambdaPayloads.push(payload);
                 // logs will always return 1ms duration with 128MB
                 return {
                     StatusCode: 200,
@@ -369,11 +372,92 @@ describe('Lambda Functions', async() => {
         });
 
         it('should invoke the given cb, when done (custom payload)', async() => {
+            const expectedPayload = { key1: 'value1', key2: 'value2' };
             await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
                 value: '128',
                 num: 10,
-                payload: { key1: 'value1', key2: 'value2' },
+                payload: expectedPayload,
+            });
+
+            expect(invokeLambdaPayloads.length).to.be(10);
+            invokeLambdaPayloads.forEach(payload => {
+                expect(payload).to.be(JSON.stringify(expectedPayload));
+            });
+        });
+
+        it('should invoke the given cb, when done (weighted payload)', async() => {
+            const weightedPayload = [
+                { name: 'A', payload: {test: 'A'}, weight: 10 },
+                { name: 'B', payload: {test: 'B'}, weight: 30 },
+                { name: 'C', payload: {test: 'C'}, weight: 60 },
+            ];
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: 10,
+                payload: weightedPayload,
+            });
+
+            expect(invokeLambdaPayloads.length).to.be(10);
+            const counters = {
+                A: 0, B: 0, C: 0,
+            };
+            invokeLambdaPayloads.forEach(payload => {
+                counters[JSON.parse(payload).test] += 1;
+            });
+            expect(counters.A).to.be(1);
+            expect(counters.B).to.be(3);
+            expect(counters.C).to.be(6);
+        });
+
+        it('should invoke the given cb, when done (weighted payload 2)', async() => {
+            const weightedPayload = [
+                { payload: {test: 'A'}, weight: 5 },
+                { payload: {test: 'B'}, weight: 15 },
+                { payload: {test: 'C'}, weight: 30 },
+            ];
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: 100,
+                payload: weightedPayload,
+            });
+
+            expect(invokeLambdaPayloads.length).to.be(100);
+            const counters = {
+                A: 0, B: 0, C: 0,
+            };
+            invokeLambdaPayloads.forEach(payload => {
+                counters[JSON.parse(payload).test] += 1;
+            });
+            expect(counters.A).to.be(10);
+            expect(counters.B).to.be(30);
+            expect(counters.C).to.be(60);
+        });
+
+        it('should explode if invalid weighted payloads', async() => {
+            const invalidWeightedPayloads = [
+                [], // empty array
+                [1, 2, 3], // array of non-obj
+                ['a', 'b', 'c'], // array of non-obj
+                [
+                    { payload: {test: 'A'}, weight: 5 },
+                    { payload: {test: 'B'} }, // missing weight
+                ],
+                [
+                    { payload: {test: 'A'}, weight: 5 },
+                    { weight: 10}, // missing payload
+                ],
+            ];
+
+            invalidWeightedPayloads.forEach(async(weightedPayload) => {
+                await invokeForFailure(handler, {
+                    lambdaARN: 'arnOK',
+                    value: '128',
+                    num: 100,
+                    payload: weightedPayload,
+                });
             });
         });
 

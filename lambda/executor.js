@@ -18,10 +18,13 @@ module.exports.handler = async(event, context) => {
     const lambdaAlias = 'RAM' + value;
     let results;
 
+    // pre-generate an array of N payloads
+    const payloads = generatePayloads(num, payload);
+
     if (enableParallel) {
-        results = await runInParallel(num, lambdaARN, lambdaAlias, payload);
+        results = await runInParallel(num, lambdaARN, lambdaAlias, payloads);
     } else {
-        results = await runInSeries(num, lambdaARN, lambdaAlias, payload);
+        results = await runInSeries(num, lambdaARN, lambdaAlias, payloads);
     }
 
     return computeStatistics(results, value);
@@ -45,11 +48,45 @@ const extractDataFromInput = (event) => {
         value: parseInt(event.value, 10),
         num: parseInt(event.num, 10),
         enableParallel: !!event.parallelInvocation,
-        payload: convertPayload(event.payload),
+        payload: event.payload,
     };
 };
 
+const generatePayloads = (num, payloadInput) => {
+    if (Array.isArray(payloadInput)) {
+        // if array, generate a list of payloads based on weights
+
+        // fail if empty list or missing weight/payload
+        if (payloadInput.length === 0 || payloadInput.some(p => !p.weight || !p.payload)) {
+            throw new Error('Invalid weighted payload');
+        }
+
+        // we use relative weights (not %), so here we compute the total weight
+        const total = payloadInput.map(p => p.weight).reduce((a, b) => a + b, 0);
+
+        // generate an array of num items (to be filled)
+        const payloads = utils.range(num);
+
+        // iterate over weighted payloads and fill the array based on relative weight
+        let done = 0;
+        for (let p of payloadInput) {
+            const howMany = Math.floor(p.weight * num / total);
+            payloads.fill(convertPayload(p.payload), done, done + howMany);
+            done += howMany;
+        }
+
+        return payloads;
+
+    } else {
+        // if not an array, always use the same payload (still generate a list)
+        const payloads = utils.range(num);
+        payloads.fill(convertPayload(payloadInput), 0, num);
+        return payloads;
+    }
+};
+
 const convertPayload = (payload) => {
+    // optionally convert everything into string
     if (typeof payload !== 'string' && typeof payload !== 'undefined') {
         console.log('Converting payload to string from ', typeof payload);
         payload = JSON.stringify(payload);
@@ -57,11 +94,11 @@ const convertPayload = (payload) => {
     return payload;
 };
 
-const runInParallel = async(num, lambdaARN, lambdaAlias, payload) => {
+const runInParallel = async(num, lambdaARN, lambdaAlias, payloads) => {
     const results = [];
     // run all invocations in parallel ...
-    const invocations = utils.range(num).map(async() => {
-        const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payload);
+    const invocations = utils.range(num).map(async(_, i) => {
+        const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payloads[i]);
         // invocation errors return 200 and contain FunctionError and Payload
         if (data.FunctionError) {
             throw new Error('Invocation error: ' + data.Payload);
@@ -73,11 +110,11 @@ const runInParallel = async(num, lambdaARN, lambdaAlias, payload) => {
     return results;
 };
 
-const runInSeries = async(num, lambdaARN, lambdaAlias, payload) => {
+const runInSeries = async(num, lambdaARN, lambdaAlias, payloads) => {
     const results = [];
     for (let i = 0; i < num; i++) {
         // run invocations in series
-        const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payload);
+        const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payloads[i]);
         // invocation errors return 200 and contain FunctionError and Payload
         if (data.FunctionError) {
             throw new Error('Invocation error: ' + data.Payload);
