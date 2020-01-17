@@ -58,7 +58,7 @@ const generatePayloads = (num, payloadInput) => {
 
         // fail if empty list or missing weight/payload
         if (payloadInput.length === 0 || payloadInput.some(p => !p.weight || !p.payload)) {
-            throw new Error('Invalid weighted payload');
+            throw new Error('Invalid weighted payload structure');
         }
 
         // we use relative weights (not %), so here we compute the total weight
@@ -71,6 +71,9 @@ const generatePayloads = (num, payloadInput) => {
         let done = 0;
         for (let p of payloadInput) {
             const howMany = Math.floor(p.weight * num / total);
+            if (howMany < 1) {
+                throw new Error('Invalid payload weight (num is too small)');
+            }
             payloads.fill(convertPayload(p.payload), done, done + howMany);
             done += howMany;
         }
