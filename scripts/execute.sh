@@ -1,6 +1,6 @@
 # config
 STACK_NAME=lambda-power-tuning
-INPUT=$(cat sample-execution-input.json)  # or use a static string
+INPUT=$(cat scripts/sample-execution-input.json)  # or use a static string
 
 # retrieve state machine ARN
 STATE_MACHINE_ARN=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`StateMachineARN`].OutputValue' --output text)
@@ -22,7 +22,7 @@ do
         sleep 1
     elif test "$STATUS" == "FAILED"; then
         # exit if failed
-        echo "The execution failed (check execution logs)"
+        echo -e "\nThe execution failed, you can check the execution logs with the following script:\naws stepfunctions get-execution-history --execution-arn $EXECUTION_ARN"
         break
     else
         # print execution output if succeeded

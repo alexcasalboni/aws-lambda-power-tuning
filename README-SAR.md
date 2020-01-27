@@ -52,7 +52,7 @@ Additionally, you can specify a list of power values at deploy-time in the `Powe
 
 ### Usage in CI/CD pipelines
 
-If you want to run the state machine as part of your continuous integration pipeline and automatically fine-tune your functions at every deployment, you can execute it with the script `execute.sh` (or similar) by providing the following input parameters:
+If you want to run the state machine as part of your continuous integration pipeline and automatically fine-tune your functions at every deployment, you can execute it with the script `scripts/execute.sh` (or similar) by providing the following input parameters:
 
 ```json
 {
