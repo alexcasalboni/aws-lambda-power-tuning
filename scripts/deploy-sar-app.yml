@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+
+  PowerTuningApp:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning
+        SemanticVersion: 3.2.0
+
+      # Parameters:
+      #   PowerValues: 128,256,512,1024,1536,3008 # default RAM values
+      #   lambdaResource: '*' # IAM permission (ARN or prefix)
+      #   visualizationURL: https://lambda-power-tuning.show/ # you can use your own visualization URL
+
+Outputs:
+  PowerTuningStateMachine:
+    Value: !GetAtt PowerTuningApp.Outputs.StateMachineARN
