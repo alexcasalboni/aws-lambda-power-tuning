@@ -24,13 +24,15 @@ Last but not least, the state machine will generate a dynamic visualization of a
 
 ## How to deploy the state machine (AWS Serverless Application Repository)
 
-You can find this app in the [Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/arn:aws:serverlessrepo:us-east-1:451282441545:applications~aws-lambda-power-tuning) and deploy it with just a few clicks.
+You can find this app in the [Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/arn:aws:serverlessrepo:us-east-1:451282441545:applications~aws-lambda-power-tuning) and deploy it with just a few clicks in the AWS Management Console.
+
+You can also integrate the SAR app in your existing CloudFormation stacks - check the `scripts/deploy-sar-app.yml` and `scripts/deploy-sar-app.sh` files for a working reference.
 
 ## How to deploy the state machine (AWS SAM)
 
-In case you want to deploy it "manually", you can run `deploy.sh`.
+In case you want to deploy it "manually", you can run `scripts/deploy.sh`.
 
-The script uses [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli) to create a new CloudFormation stack in your account.
+The script uses the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli) to create a new CloudFormation stack in your account.
 
 First, install AWS SAM and [configure your AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-quick-configuration):
 
@@ -59,13 +61,13 @@ PowerValues='128,512,1024,1536,3008'
 You can finally deploy the serverless app:
 
 ```bash
-$ bash deploy.sh
+$ bash scripts/deploy.sh
 ```
 
 
 ## How to execute the state machine (programmatically)
 
-You can simply customize the input event in `sample-execution-input.json` and then run the `execute.sh` script. It will start a state machine execution, wait for the execution to complete, and then show the execution result in case of success.
+You can customize the input event in `scripts/sample-execution-input.json` and then run the `scripts/execute.sh` script. It will start a state machine execution, wait for the execution to complete, and then show the execution results.
 
 ## How to execute the state machine (web console)
 
@@ -112,7 +114,7 @@ Additionally, you can specify a list of power values at deploy-time in the `Powe
 
 ### Usage in CI/CD pipelines
 
-If you want to run the state machine as part of your continuous integration pipeline and automatically fine-tune your functions at every deployment, you can execute it with the script `execute.sh` (or similar) by providing the following input parameters:
+If you want to run the state machine as part of your continuous integration pipeline and automatically fine-tune your functions at every deployment, you can execute it with the script `scripts/execute.sh` (or similar) by providing the following input parameters:
 
 ```json
 {
