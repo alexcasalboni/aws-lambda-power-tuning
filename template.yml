@@ -4,7 +4,7 @@ Transform: AWS::Serverless-2016-10-31
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: aws-lambda-power-tuning
-    Description: "AWS Lambda Power Tuning is an open-source tool that can help you visualize and fine-tune the memory/power configuration of Lambda functions. It runs in your own AWS account - powered by AWS Step Functions - and it supports three optimization strategies: cost, speed, and balanced."
+    Description: "AWS Lambda Power Tuning is an open-source tool that can help you visualize and fine-tune the memory/power configuration of Lambda functions. It runs in your AWS account - powered by AWS Step Functions - and it supports multiple optimization strategies."
     Author: Alex Casalboni
     SpdxLicenseId: Apache-2.0
     LicenseUrl: LICENSE.txt
