@@ -186,6 +186,7 @@ Please note that the total invocation time should stay below 300 seconds (5 min)
 
 ## CHANGELOG (SAR versioning)
 
+* *3.2.1*: improved scripts and SAR template reference
 * *3.2.0*: support for weighted payloads
 * *3.1.2*: improved optimal selection when same speed/cost
 * *3.1.1*: customizable least-privilege (lambdaResource CFN param)
