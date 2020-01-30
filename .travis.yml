@@ -4,6 +4,7 @@ node_js:
   - 8.14
   - 10.13
   - 11
+  - 12
 install:
   - travis_retry npm install
 script:
