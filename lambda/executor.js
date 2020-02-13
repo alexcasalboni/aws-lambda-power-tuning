@@ -11,9 +11,15 @@ const minCost = parseFloat(process.env.minCost);
  */
 module.exports.handler = async(event, context) => {
     // read input from event
-    const {lambdaARN, value, num, enableParallel, payload} = extractDataFromInput(event);
+    let {lambdaARN, value, num, enableParallel, payload, dryRun} = extractDataFromInput(event);
 
     validateInput(lambdaARN, value, num); // may throw
+
+    // force only 1 execution if dryRun
+    if (dryRun) {
+        console.log('[Dry-run] forcing num=1');
+        num = 1;
+    }
 
     const lambdaAlias = 'RAM' + value;
     let results;
@@ -49,6 +55,7 @@ const extractDataFromInput = (event) => {
         num: parseInt(event.num, 10),
         enableParallel: !!event.parallelInvocation,
         payload: event.payload,
+        dryRun: event.dryRun === true,
     };
 };
 

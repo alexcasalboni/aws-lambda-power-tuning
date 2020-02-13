@@ -21,6 +21,10 @@ module.exports.handler = async(event, context) => {
         throw new Error('Wrong input ' + JSON.stringify(event));
     }
 
+    if (event.dryRun) {
+        return console.log('[Dry-run] Skipping analysis');
+    }
+
     return findOptimalConfiguration(event);
 };
 

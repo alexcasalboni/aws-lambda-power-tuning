@@ -7,11 +7,15 @@ const utils = require('./utils');
  */
 module.exports.handler = async(event, context) => {
 
-    const {lambdaARN, analysis, autoOptimize, autoOptimizeAlias} = event;
+    const {lambdaARN, analysis, autoOptimize, autoOptimizeAlias, dryRun} = event;
 
     const optimalValue = (analysis || {}).power;
 
     validateInput(lambdaARN, optimalValue); // may throw
+
+    if (dryRun) {
+        return console.log('[Dry-run] Not optimizing');
+    }
 
     if (!autoOptimize) {
         return console.log('Not optimizing');
