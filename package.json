@@ -14,8 +14,10 @@
     "aws",
     "aws lambda",
     "serverless",
-    "serverless framework",
-    "aws step functions"
+    "aws step functions",
+    "cost",
+    "performance",
+    "visualization"
   ],
   "licence": "Apache",
   "scripts": {
