@@ -253,6 +253,7 @@ Please note that the total invocation time should stay below 300 seconds (5 min)
 
 ## CHANGELOG (SAR versioning)
 
+* *3.2.3*: new dryRun input parameter
 * *3.2.2*: upgraded runtime to Node.js 12.x
 * *3.2.1*: improved scripts and SAR template reference
 * *3.2.0*: support for weighted payloads
