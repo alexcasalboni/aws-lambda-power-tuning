@@ -446,7 +446,7 @@ describe('Lambda Functions', async() => {
             await invokeForFailure(handler, {
                 lambdaARN: 'arnOK',
                 value: '128',
-                num: 5,  // num is too low here (10% of 5 is 0.5, not enough times for payload A)
+                num: 5, // num is too low here (10% of 5 is 0.5, not enough times for payload A)
                 payload: weightedPayload,
             });
         });
@@ -535,6 +535,16 @@ describe('Lambda Functions', async() => {
             });
             expect(stats.averagePrice).to.be.a('number');
             expect(stats.averageDuration).to.be.a('number');
+        });
+
+        it('should run only once if dryRun', async() => {
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: 1000,
+                dryRun: true,
+            });
+            expect(invokeLambdaCounter).to.be(1);
         });
 
     });
@@ -775,6 +785,19 @@ describe('Lambda Functions', async() => {
             expect(result.stateMachine.lambdaCost).to.be(4);
         });
 
+        it('should return nothing if dryRun', async() => {
+            const event = {
+                strategy: 'cost',
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
+                ],
+                dryRun: true,
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be(undefined);
+        });
+
         it('should explode if invalid strategy', async() => {
             const event = {
                 strategy: 'foobar',
@@ -853,6 +876,19 @@ describe('Lambda Functions', async() => {
             await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
                 analysis: {power: 128},
+            });
+            expect(setLambdaPowerCounter).to.be(0);
+            expect(publishLambdaVersionCounter).to.be(0);
+            expect(createLambdaAliasCounter).to.be(0);
+            expect(updateLambdaAliasCounter).to.be(0);
+        });
+
+        it('should not do anything if dryRun', async() => {
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                analysis: {power: 128},
+                autoOptimize: true,
+                dryRun: true,
             });
             expect(setLambdaPowerCounter).to.be(0);
             expect(publishLambdaVersionCounter).to.be(0);
