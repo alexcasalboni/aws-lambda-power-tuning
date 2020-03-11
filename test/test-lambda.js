@@ -896,6 +896,18 @@ describe('Lambda Functions', async() => {
             expect(updateLambdaAliasCounter).to.be(0);
         });
 
+        it('should not do anything if dryRun without any analysis', async() => {
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                autoOptimize: true,
+                dryRun: true,
+            });
+            expect(setLambdaPowerCounter).to.be(0);
+            expect(publishLambdaVersionCounter).to.be(0);
+            expect(createLambdaAliasCounter).to.be(0);
+            expect(updateLambdaAliasCounter).to.be(0);
+        });
+
         it('should update power if invoked with autoOptimize', async() => {
             await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',

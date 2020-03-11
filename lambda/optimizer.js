@@ -11,11 +11,11 @@ module.exports.handler = async(event, context) => {
 
     const optimalValue = (analysis || {}).power;
 
-    validateInput(lambdaARN, optimalValue); // may throw
-
     if (dryRun) {
         return console.log('[Dry-run] Not optimizing');
     }
+
+    validateInput(lambdaARN, optimalValue); // may throw
 
     if (!autoOptimize) {
         return console.log('Not optimizing');
