@@ -39,7 +39,7 @@ Globals:
       Variables:
         defaultPowerValues: !Join [ ",", !Ref PowerValues ]
         minRAM: '128'
-        minCost: '0.000000208'
+        minCost: '0.0000002083'
         visualizationURL: !Ref visualizationURL
 
 Resources:
