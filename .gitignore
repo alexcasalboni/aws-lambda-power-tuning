@@ -5,6 +5,8 @@
 node_modules
 jspm_packages
 venv
+coverage
+.nyc_output
 
 # Serverless directories
 .serverless
@@ -13,3 +15,4 @@ venv
 serverless.yml
 
 .idea/
+.vscode/

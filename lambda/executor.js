@@ -44,7 +44,7 @@ const generateBasePriceMap = (minCosts) => {
     const firstSplit = minCosts.split(',')
 	return firstSplit.reduce((acc, cur, _i) => {
   	    var secondSplit = cur.split('=')
-  	    acc[secondSplit[0]] = parseFloat(secondSplit[1]);
+  	    acc[secondSplit[0].trim()] = parseFloat(secondSplit[1].trim());
   	    return acc;
 	}, {});
 };
