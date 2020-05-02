@@ -3,7 +3,7 @@
 const utils = require('./utils');
 
 const minRAM = parseInt(process.env.minRAM, 10);
-const minCost = parseFloat(process.env.minCost);
+const minCosts = process.env.minCosts;
 
 /**
  * Execute the given function N times in series or in parallel.
@@ -14,6 +14,10 @@ module.exports.handler = async(event, context) => {
     let {lambdaARN, value, num, enableParallel, payload, dryRun} = extractDataFromInput(event);
 
     validateInput(lambdaARN, value, num); // may throw
+
+    // get minCost map and min cost
+    const minCostsMap = generateBasePriceMap(minCosts, lambdaARN)
+    const minCost = getMinCost(minCostsMap, utils.regionFromARN(lambdaARN))
 
     // force only 1 execution if dryRun
     if (dryRun) {
@@ -33,8 +37,25 @@ module.exports.handler = async(event, context) => {
         results = await runInSeries(num, lambdaARN, lambdaAlias, payloads);
     }
 
-    return computeStatistics(results, value);
+    return computeStatistics(minCost, results, value);
 };
+
+const generateBasePriceMap = (minCosts) => {
+    const firstSplit = minCosts.split(',')
+	return firstSplit.reduce((acc, cur, _i) => {
+  	    var secondSplit = cur.split('=')
+  	    acc[secondSplit[0]] = parseFloat(secondSplit[1]);
+  	    return acc;
+	}, {});
+};
+
+const getMinCost = (minCostsMap, region) => {
+    if(minCostsMap[region]) {
+        return minCostsMap[region]
+    }
+    console.log(region + ' not found in base price map, using default: ' + minCostsMap['default'])
+    return minCostsMap['default']; 
+}
 
 const validateInput = (lambdaARN, value, num) => {
     if (!lambdaARN) {
@@ -134,7 +155,7 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payloads) => {
     return results;
 };
 
-const computeStatistics = (results, value) => {
+const computeStatistics = (minCost, results, value) => {
     // use results (which include logs) to compute average duration ...
 
     const durations = utils.parseLogAndExtractDurations(results);
