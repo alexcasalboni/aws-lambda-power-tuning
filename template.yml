@@ -39,7 +39,7 @@ Globals:
       Variables:
         defaultPowerValues: !Join [ ",", !Ref PowerValues ]
         minRAM: '128'
-        minCosts: 'ap-east-1=0.0000002865,af-south-1=0.0000002763,me-south-1=0.0000002583,default=0.000000208'
+        minCosts: 'ap-east-1=0.0000002865,af-south-1=0.0000002763,me-south-1=0.0000002583,default=0.0000002083'
         visualizationURL: !Ref visualizationURL
 
 Resources:
