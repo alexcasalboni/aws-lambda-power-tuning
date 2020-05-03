@@ -272,10 +272,10 @@ module.exports.regionFromARN = (arn) => {
         throw new Error('Invalid ARN: ' + arn);
     }
     return arn.split(':')[3];
-}
+};
 
 module.exports.lambdaClientFromARN = (lambdaARN) => {
-    const region = this.regionFromARN(lambdaARN)
+    const region = this.regionFromARN(lambdaARN);
     return new AWS.Lambda({region});
 };
 
@@ -312,14 +312,14 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
 
 /**
  * Using the prices supplied via prices.json,
- * to figure what the base price is for the 
+ * to figure what the base price is for the
  * supplied lambda's region
  */
 module.exports.baseCostForRegion = (region) => {
     const prices = JSON.parse(process.env.baseCosts);
-    if(prices[region]) {
+    if (prices[region]) {
         return prices[region];
     }
-    console.log(region + ' not found in base price map, using default: ' + prices['default'])
-    return prices['default']; 
-}
+    console.log(region + ' not found in base price map, using default: ' + prices['default']);
+    return prices['default'];
+};

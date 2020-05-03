@@ -263,10 +263,10 @@ describe('Lambda Utils', () => {
 
     describe('baseCostForRegion', () => {
         process.env.baseCosts = JSON.stringify({
-            "ap-east-1": 0.0000002865,
-            "af-south-1": 0.0000002763,
-            "me-south-1": 0.0000002583,
-            "default": 0.0000002083
+            'ap-east-1': 0.0000002865,
+            'af-south-1': 0.0000002763,
+            'me-south-1': 0.0000002583,
+            default: 0.0000002083,
         });
 
         it('should return ap-east-1 base price', () => {

@@ -3,7 +3,6 @@
 const utils = require('./utils');
 
 const minRAM = parseInt(process.env.minRAM, 10);
-const minCosts = process.env.minCosts;
 
 /**
  * Execute the given function N times in series or in parallel.
@@ -34,7 +33,7 @@ module.exports.handler = async(event, context) => {
     }
 
     // get base cost
-    const baseCost = utils.baseCostForRegion(utils.regionFromARN(lambdaARN))
+    const baseCost = utils.baseCostForRegion(utils.regionFromARN(lambdaARN));
 
     return computeStatistics(baseCost, results, value);
 };
