@@ -309,3 +309,17 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
 
     return baseURL + '#' + hash;
 };
+
+/**
+ * Using the prices supplied via prices.json,
+ * to figure what the base price is for the 
+ * supplied lambda's region
+ */
+module.exports.baseCostForRegion = (region) => {
+    const prices = JSON.parse(process.env.baseCosts);
+    if(prices[region]) {
+        return prices[region];
+    }
+    console.log(region + ' not found in base price map, using default: ' + prices['default'])
+    return prices['default']; 
+}

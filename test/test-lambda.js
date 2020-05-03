@@ -6,6 +6,16 @@ const expect = require('expect.js');
 var AWS = require('aws-sdk-mock');
 const utils = require('../lambda/utils');
 
+// hide all logging for tests
+// comment out the line which
+// you would like to see logged
+// during test run
+sinon.stub(console, 'trace');
+sinon.stub(console, 'info');
+sinon.stub(console, 'log');
+sinon.stub(console, 'warn');
+sinon.stub(console, 'error');
+
 // mock all the Lambda API's
 AWS.mock('Lambda', 'getAlias', {});
 AWS.mock('Lambda', 'updateFunctionConfiguration', {});
@@ -20,7 +30,6 @@ AWS.mock('Lambda', 'invoke', {});
 const powerValues = [128, 256, 512, 1024];
 process.env.defaultPowerValues = powerValues.join(',');
 process.env.minRAM = 128;
-process.env.minCosts = 'ap-east-1=0.0000002865,af-south-1=0.0000002763,me-south-1=0.0000002583,default=0.000000208';
 const fakeContext = {};
 
 var setLambdaPowerCounter,
@@ -66,7 +75,8 @@ var getLambdaAliasStub,
     updateLambdaAliasStub,
     deleteLambdaVersionStub,
     invokeLambdaStub,
-    deleteLambdaAliasStub;
+    deleteLambdaAliasStub,
+    baseCostForRegionStub;
 
 /** unit tests below **/
 
@@ -81,8 +91,11 @@ describe('Lambda Functions', async() => {
 
         sandBox.stub(utils, 'regionFromARN')
             .callsFake((arn) => {
-                console.log('>>>>>>>>>>>'+ arn);
                 return arn
+        });
+        baseCostForRegionStub = sandBox.stub(utils, 'baseCostForRegion')
+            .callsFake((region) => {
+                return region === 'af-south-1' ? 0.0000002763 : 0.0000002083;
         });
         getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
             .callsFake(async() => {
@@ -416,7 +429,7 @@ describe('Lambda Functions', async() => {
             expect(response.averagePrice).to.be.a('number');
             expect(response.averageDuration).to.be.a('number');
             expect(response.totalCost).to.be.a('number');
-            expect(response.totalCost).to.be(0.000000208 * 10);
+            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(parseFloat((0.0000002083 * 10).toPrecision(10)));
         });
 
         it('should return statistics', async() => {
@@ -430,7 +443,7 @@ describe('Lambda Functions', async() => {
             expect(response.averagePrice).to.be.a('number');
             expect(response.averageDuration).to.be.a('number');
             expect(response.totalCost).to.be.a('number');
-            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(0.0000002763 * 10);
+            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(parseFloat((0.0000002763 * 10).toPrecision(10)));
         });
 
         it('should invoke the given cb, when done (custom payload)', async() => {

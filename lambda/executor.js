@@ -15,10 +15,6 @@ module.exports.handler = async(event, context) => {
 
     validateInput(lambdaARN, value, num); // may throw
 
-    // get minCost map and min cost
-    const minCostsMap = generateBasePriceMap(minCosts, lambdaARN)
-    const minCost = getMinCost(minCostsMap, utils.regionFromARN(lambdaARN))
-
     // force only 1 execution if dryRun
     if (dryRun) {
         console.log('[Dry-run] forcing num=1');
@@ -37,25 +33,11 @@ module.exports.handler = async(event, context) => {
         results = await runInSeries(num, lambdaARN, lambdaAlias, payloads);
     }
 
-    return computeStatistics(minCost, results, value);
-};
+    // get base cost
+    const baseCost = utils.baseCostForRegion(utils.regionFromARN(lambdaARN))
 
-const generateBasePriceMap = (minCosts) => {
-    const firstSplit = minCosts.split(',')
-	return firstSplit.reduce((acc, cur, _i) => {
-  	    var secondSplit = cur.split('=')
-  	    acc[secondSplit[0].trim()] = parseFloat(secondSplit[1].trim());
-  	    return acc;
-	}, {});
+    return computeStatistics(baseCost, results, value);
 };
-
-const getMinCost = (minCostsMap, region) => {
-    if(minCostsMap[region]) {
-        return minCostsMap[region]
-    }
-    console.log(region + ' not found in base price map, using default: ' + minCostsMap['default'])
-    return minCostsMap['default']; 
-}
 
 const validateInput = (lambdaARN, value, num) => {
     if (!lambdaARN) {
@@ -155,7 +137,7 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payloads) => {
     return results;
 };
 
-const computeStatistics = (minCost, results, value) => {
+const computeStatistics = (baseCost, results, value) => {
     // use results (which include logs) to compute average duration ...
 
     const durations = utils.parseLogAndExtractDurations(results);
@@ -164,10 +146,10 @@ const computeStatistics = (minCost, results, value) => {
     console.log('Average duration: ', averageDuration);
 
     // ... and overall statistics
-    const averagePrice = utils.computePrice(minCost, minRAM, value, averageDuration);
+    const averagePrice = utils.computePrice(baseCost, minRAM, value, averageDuration);
 
     // .. and total cost (exact $)
-    const totalCost = utils.computeTotalCost(minCost, minRAM, value, durations);
+    const totalCost = utils.computeTotalCost(baseCost, minRAM, value, durations);
 
     const stats = {
         averagePrice,
