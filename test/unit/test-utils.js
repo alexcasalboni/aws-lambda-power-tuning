@@ -4,7 +4,7 @@ const expect = require('expect.js');
 
 // const AWS = require('aws-sdk');
 var AWS = require('aws-sdk-mock');
-const utils = require('../lambda/utils');
+const utils = require('../../lambda/utils');
 
 // AWS SDK mocks
 AWS.mock('Lambda', 'getAlias', {});

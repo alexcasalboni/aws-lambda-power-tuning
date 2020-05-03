@@ -1,10 +1,10 @@
-// test-lambda.js  -- old
 'use strict';
 
+const sinon = require('sinon');
 const expect = require('expect.js');
 
 var AWS = require('aws-sdk-mock');
-const utils = require('../lambda/utils');
+const utils = require('../../lambda/utils');
 
 // mock all the Lambda API's
 AWS.mock('Lambda', 'getAlias', {});
@@ -21,6 +21,12 @@ const powerValues = [128, 256, 512, 1024];
 process.env.defaultPowerValues = powerValues.join(',');
 process.env.minRAM = 128;
 const fakeContext = {};
+
+var setLambdaPowerCounter,
+    getLambdaPowerCounter,
+    publishLambdaVersionCounter,
+    createLambdaAliasCounter,
+    updateLambdaAliasCounter;
 
 // utility to invoke handler (success case)
 const invokeForSuccess = async(handler, event) => {
@@ -50,39 +56,77 @@ const invokeForFailure = async(handler, event) => {
 
 };
 
+// Stub stuff
+const sandBox = sinon.createSandbox();
+var getLambdaAliasStub,
+    setLambdaPowerStub,
+    publishLambdaVersionStub,
+    createLambdaAliasStub,
+    updateLambdaAliasStub,
+    deleteLambdaVersionStub,
+    invokeLambdaStub,
+    deleteLambdaAliasStub;
 
 /** unit tests below **/
 
 describe('Lambda Functions', async() => {
 
-    var originalRegionFromARNFunc,
-        originalBaseCostForRegionFunc;
+    beforeEach('mock utilities', () => {
+        setLambdaPowerCounter = 0;
+        getLambdaPowerCounter = 0;
+        publishLambdaVersionCounter = 0;
+        createLambdaAliasCounter = 0;
+        updateLambdaAliasCounter = 0;
 
-    beforeEach(() => {
-        originalRegionFromARNFunc = utils.regionFromARN;
-        utils.regionFromARN = (arn) => {
-            return arn;
-        };
-        originalBaseCostForRegionFunc = utils.baseCostForRegion;
-        utils.baseCostForRegion = (region) => {
-            return region === 'af-south-1' ? 0.0000002763 : 0.0000002083;
-        };
+        sandBox.stub(utils, 'regionFromARN')
+            .callsFake((arn) => {
+                return arn;
+            });
+        sandBox.stub(utils, 'baseCostForRegion')
+            .callsFake((region) => {
+                return region === 'af-south-1' ? 0.0000002763 : 0.0000002083;
+            });
+        getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
+            .callsFake(async() => {
+                const error = new Error('alias is not defined');
+                error.code = 'ResourceNotFoundException';
+                throw error;
+            });
+        sandBox.stub(utils, 'getLambdaPower')
+            .callsFake(async() => {
+                getLambdaPowerCounter++;
+                return 1024;
+            });
+        setLambdaPowerStub = sandBox.stub(utils, 'setLambdaPower')
+            .callsFake(async() => {
+                setLambdaPowerCounter++;
+                return 'OK';
+            });
+        publishLambdaVersionStub = sandBox.stub(utils, 'publishLambdaVersion')
+            .callsFake(async() => {
+                publishLambdaVersionCounter++;
+                return { Version: 1 };
+            });
+        createLambdaAliasStub = sandBox.stub(utils, 'createLambdaAlias')
+            .callsFake(async() => {
+                createLambdaAliasCounter++;
+                return 'OK';
+            });
+        updateLambdaAliasStub = sandBox.stub(utils, 'updateLambdaAlias')
+            .callsFake(async() => {
+                updateLambdaAliasCounter++;
+                return 'OK';
+            });
     });
 
-    afterEach(() => {
-        utils.regionFromARN = originalRegionFromARNFunc;
-        utils.baseCostForRegion = originalBaseCostForRegionFunc;
+    afterEach('Global mock utilities afterEach', () => {
+        // restore everything to it's natural order
+        sandBox.restore();
     });
 
     describe('initializer', async() => {
 
-        const handler = require('../lambda/initializer').handler;
-
-        var setLambdaPowerCounter,
-            getLambdaPowerCounter,
-            publishLambdaVersionCounter,
-            createLambdaAliasCounter,
-            updateLambdaAliasCounter;
+        const handler = require('../../lambda/initializer').handler;
 
         beforeEach('mock utilities', () => {
             setLambdaPowerCounter = 0;
@@ -90,32 +134,6 @@ describe('Lambda Functions', async() => {
             publishLambdaVersionCounter = 0;
             createLambdaAliasCounter = 0;
             updateLambdaAliasCounter = 0;
-            // TODO use real mock (not override!)
-            utils.getLambdaAlias = async() => {
-                const error = new Error('alias is not defined');
-                error.code = 'ResourceNotFoundException';
-                throw error;
-            };
-            utils.getLambdaPower = async() => {
-                getLambdaPowerCounter++;
-                return 1024;
-            };
-            utils.setLambdaPower = async() => {
-                setLambdaPowerCounter++;
-                return 'OK';
-            };
-            utils.publishLambdaVersion = async() => {
-                publishLambdaVersionCounter++;
-                return { Version: 1 };
-            };
-            utils.createLambdaAlias = async() => {
-                createLambdaAliasCounter++;
-                return 'OK';
-            };
-            utils.updateLambdaAlias = async() => {
-                updateLambdaAliasCounter++;
-                return 'OK';
-            };
         });
 
         it('should explode if invoked without a lambdaARN', async() => {
@@ -188,46 +206,50 @@ describe('Lambda Functions', async() => {
         });
 
         it('should update an alias if it already exists', async() => {
-            // TODO use real mock (not override!)
-            utils.getLambdaAlias = async(lambdaARN, alias) => {
-                if (alias === 'RAM128') {
-                    return { FunctionVersion: '1' };
-                } else {
-                    const error = new Error('alias is not defined');
-                    error.code = 'ResourceNotFoundException';
-                    throw error;
-                }
-            };
+            getLambdaAliasStub && getLambdaAliasStub.restore();
+            getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
+                .callsFake(async(lambdaARN, alias) => {
+                    if (alias === 'RAM128') {
+                        return { FunctionVersion: '1' };
+                    } else {
+                        const error = new Error('alias is not defined');
+                        error.code = 'ResourceNotFoundException';
+                        throw error;
+                    }
+                });
             await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
             expect(updateLambdaAliasCounter).to.be(1);
             expect(createLambdaAliasCounter).to.be(powerValues.length - 1);
         });
 
         it('should update an alias if it already exists (2)', async() => {
-            // TODO use real mock (not override!)
-            utils.createLambdaAlias = async(lambdaARN, alias) => {
-                createLambdaAliasCounter += 10;
-                throw new Error('Alias already exists');
-            };
+            createLambdaAliasStub && createLambdaAliasStub.restore();
+            createLambdaAliasStub = sandBox.stub(utils, 'createLambdaAlias')
+                .callsFake(async() => {
+                    createLambdaAliasCounter += 10;
+                    throw new Error('Alias already exists');
+                });
             await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
             expect(createLambdaAliasCounter).to.be(powerValues.length * 10);
         });
 
         it('should explode if something goes wrong during power set', async() => {
-            // TODO use real mock (not override!)
-            utils.setLambdaPower = async() => {
-                throw new Error('Something went wrong');
-            };
+            setLambdaPowerStub && setLambdaPowerStub.restore();
+            setLambdaPowerStub = sandBox.stub(utils, 'setLambdaPower')
+                .callsFake(async() => {
+                    throw new Error('Something went wrong');
+                });
             await invokeForFailure(handler, { lambdaARN: 'arnOK', num: 5 });
         });
 
         it('should fail is something goes wrong with the initialization API calls', async() => {
-            // TODO use real mock (not override!)
-            utils.getLambdaAlias = async() => {
-                const error = new Error('very bad error');
-                error.code = 'VeryBadError';
-                throw error;
-            };
+            getLambdaAliasStub && getLambdaAliasStub.restore();
+            getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
+                .callsFake(async() => {
+                    const error = new Error('very bad error');
+                    error.code = 'VeryBadError';
+                    throw error;
+                });
             await invokeForFailure(handler, { lambdaARN: 'arnOK', num: 5 });
         });
 
@@ -235,7 +257,7 @@ describe('Lambda Functions', async() => {
 
     describe('cleaner', async() => {
 
-        const handler = require('../lambda/cleaner').handler;
+        const handler = require('../../lambda/cleaner').handler;
 
         it('should explode if invoked without a lambdaARN', async() => {
             const invalidEvents = [
@@ -260,16 +282,21 @@ describe('Lambda Functions', async() => {
         });
 
         beforeEach('mock utilities', () => {
-            // TODO use real mock (not override!)
-            utils.getLambdaAlias = async() => {
-                return { FunctionVersion: '1' };
-            };
-            utils.deleteLambdaAlias = async() => {
-                return 'OK';
-            };
-            utils.deleteLambdaVersion = async() => {
-                return 'OK';
-            };
+            getLambdaAliasStub && getLambdaAliasStub.restore();
+            getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
+                .callsFake(async() => {
+                    return { FunctionVersion: '1' };
+                });
+            deleteLambdaAliasStub && deleteLambdaAliasStub.restore();
+            deleteLambdaAliasStub = sandBox.stub(utils, 'deleteLambdaAlias')
+                .callsFake(async() => {
+                    return 'OK';
+                });
+            deleteLambdaVersionStub && deleteLambdaVersionStub.restore();
+            deleteLambdaVersionStub = sandBox.stub(utils, 'deleteLambdaVersion')
+                .callsFake(async() => {
+                    return 'OK';
+                });
         });
 
         const eventOK = { lambdaARN: 'arnOK', powerValues: ['128', '256', '512'] };
@@ -279,32 +306,35 @@ describe('Lambda Functions', async() => {
         });
 
         it('should work fine even if the version does not exist', async() => {
-            // TODO use real mock (not override!)
-            utils.deleteLambdaVersion = async() => {
-                const error = new Error('version is not defined');
-                error.code = 'ResourceNotFoundException';
-                throw error;
-            };
+            deleteLambdaVersionStub && deleteLambdaVersionStub.restore();
+            deleteLambdaVersionStub = sandBox.stub(utils, 'deleteLambdaVersion')
+                .callsFake(async() => {
+                    const error = new Error('version is not defined');
+                    error.code = 'ResourceNotFoundException';
+                    throw error;
+                });
             await invokeForSuccess(handler, eventOK);
         });
 
         it('should work fine even if the alias does not exist', async() => {
-            // TODO use real mock (not override!)
-            utils.deleteLambdaAlias = async() => {
-                const error = new Error('alias is not defined');
-                error.code = 'ResourceNotFoundException';
-                throw error;
-            };
+            deleteLambdaAliasStub && deleteLambdaAliasStub.restore();
+            deleteLambdaAliasStub = sandBox.stub(utils, 'deleteLambdaAlias')
+                .callsFake(async() => {
+                    const error = new Error('alias is not defined');
+                    error.code = 'ResourceNotFoundException';
+                    throw error;
+                });
             await invokeForSuccess(handler, eventOK);
         });
 
         it('should fail is something goes wrong with the cleaup API calls', async() => {
-            // TODO use real mock (not override!)
-            utils.deleteLambdaVersion = async() => {
-                const error = new Error('very bad error');
-                error.code = 'VeryBadError';
-                throw error;
-            };
+            deleteLambdaVersionStub && deleteLambdaVersionStub.restore();
+            deleteLambdaVersionStub = sandBox.stub(utils, 'deleteLambdaVersion')
+                .callsFake(async() => {
+                    const error = new Error('very bad error');
+                    error.code = 'VeryBadError';
+                    throw error;
+                });
             await invokeForFailure(handler, eventOK);
         });
 
@@ -312,26 +342,26 @@ describe('Lambda Functions', async() => {
 
     describe('executor', () => {
 
-        const handler = require('../lambda/executor').handler;
+        const handler = require('../../lambda/executor').handler;
 
         var invokeLambdaCounter,
             invokeLambdaPayloads;
 
-
         beforeEach('mock utilities', () => {
             invokeLambdaCounter = 0;
             invokeLambdaPayloads = [];
-            // TODO use real mock (not override!)
-            utils.invokeLambda = async(_arn, _alias, payload) => {
-                invokeLambdaCounter++;
-                invokeLambdaPayloads.push(payload);
-                // logs will always return 1ms duration with 128MB
-                return {
-                    StatusCode: 200,
-                    LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMTAwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
-                    ExecutedVersion: '$LATEST',
-                    Payload: '{}' };
-            };
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    invokeLambdaCounter++;
+                    invokeLambdaPayloads.push(payload);
+                    // logs will always return 1ms duration with 128MB
+                    return {
+                        StatusCode: 200,
+                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMTAwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
+                        ExecutedVersion: '$LATEST',
+                        Payload: '{}' };
+                });
         });
 
         it('should explode if invoked with invalid input', async() => {
@@ -377,7 +407,7 @@ describe('Lambda Functions', async() => {
             });
         });
 
-        it('should return statistics', async() => {
+        it('should return statistics, default', async() => {
             const response = await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
                 value: '128',
@@ -585,7 +615,7 @@ describe('Lambda Functions', async() => {
 
     describe('analyzer', () => {
 
-        const handler = require('../lambda/analyzer').handler;
+        const handler = require('../../lambda/analyzer').handler;
 
         it('should explode if invoked without invalid event', async() => {
             const invalidEvents = [
@@ -851,7 +881,7 @@ describe('Lambda Functions', async() => {
 
     describe('optimizer', async() => {
 
-        const handler = require('../lambda/optimizer').handler;
+        const handler = require('../../lambda/optimizer').handler;
 
         var setLambdaPowerCounter,
             publishLambdaVersionCounter,
@@ -863,28 +893,38 @@ describe('Lambda Functions', async() => {
             publishLambdaVersionCounter = 0;
             createLambdaAliasCounter = 0;
             updateLambdaAliasCounter = 0;
-            // TODO use real mock (not override!)
-            utils.getLambdaAlias = async() => {
-                const error = new Error('alias is not defined');
-                error.code = 'ResourceNotFoundException';
-                throw error;
-            };
-            utils.setLambdaPower = async() => {
-                setLambdaPowerCounter++;
-                return 'OK';
-            };
-            utils.publishLambdaVersion = async() => {
-                publishLambdaVersionCounter++;
-                return { Version: 1 };
-            };
-            utils.createLambdaAlias = async() => {
-                createLambdaAliasCounter++;
-                return 'OK';
-            };
-            utils.updateLambdaAlias = async() => {
-                updateLambdaAliasCounter++;
-                return 'OK';
-            };
+
+            getLambdaAliasStub && getLambdaAliasStub.restore();
+            getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
+                .callsFake(async() => {
+                    const error = new Error('alias is not defined');
+                    error.code = 'ResourceNotFoundException';
+                    throw error;
+                });
+            setLambdaPowerStub && setLambdaPowerStub.restore();
+            setLambdaPowerStub = sandBox.stub(utils, 'setLambdaPower')
+                .callsFake(async() => {
+                    setLambdaPowerCounter++;
+                    return 'OK';
+                });
+            publishLambdaVersionStub && publishLambdaVersionStub.restore();
+            publishLambdaVersionStub = sandBox.stub(utils, 'publishLambdaVersion')
+                .callsFake(async() => {
+                    publishLambdaVersionCounter++;
+                    return { Version: 1 };
+                });
+            createLambdaAliasStub && createLambdaAliasStub.restore();
+            createLambdaAliasStub = sandBox.stub(utils, 'createLambdaAlias')
+                .callsFake(async() => {
+                    createLambdaAliasCounter++;
+                    return 'OK';
+                });
+            updateLambdaAliasStub && updateLambdaAliasStub.restore();
+            updateLambdaAliasStub = sandBox.stub(utils, 'updateLambdaAlias')
+                .callsFake(async() => {
+                    updateLambdaAliasCounter++;
+                    return 'OK';
+                });
         });
 
         it('should explode if invoked without lambdaARN or optimal power', async() => {
@@ -968,9 +1008,11 @@ describe('Lambda Functions', async() => {
         });
 
         it('should update alias if invoked with autoOptimizeAlias and alias already exists', async() => {
-            utils.getLambdaAlias = async() => {
-                return { FunctionVersion: '1' };
-            };
+            getLambdaAliasStub && getLambdaAliasStub.restore();
+            getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
+                .callsFake(async() => {
+                    return { FunctionVersion: '1' };
+                });
             await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
                 analysis: {power: 128},
@@ -982,7 +1024,5 @@ describe('Lambda Functions', async() => {
             expect(createLambdaAliasCounter).to.be(0);
             expect(updateLambdaAliasCounter).to.be(1);
         });
-
     });
-
 });

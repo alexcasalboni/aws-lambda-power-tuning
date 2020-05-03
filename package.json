@@ -25,7 +25,7 @@
     "execute": "bash execute.sh",
     "lint": "eslint --ignore-path .gitignore .",
     "test": "mocha",
-    "coverage": "nyc --reporter=lcov npm run test"
+    "coverage": "nyc --reporter=lcov --reporter=cobertura --reporter=text-summary mocha"
   },
   "dependencies": {},
   "devDependencies": {
@@ -36,6 +36,7 @@
     "eslint-config-strongloop": "^2.1.0",
     "expect.js": "^0.3.1",
     "mocha": "^6.2.2",
-    "nyc": "^14.1.1"
+    "nyc": "^14.1.1",
+    "sinon": "^9.0.2"
   }
 }
