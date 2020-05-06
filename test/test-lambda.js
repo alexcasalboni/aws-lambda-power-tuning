@@ -1,3 +1,4 @@
+// test-lambda.js  -- old
 'use strict';
 
 const expect = require('expect.js');
@@ -19,7 +20,6 @@ AWS.mock('Lambda', 'invoke', {});
 const powerValues = [128, 256, 512, 1024];
 process.env.defaultPowerValues = powerValues.join(',');
 process.env.minRAM = 128;
-process.env.minCost = 2.08e-7;
 const fakeContext = {};
 
 // utility to invoke handler (success case)
@@ -54,6 +54,25 @@ const invokeForFailure = async(handler, event) => {
 /** unit tests below **/
 
 describe('Lambda Functions', async() => {
+
+    var originalRegionFromARNFunc,
+        originalBaseCostForRegionFunc;
+
+    beforeEach(() => {
+        originalRegionFromARNFunc = utils.regionFromARN;
+        utils.regionFromARN = (arn) => {
+            return arn;
+        };
+        originalBaseCostForRegionFunc = utils.baseCostForRegion;
+        utils.baseCostForRegion = (region) => {
+            return region === 'af-south-1' ? 0.0000002763 : 0.0000002083;
+        };
+    });
+
+    afterEach(() => {
+        utils.regionFromARN = originalRegionFromARNFunc;
+        utils.baseCostForRegion = originalBaseCostForRegionFunc;
+    });
 
     describe('initializer', async() => {
 
@@ -298,6 +317,7 @@ describe('Lambda Functions', async() => {
         var invokeLambdaCounter,
             invokeLambdaPayloads;
 
+
         beforeEach('mock utilities', () => {
             invokeLambdaCounter = 0;
             invokeLambdaPayloads = [];
@@ -368,7 +388,21 @@ describe('Lambda Functions', async() => {
             expect(response.averagePrice).to.be.a('number');
             expect(response.averageDuration).to.be.a('number');
             expect(response.totalCost).to.be.a('number');
-            expect(response.totalCost).to.be(process.env.minCost * 10);
+            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(parseFloat((0.0000002083 * 10).toPrecision(10)));
+        });
+
+        it('should return statistics', async() => {
+            const response = await invokeForSuccess(handler, {
+                lambdaARN: 'af-south-1',
+                value: '128',
+                num: 10,
+            });
+
+            expect(response).to.be.an('object');
+            expect(response.averagePrice).to.be.a('number');
+            expect(response.averageDuration).to.be.a('number');
+            expect(response.totalCost).to.be.a('number');
+            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(parseFloat((0.0000002763 * 10).toPrecision(10)));
         });
 
         it('should invoke the given cb, when done (custom payload)', async() => {

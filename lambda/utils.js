@@ -267,11 +267,15 @@ module.exports.range = (n) => {
     return Array.from(Array(n).keys());
 };
 
-module.exports.lambdaClientFromARN = (lambdaARN) => {
-    if (typeof lambdaARN !== 'string' || lambdaARN.split(':').length !== 7) {
-        throw new Error('Invalid ARN: ' + lambdaARN);
+module.exports.regionFromARN = (arn) => {
+    if (typeof arn !== 'string' || arn.split(':').length !== 7) {
+        throw new Error('Invalid ARN: ' + arn);
     }
-    const region = lambdaARN.split(':')[3];
+    return arn.split(':')[3];
+};
+
+module.exports.lambdaClientFromARN = (lambdaARN) => {
+    const region = this.regionFromARN(lambdaARN);
     return new AWS.Lambda({region});
 };
 
@@ -304,4 +308,18 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
     ].join(';');
 
     return baseURL + '#' + hash;
+};
+
+/**
+ * Using the prices supplied via prices.json,
+ * to figure what the base price is for the
+ * supplied lambda's region
+ */
+module.exports.baseCostForRegion = (region) => {
+    const prices = JSON.parse(process.env.baseCosts);
+    if (prices[region]) {
+        return prices[region];
+    }
+    console.log(region + ' not found in base price map, using default: ' + prices['default']);
+    return prices['default'];
 };

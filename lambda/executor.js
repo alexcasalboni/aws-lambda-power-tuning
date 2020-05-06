@@ -3,7 +3,6 @@
 const utils = require('./utils');
 
 const minRAM = parseInt(process.env.minRAM, 10);
-const minCost = parseFloat(process.env.minCost);
 
 /**
  * Execute the given function N times in series or in parallel.
@@ -33,7 +32,10 @@ module.exports.handler = async(event, context) => {
         results = await runInSeries(num, lambdaARN, lambdaAlias, payloads);
     }
 
-    return computeStatistics(results, value);
+    // get base cost
+    const baseCost = utils.baseCostForRegion(utils.regionFromARN(lambdaARN));
+
+    return computeStatistics(baseCost, results, value);
 };
 
 const validateInput = (lambdaARN, value, num) => {
@@ -134,7 +136,7 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payloads) => {
     return results;
 };
 
-const computeStatistics = (results, value) => {
+const computeStatistics = (baseCost, results, value) => {
     // use results (which include logs) to compute average duration ...
 
     const durations = utils.parseLogAndExtractDurations(results);
@@ -143,10 +145,10 @@ const computeStatistics = (results, value) => {
     console.log('Average duration: ', averageDuration);
 
     // ... and overall statistics
-    const averagePrice = utils.computePrice(minCost, minRAM, value, averageDuration);
+    const averagePrice = utils.computePrice(baseCost, minRAM, value, averageDuration);
 
     // .. and total cost (exact $)
-    const totalCost = utils.computeTotalCost(minCost, minRAM, value, durations);
+    const totalCost = utils.computeTotalCost(baseCost, minRAM, value, durations);
 
     const stats = {
         averagePrice,
