@@ -6,8 +6,13 @@ const AWS = require('aws-sdk');
 const utils = module.exports;
 
 // cost of 6+N state transitions (AWS Step Functions)
-module.exports.stepFunctionsCost = (nPower) => +(0.000025 * (6 + nPower)).toFixed(5);
+module.exports.stepFunctionsCost = (nPower) => +(this.stepFunctionsBaseCost() * (6 + nPower)).toFixed(5);
 
+module.exports.stepFunctionsBaseCost = () => {
+    const prices = JSON.parse(process.env.sfCosts);
+    // assume the AWS_REGION variable is set for this function
+    return prices[process.env.AWS_REGION];
+};
 
 module.exports.allPowerValues = () => {
     const increment = 64;
