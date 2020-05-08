@@ -64,6 +64,34 @@ You can finally deploy the serverless app:
 $ bash scripts/deploy.sh
 ```
 
+## How to deploy the state machine (AWS CDK)
+
+First, [install AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html) and [configure your AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-quick-configuration):
+
+```bash
+$ pip install aws-sam-cli
+$ aws configure
+```
+
+Now we can use [CDK Patterns](https://github.com/cdk-patterns/serverless) to give us a pre configured project in either TypeScript or Python:
+
+```bash
+# For the TypeScript CDK version
+npx cdkp init the-lambda-power-tuner
+
+# or for the Python CDK version
+npx cdkp init the-lambda-power-tuner --lang=python
+```
+
+To deploy the TypeScript version you just need to:
+
+```bash
+cd the-lambda-power-tuner
+npm run deploy
+```
+
+For Python deployment, see the instructions [here](https://github.com/cdk-patterns/serverless#2-download-pattern-in-python-or-typescript-cdk)
+
 
 ## How to execute the state machine (programmatically)
 
