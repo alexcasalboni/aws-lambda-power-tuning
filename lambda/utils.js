@@ -11,7 +11,7 @@ module.exports.stepFunctionsCost = (nPower) => +(this.stepFunctionsBaseCost() * 
 module.exports.stepFunctionsBaseCost = () => {
     const prices = JSON.parse(process.env.sfCosts);
     // assume the AWS_REGION variable is set for this function
-    return prices[process.env.AWS_REGION];
+    return this.baseCostForRegion(prices, process.env.AWS_REGION);
 };
 
 module.exports.allPowerValues = () => {
@@ -316,15 +316,14 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
 };
 
 /**
- * Using the prices supplied via prices.json,
+ * Using the prices supplied,
  * to figure what the base price is for the
  * supplied lambda's region
  */
-module.exports.baseCostForRegion = (region) => {
-    const prices = JSON.parse(process.env.baseCosts);
-    if (prices[region]) {
-        return prices[region];
+module.exports.baseCostForRegion = (priceMap, region) => {
+    if (priceMap[region]) {
+        return priceMap[region];
     }
-    console.log(region + ' not found in base price map, using default: ' + prices['default']);
-    return prices['default'];
+    console.log(region + ' not found in base price map, using default: ' + priceMap['default']);
+    return priceMap['default'];
 };
