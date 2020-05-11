@@ -90,7 +90,7 @@ new sam.CfnApplication(this, 'powerTuner', {
 })
 ```
 
-Alternatively you can use [CDK Patterns](https://github.com/cdk-patterns/serverless) to give us a pre configured project in either TypeScript or Python:
+Alternatively you can use [CDK Patterns](https://github.com/cdk-patterns/serverless) to give you a pre configured project in either TypeScript or Python:
 
 ```bash
 # For the TypeScript CDK version
