@@ -73,7 +73,24 @@ $ pip install aws-sam-cli
 $ aws configure
 ```
 
-Now we can use [CDK Patterns](https://github.com/cdk-patterns/serverless) to give us a pre configured project in either TypeScript or Python:
+If you already have a CDK project you can include the following to use the [sam module](https://docs.aws.amazon.com/cdk/api/latest/docs/aws-sam-readme.html):
+
+```typescript
+import sam = require('@aws-cdk/aws-sam');
+
+new sam.CfnApplication(this, 'powerTuner', {
+  location: {
+    applicationId: 'arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning',
+    semanticVersion: '3.2.4'
+  },
+  parameters: {
+    "lambdaResource": "*",
+    "PowerValues": "128,256,512,1024,1536,3008"
+  }
+})
+```
+
+Alternatively you can use [CDK Patterns](https://github.com/cdk-patterns/serverless) to give us a pre configured project in either TypeScript or Python:
 
 ```bash
 # For the TypeScript CDK version
@@ -91,7 +108,6 @@ npm run deploy
 ```
 
 For Python deployment, see the instructions [here](https://github.com/cdk-patterns/serverless#2-download-pattern-in-python-or-typescript-cdk)
-
 
 ## How to execute the state machine (programmatically)
 
