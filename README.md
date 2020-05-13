@@ -48,7 +48,7 @@ Now, you can clone this repository as follows:
 $ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
 ```
 
-Configure your deployment bucket name ([create one first!](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html)) and stack name in the deployment script: 
+Configure your deployment bucket name ([create one first!](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html)) and stack name in the deployment script:
 
 
 ```bash
@@ -119,7 +119,7 @@ Once the state machine and all the Lambda functions have been deployed, you can 
 
 You will find the new state machine in the [Step Functions Console](https://console.aws.amazon.com/states/) or in your app's `Resources` section.
 
-The state machine name will depend on the stack name (default: `aws-lambda-power-tuning`). Find it and click "**Start execution**". 
+The state machine name will depend on the stack name (default: `aws-lambda-power-tuning`). Find it and click "**Start execution**".
 
 Here you can provide the execution input and an execution id (see section below for the full documentation):
 
@@ -209,7 +209,7 @@ The state machine will return the following output:
 {
   "results": {
     "power": "128",
-    "cost": 2.08e-7,
+    "cost": 0.000000208,
     "duration": 2.9066666666666667,
     "stateMachine": {
       "executionCost": 0.00045,
