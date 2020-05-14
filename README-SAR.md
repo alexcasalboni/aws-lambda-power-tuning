@@ -101,7 +101,7 @@ The state machine will return the following output:
 {
   "results": {
     "power": "128",
-    "cost": 0.000000208,
+    "cost": 0.0000002083,
     "duration": 2.9066666666666667,
     "stateMachine": {
       "executionCost": 0.00045,
