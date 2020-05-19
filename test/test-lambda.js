@@ -567,7 +567,87 @@ describe('Lambda Functions', async() => {
                 value: '1024',
                 num: 10,
             });
+        });
 
+        it('should include payload in exception message if invocation fails (series)', async() => {
+            utils.invokeLambda = async() => {
+                return {
+                    FunctionError: 'Unhandled',
+                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                };
+            };
+            const error = await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                value: '1024',
+                num: 10,
+                payload: 'SENTINEL',
+            });
+
+            expect(error.message).to.contain('SENTINEL');
+            expect(error.message).to.contain('in series');
+        });
+
+        it('should include payload in exception message if invocation fails (parallel)', async() => {
+            utils.invokeLambda = async() => {
+                return {
+                    FunctionError: 'Unhandled',
+                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                };
+            };
+            const error = await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                value: '1024',
+                num: 10,
+                parallelInvocation: true,
+                payload: 'SENTINEL',
+            });
+
+            expect(error.message).to.contain('SENTINEL');
+            expect(error.message).to.contain('in parallel');
+        });
+
+
+        it('should include weighted payload in exception message if invocation fails (series)', async() => {
+            utils.invokeLambda = async() => {
+                return {
+                    FunctionError: 'Unhandled',
+                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                };
+            };
+            const error = await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                value: '1024',
+                num: 10,
+                payload: [
+                    {payload: {key: 'SENTINEL1'}, weight: 1},
+                    {payload: {key: 'SENTINEL2'}, weight: 1},
+                ],
+            });
+
+            expect(error.message).to.contain('SENTINEL1');
+            expect(error.message).to.contain('in series');
+        });
+
+        it('should include weighted payload in exception message if invocation fails (parallel)', async() => {
+            utils.invokeLambda = async() => {
+                return {
+                    FunctionError: 'Unhandled',
+                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                };
+            };
+            const error = await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                value: '1024',
+                num: 10,
+                parallelInvocation: true,
+                payload: [
+                    {payload: 'SENTINEL1', weight: 1},
+                    {payload: 'SENTINEL2', weight: 1},
+                ],
+            });
+
+            expect(error.message).to.contain('SENTINEL1');
+            expect(error.message).to.contain('in parallel');
         });
 
         it('should report an error if invocation fails (parallel)', async() => {

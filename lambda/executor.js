@@ -117,7 +117,7 @@ const runInParallel = async(num, lambdaARN, lambdaAlias, payloads) => {
         const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payloads[i]);
         // invocation errors return 200 and contain FunctionError and Payload
         if (data.FunctionError) {
-            throw new Error('Invocation error: ' + data.Payload);
+            throw new Error(`Invocation error (running in parallel): ${data.Payload} with payload ${payloads[i]}`);
         }
         results.push(data);
     });
@@ -133,7 +133,7 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payloads) => {
         const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payloads[i]);
         // invocation errors return 200 and contain FunctionError and Payload
         if (data.FunctionError) {
-            throw new Error('Invocation error: ' + data.Payload);
+            throw new Error(`Invocation error (running in series): ${data.Payload} with payload ${payloads[i]}`);
         }
         results.push(data);
     }
