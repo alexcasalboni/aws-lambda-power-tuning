@@ -74,6 +74,8 @@ If you don't configure any alias name, the state machine will only update the `$
 
 Weighted payloads can be used in scenarios where the payload structure and the corresponding performance/speed can vary a lot in production and you'd like to include multiple payloads in the tuning process.
 
+You may want to use weighted payloads also in case of functions with side effects that would be hard or impossible to test with the very same payload (for example, a function that deletes records from a database).
+
 You can use weighted payloads as follows in the execution input:
 
 ```json
@@ -92,6 +94,8 @@ In the example above the weights `5`, `15` and `30` are used as relative weights
 For example, if `num=100` the first payload will be used 10 times, the second 30 times, and the third 60 times.
 
 To simplify these calculations, you could use weights that sum up to 100.
+
+Note: the number of weighted payloads must always be smaller or equal than `num` (or `num >= count(payloads)`). For example, if you have 50 weighted payloads, you'll need to set at least `num: 50` so that each payload will be used at least once.
 
 ## State Machine Output
 
