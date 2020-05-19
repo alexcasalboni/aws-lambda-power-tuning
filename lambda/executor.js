@@ -70,6 +70,10 @@ const generatePayloads = (num, payloadInput) => {
             throw new Error('Invalid weighted payload structure');
         }
 
+        if (num < payloadInput.length) {
+            throw new Error(`You have ${payloadInput.length} payloads and only "num"=${num}. Please increase "num".`);
+        }
+
         // we use relative weights (not %), so here we compute the total weight
         const total = payloadInput.map(p => p.weight).reduce((a, b) => a + b, 0);
 
