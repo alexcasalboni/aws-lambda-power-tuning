@@ -70,6 +70,10 @@ const generatePayloads = (num, payloadInput) => {
             throw new Error('Invalid weighted payload structure');
         }
 
+        if (num < payloadInput.length) {
+            throw new Error(`You have ${payloadInput.length} payloads and only "num"=${num}. Please increase "num".`);
+        }
+
         // we use relative weights (not %), so here we compute the total weight
         const total = payloadInput.map(p => p.weight).reduce((a, b) => a + b, 0);
 
@@ -113,7 +117,7 @@ const runInParallel = async(num, lambdaARN, lambdaAlias, payloads) => {
         const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payloads[i]);
         // invocation errors return 200 and contain FunctionError and Payload
         if (data.FunctionError) {
-            throw new Error('Invocation error: ' + data.Payload);
+            throw new Error(`Invocation error (running in parallel): ${data.Payload} with payload ${payloads[i]}`);
         }
         results.push(data);
     });
@@ -129,7 +133,7 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payloads) => {
         const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payloads[i]);
         // invocation errors return 200 and contain FunctionError and Payload
         if (data.FunctionError) {
-            throw new Error('Invocation error: ' + data.Payload);
+            throw new Error(`Invocation error (running in series): ${data.Payload} with payload ${payloads[i]}`);
         }
         results.push(data);
     }
