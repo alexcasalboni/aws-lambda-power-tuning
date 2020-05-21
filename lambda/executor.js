@@ -128,7 +128,7 @@ const runInParallel = async(num, lambdaARN, lambdaAlias, payloads, preARN, postA
         const data = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN);
         // invocation errors return 200 and contain FunctionError and Payload
         if (data.FunctionError) {
-            throw new Error(`Invocation error (running in parallel): ${data.Payload} with payload ${payloads[i]}`);
+            throw new Error(`Invocation error (running in parallel): ${data.Payload} with payload ${JSON.stringify(payloads[i])}`);
         }
         results.push(data);
     });

@@ -173,7 +173,7 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
 module.exports.invokeLambdaProcessor = async(processorARN, payload) => {
     const processorData = await utils.invokeLambda(processorARN, null, payload);
     if (processorData.FunctionError) {
-        throw new Error(`Processor ${processorARN} failed with error ${processorData.Payload} and payload ${payload}`);
+        throw new Error(`Processor ${processorARN} failed with error ${processorData.Payload} and payload ${JSON.stringify(payload)}`);
     }
     return processorData.Payload;
 };
