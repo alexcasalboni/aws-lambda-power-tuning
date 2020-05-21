@@ -10,7 +10,16 @@ const minRAM = parseInt(process.env.minRAM, 10);
  */
 module.exports.handler = async(event, context) => {
     // read input from event
-    let {lambdaARN, value, num, enableParallel, payload, dryRun} = extractDataFromInput(event);
+    let {
+        lambdaARN,
+        value,
+        num,
+        enableParallel,
+        payload,
+        dryRun,
+        preProcessorARN,
+        postProcessorARN,
+    } = extractDataFromInput(event);
 
     validateInput(lambdaARN, value, num); // may throw
 
@@ -27,9 +36,9 @@ module.exports.handler = async(event, context) => {
     const payloads = generatePayloads(num, payload);
 
     if (enableParallel) {
-        results = await runInParallel(num, lambdaARN, lambdaAlias, payloads);
+        results = await runInParallel(num, lambdaARN, lambdaAlias, payloads, preProcessorARN, postProcessorARN);
     } else {
-        results = await runInSeries(num, lambdaARN, lambdaAlias, payloads);
+        results = await runInSeries(num, lambdaARN, lambdaAlias, payloads, preProcessorARN, postProcessorARN);
     }
 
     // get base cost
@@ -58,6 +67,8 @@ const extractDataFromInput = (event) => {
         enableParallel: !!event.parallelInvocation,
         payload: event.payload,
         dryRun: event.dryRun === true,
+        preProcessorARN: event.preProcessorARN,
+        postProcessorARN: event.postProcessorARN,
     };
 };
 
@@ -110,11 +121,11 @@ const convertPayload = (payload) => {
     return payload;
 };
 
-const runInParallel = async(num, lambdaARN, lambdaAlias, payloads) => {
+const runInParallel = async(num, lambdaARN, lambdaAlias, payloads, preARN, postARN) => {
     const results = [];
     // run all invocations in parallel ...
     const invocations = utils.range(num).map(async(_, i) => {
-        const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payloads[i]);
+        const data = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN);
         // invocation errors return 200 and contain FunctionError and Payload
         if (data.FunctionError) {
             throw new Error(`Invocation error (running in parallel): ${data.Payload} with payload ${payloads[i]}`);
@@ -126,11 +137,11 @@ const runInParallel = async(num, lambdaARN, lambdaAlias, payloads) => {
     return results;
 };
 
-const runInSeries = async(num, lambdaARN, lambdaAlias, payloads) => {
+const runInSeries = async(num, lambdaARN, lambdaAlias, payloads, preARN, postARN) => {
     const results = [];
     for (let i = 0; i < num; i++) {
         // run invocations in series
-        const data = await utils.invokeLambda(lambdaARN, lambdaAlias, payloads[i]);
+        const data = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN);
         // invocation errors return 200 and contain FunctionError and Payload
         if (data.FunctionError) {
             throw new Error(`Invocation error (running in series): ${data.Payload} with payload ${payloads[i]}`);

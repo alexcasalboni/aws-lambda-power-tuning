@@ -28,6 +28,7 @@ describe('Lambda Utils', () => {
         utils.updateLambdaAlias,
         utils.deleteLambdaAlias,
         utils.invokeLambda,
+        utils.invokeLambdaWithProcessors,
     ];
 
     // TODO fix me (use proper mocking in test-lambda.js)
@@ -277,4 +278,5 @@ describe('Lambda Utils', () => {
             expect(utils.baseCostForRegion('eu-west-1')).to.be(0.0000002083);
         });
     });
+
 });

@@ -315,12 +315,14 @@ describe('Lambda Functions', async() => {
         const handler = require('../lambda/executor').handler;
 
         var invokeLambdaCounter,
-            invokeLambdaPayloads;
+            invokeLambdaPayloads,
+            invokeProcessorCounter;
 
 
         beforeEach('mock utilities', () => {
             invokeLambdaCounter = 0;
             invokeLambdaPayloads = [];
+            invokeProcessorCounter = 0;
             // TODO use real mock (not override!)
             utils.invokeLambda = async(_arn, _alias, payload) => {
                 invokeLambdaCounter++;
@@ -331,6 +333,13 @@ describe('Lambda Functions', async() => {
                     LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMTAwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
                     ExecutedVersion: '$LATEST',
                     Payload: '{}' };
+            };
+            utils.invokeLambdaProcessor = async(_arn, _alias, payload) => {
+                invokeProcessorCounter++;
+                invokeLambdaCounter++;
+                return {
+                    Payload: '{"Processed": true}',
+                };
             };
         });
 
@@ -684,6 +693,54 @@ describe('Lambda Functions', async() => {
                 dryRun: true,
             });
             expect(invokeLambdaCounter).to.be(1);
+        });
+
+        it('should invoke pre-processor', async() => {
+            const num = 10;
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: num,
+                preProcessorARN: 'preArnOK',
+            });
+            expect(invokeLambdaCounter).to.be(num * 2);
+            expect(invokeProcessorCounter).to.be(num);
+        });
+
+        it('should invoke post-processor', async() => {
+            const num = 10;
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: num,
+                postProcessorARN: 'postArnOK',
+            });
+            expect(invokeLambdaCounter).to.be(num * 2);
+            expect(invokeProcessorCounter).to.be(num);
+        });
+
+        it('should invoke pre-processor and post-processor', async() => {
+            const num = 10;
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: num,
+                preProcessorARN: 'preArnOK',
+                postProcessorARN: 'postArnOK',
+            });
+            expect(invokeLambdaCounter).to.be(num * 3);
+            expect(invokeProcessorCounter).to.be(num * 2);
+        });
+
+        it('should invoke function with pre-processor output', async() => {
+            const num = 10;
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: num,
+                preProcessorARN: 'preArnOK',
+            });
+            expect(invokeLambdaPayloads[0].Payload.includes('Processed')).to.be(true);
         });
 
     });

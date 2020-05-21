@@ -168,6 +168,41 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
 };
 
 /**
+ * Invoke a (pre/post-)processor Lambda function and return its output (data.Payload).
+ */
+module.exports.invokeLambdaProcessor = async(processorARN, payload) => {
+    const processorData = await utils.invokeLambda(processorARN, null, payload);
+    if (processorData.FunctionError) {
+        throw new Error(`Processor ${processorARN} failed with error ${processorData.Payload} and payload ${payload}`);
+    }
+    return processorData.Payload;
+};
+
+/**
+ * Wrapper around Lambda function invocation with pre/post-processor functions.
+ */
+module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, preARN, postARN) => {
+    // first invoke pre-processor, if provided
+    if (preARN) {
+        console.log('Invoking pre-processor');
+        // overwrite payload with pre-processor's output
+        payload = await utils.invokeLambdaProcessor(preARN, payload);
+    }
+
+    // invoke function to be power-tuned
+    const data = await utils.invokeLambda(lambdaARN, alias, payload);
+
+    // then invoke post-processor, if provided
+    if (postARN) {
+        console.log('Invoking post-processor');
+        // note: invocation may have failed (data.FunctionError)
+        utils.invokeLambdaProcessor(postARN, data.Payload);
+    }
+
+    return data;
+};
+
+/**
  * Invoke a given Lambda Function:Alias with payload and return its logs.
  */
 module.exports.invokeLambda = (lambdaARN, alias, payload) => {
