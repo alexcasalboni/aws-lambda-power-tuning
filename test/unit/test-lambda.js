@@ -128,14 +128,6 @@ describe('Lambda Functions', async() => {
 
         const handler = require('../../lambda/initializer').handler;
 
-        beforeEach('mock utilities', () => {
-            setLambdaPowerCounter = 0;
-            getLambdaPowerCounter = 0;
-            publishLambdaVersionCounter = 0;
-            createLambdaAliasCounter = 0;
-            updateLambdaAliasCounter = 0;
-        });
-
         it('should explode if invoked without a lambdaARN', async() => {
             const invalidEvents = [
                 null,
@@ -883,16 +875,7 @@ describe('Lambda Functions', async() => {
 
         const handler = require('../../lambda/optimizer').handler;
 
-        var setLambdaPowerCounter,
-            publishLambdaVersionCounter,
-            createLambdaAliasCounter,
-            updateLambdaAliasCounter;
-
         beforeEach('mock utilities', () => {
-            setLambdaPowerCounter = 0;
-            publishLambdaVersionCounter = 0;
-            createLambdaAliasCounter = 0;
-            updateLambdaAliasCounter = 0;
 
             getLambdaAliasStub && getLambdaAliasStub.restore();
             getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
