@@ -22,6 +22,7 @@ process.env.defaultPowerValues = powerValues.join(',');
 process.env.minRAM = 128;
 const fakeContext = {};
 
+// variables used during tests
 var setLambdaPowerCounter,
     getLambdaPowerCounter,
     publishLambdaVersionCounter,
