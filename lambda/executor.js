@@ -145,7 +145,7 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payloads, preARN, postARN
         const data = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN);
         // invocation errors return 200 and contain FunctionError and Payload
         if (data.FunctionError) {
-            throw new Error(`Invocation error (running in series): ${data.Payload} with payload ${payloads[i]}`);
+            throw new Error(`Invocation error (running in series): ${data.Payload} with payload ${JSON.stringify(payloads[i])}`);
         }
         results.push(data);
     }
