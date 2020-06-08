@@ -74,6 +74,8 @@ If you don't configure any alias name, the state machine will only update the `$
 
 Weighted payloads can be used in scenarios where the payload structure and the corresponding performance/speed can vary a lot in production and you'd like to include multiple payloads in the tuning process.
 
+You may want to use weighted payloads also in case of functions with side effects that would be hard or impossible to test with the very same payload (for example, a function that deletes records from a database).
+
 You can use weighted payloads as follows in the execution input:
 
 ```json
@@ -93,6 +95,8 @@ For example, if `num=100` the first payload will be used 10 times, the second 30
 
 To simplify these calculations, you could use weights that sum up to 100.
 
+Note: the number of weighted payloads must always be smaller or equal than `num` (or `num >= count(payloads)`). For example, if you have 50 weighted payloads, you'll need to set at least `num: 50` so that each payload will be used at least once.
+
 ## State Machine Output
 
 The state machine will return the following output:
@@ -101,7 +105,7 @@ The state machine will return the following output:
 {
   "results": {
     "power": "128",
-    "cost": 2.08e-7,
+    "cost": 0.0000002083,
     "duration": 2.9066666666666667,
     "stateMachine": {
       "executionCost": 0.00045,
@@ -187,6 +191,7 @@ Please note that the total invocation time should stay below 300 seconds (5 min)
 
 ## CHANGELOG (SAR versioning)
 
+* *3.2.5*: improved logging for weighted payloads and in case of invocation errors
 * *3.2.4*: dryRun bugfix
 * *3.2.3*: new dryRun input parameter
 * *3.2.2*: upgraded runtime to Node.js 12.x
