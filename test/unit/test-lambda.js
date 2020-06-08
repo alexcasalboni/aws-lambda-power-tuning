@@ -347,7 +347,7 @@ describe('Lambda Functions', async() => {
             invokeLambdaCounter = 0;
             invokeLambdaPayloads = [];
             invokeProcessorCounter = 0;
-            
+
             invokeLambdaStub && invokeLambdaStub.restore();
             invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
                 .callsFake(async(_arn, _alias, payload) => {
@@ -358,7 +358,7 @@ describe('Lambda Functions', async() => {
                         StatusCode: 200,
                         LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMTAwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
                         ExecutedVersion: '$LATEST',
-                        Payload: '{}'
+                        Payload: '{}',
                     };
                 });
 
@@ -367,9 +367,7 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn, _alias, payload) => {
                     invokeProcessorCounter++;
                     invokeLambdaCounter++;
-                    return {
-                        Payload: '{"Processed": true}',
-                    };
+                    return '{"Processed": true}';
                 });
         });
 
@@ -595,12 +593,14 @@ describe('Lambda Functions', async() => {
         });
 
         it('should report an error if invocation fails', async() => {
-            utils.invokeLambda = async() => {
-                return {
-                    FunctionError: 'Unhandled',
-                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
-                };
-            };
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    return {
+                        FunctionError: 'Unhandled',
+                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                    };
+                });
             await invokeForFailure(handler, {
                 lambdaARN: 'arnOK',
                 value: '1024',
@@ -609,12 +609,14 @@ describe('Lambda Functions', async() => {
         });
 
         it('should include payload in exception message if invocation fails (series)', async() => {
-            utils.invokeLambda = async() => {
-                return {
-                    FunctionError: 'Unhandled',
-                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
-                };
-            };
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    return {
+                        FunctionError: 'Unhandled',
+                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                    };
+                });
             const error = await invokeForFailure(handler, {
                 lambdaARN: 'arnOK',
                 value: '1024',
@@ -627,12 +629,14 @@ describe('Lambda Functions', async() => {
         });
 
         it('should include payload in exception message if invocation fails (parallel)', async() => {
-            utils.invokeLambda = async() => {
-                return {
-                    FunctionError: 'Unhandled',
-                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
-                };
-            };
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    return {
+                        FunctionError: 'Unhandled',
+                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                    };
+                });
             const error = await invokeForFailure(handler, {
                 lambdaARN: 'arnOK',
                 value: '1024',
@@ -647,12 +651,14 @@ describe('Lambda Functions', async() => {
 
 
         it('should include weighted payload in exception message if invocation fails (series)', async() => {
-            utils.invokeLambda = async() => {
-                return {
-                    FunctionError: 'Unhandled',
-                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
-                };
-            };
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    return {
+                        FunctionError: 'Unhandled',
+                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                    };
+                });
             const error = await invokeForFailure(handler, {
                 lambdaARN: 'arnOK',
                 value: '1024',
@@ -668,12 +674,14 @@ describe('Lambda Functions', async() => {
         });
 
         it('should include weighted payload in exception message if invocation fails (parallel)', async() => {
-            utils.invokeLambda = async() => {
-                return {
-                    FunctionError: 'Unhandled',
-                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
-                };
-            };
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    return {
+                        FunctionError: 'Unhandled',
+                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                    };
+                });
             const error = await invokeForFailure(handler, {
                 lambdaARN: 'arnOK',
                 value: '1024',
@@ -690,12 +698,14 @@ describe('Lambda Functions', async() => {
         });
 
         it('should report an error if invocation fails (parallel)', async() => {
-            utils.invokeLambda = async() => {
-                return {
-                    FunctionError: 'Unhandled',
-                    Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
-                };
-            };
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    return {
+                        FunctionError: 'Unhandled',
+                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                    };
+                });
             await invokeForFailure(handler, {
                 lambdaARN: 'arnOK',
                 value: '1024',
@@ -770,7 +780,64 @@ describe('Lambda Functions', async() => {
                 num: num,
                 preProcessorARN: 'preArnOK',
             });
-            expect(invokeLambdaPayloads[0].Payload.includes('Processed')).to.be(true);
+            expect(invokeLambdaPayloads[0].includes('Processed')).to.be(true);
+        });
+
+        it('should invoke function with original payload if pre-precessor does not return a new payload', async() => {
+
+            invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
+            invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
+                .callsFake(async(_arn, _alias, payload) => {
+                    invokeProcessorCounter++;
+                    invokeLambdaCounter++;
+                    return null; // empty output from pre-processor
+                });
+
+            const num = 10;
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: num,
+                payload: {Original: true},
+                preProcessorARN: 'preArnOK',
+            });
+            expect(invokeLambdaPayloads[0].includes('Original')).to.be(true);
+        });
+
+        it('should explode if pre-processor fails', async() => {
+
+            invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
+            invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
+                .callsFake(async(_arn, _alias, _payload) => {
+                    throw new Error('Processor XXX failed with error YYY and payload ZZZ');
+                });
+
+            await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: 10,
+                payload: {Original: true},
+                preProcessorARN: 'preArnOK',
+            });
+
+        });
+
+        it('should explode if post-processor fails', async() => {
+
+            invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
+            invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
+                .callsFake(async(_arn, _alias, _payload) => {
+                    throw new Error('Processor XXX failed with error YYY and payload ZZZ');
+                });
+
+            await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                value: '128',
+                num: 10,
+                payload: {Original: true},
+                postProcessorARN: 'postArnOK',
+            });
+
         });
 
     });
