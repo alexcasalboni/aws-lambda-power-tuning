@@ -362,8 +362,8 @@ describe('Lambda Functions', async() => {
                     };
                 });
 
-            invokeLambdaProcessor && invokeLambdaProcessor.restore();
-            invokeLambdaProcessor = sandBox.stub(utils, 'invokeLambdaProcessor')
+            invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
+            invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
                 .callsFake(async(_arn, _alias, payload) => {
                     invokeProcessorCounter++;
                     invokeLambdaCounter++;
