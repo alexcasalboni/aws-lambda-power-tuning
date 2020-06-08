@@ -190,8 +190,11 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
     // first invoke pre-processor, if provided
     if (preARN) {
         console.log('Invoking pre-processor');
-        // overwrite payload with pre-processor's output
-        payload = await utils.invokeLambdaProcessor(preARN, payload);
+        // overwrite payload with pre-processor's output (only if not empty)
+        const preProcessorOutput = await utils.invokeLambdaProcessor(preARN, payload);
+        if (preProcessorOutput) {
+            payload = preProcessorOutput;
+        }
     }
 
     // invoke function to be power-tuned
@@ -201,7 +204,7 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
     if (postARN) {
         console.log('Invoking post-processor');
         // note: invocation may have failed (data.FunctionError)
-        utils.invokeLambdaProcessor(postARN, data.Payload);
+        await utils.invokeLambdaProcessor(postARN, data.Payload);
     }
 
     return data;
