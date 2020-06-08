@@ -48,7 +48,7 @@ Now, you can clone this repository as follows:
 $ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
 ```
 
-Configure your deployment bucket name ([create one first!](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html)) and stack name in the deployment script: 
+Configure your deployment bucket name ([create one first!](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html)) and stack name in the deployment script:
 
 
 ```bash
@@ -64,6 +64,50 @@ You can finally deploy the serverless app:
 $ bash scripts/deploy.sh
 ```
 
+## How to deploy the state machine (AWS CDK)
+
+First, [install AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html) and [configure your AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-quick-configuration):
+
+```bash
+$ pip install aws-sam-cli
+$ aws configure
+```
+
+If you already have a CDK project you can include the following to use the [sam module](https://docs.aws.amazon.com/cdk/api/latest/docs/aws-sam-readme.html):
+
+```typescript
+import sam = require('@aws-cdk/aws-sam');
+
+new sam.CfnApplication(this, 'powerTuner', {
+  location: {
+    applicationId: 'arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning',
+    semanticVersion: '3.2.5'
+  },
+  parameters: {
+    "lambdaResource": "*",
+    "PowerValues": "128,256,512,1024,1536,3008"
+  }
+})
+```
+
+Alternatively you can use [CDK Patterns](https://github.com/cdk-patterns/serverless) to give you a pre configured project in either TypeScript or Python:
+
+```bash
+# For the TypeScript CDK version
+npx cdkp init the-lambda-power-tuner
+
+# or for the Python CDK version
+npx cdkp init the-lambda-power-tuner --lang=python
+```
+
+To deploy the TypeScript version you just need to:
+
+```bash
+cd the-lambda-power-tuner
+npm run deploy
+```
+
+For Python deployment, see the instructions [here](https://github.com/cdk-patterns/serverless#2-download-pattern-in-python-or-typescript-cdk)
 
 ## How to execute the state machine (programmatically)
 
@@ -75,7 +119,7 @@ Once the state machine and all the Lambda functions have been deployed, you can 
 
 You will find the new state machine in the [Step Functions Console](https://console.aws.amazon.com/states/) or in your app's `Resources` section.
 
-The state machine name will depend on the stack name (default: `aws-lambda-power-tuning`). Find it and click "**Start execution**". 
+The state machine name will depend on the stack name (default: `aws-lambda-power-tuning`). Find it and click "**Start execution**".
 
 Here you can provide the execution input and an execution id (see section below for the full documentation):
 
@@ -137,6 +181,8 @@ If you don't configure any alias name, the state machine will only update the `$
 
 Weighted payloads can be used in scenarios where the payload structure and the corresponding performance/speed can vary a lot in production and you'd like to include multiple payloads in the tuning process.
 
+You may want to use weighted payloads also in case of functions with side effects that would be hard or impossible to test with the very same payload (for example, a function that deletes records from a database).
+
 You can use weighted payloads as follows in the execution input:
 
 ```json
@@ -156,6 +202,8 @@ For example, if `num=100` the first payload will be used 10 times, the second 30
 
 To simplify these calculations, you could use weights that sum up to 100.
 
+Note: the number of weighted payloads must always be smaller or equal than `num` (or `num >= count(payloads)`). For example, if you have 50 weighted payloads, you'll need to set at least `num: 50` so that each payload will be used at least once.
+
 
 ## State Machine Output
 
@@ -165,7 +213,7 @@ The state machine will return the following output:
 {
   "results": {
     "power": "128",
-    "cost": 2.08e-7,
+    "cost": 0.0000002083,
     "duration": 2.9066666666666667,
     "stateMachine": {
       "executionCost": 0.00045,
@@ -253,6 +301,7 @@ Please note that the total invocation time should stay below 300 seconds (5 min)
 
 ## CHANGELOG (SAR versioning)
 
+* *3.2.5*: improved logging for weighted payloads and in case of invocation errors
 * *3.2.4*: dryRun bugfix
 * *3.2.3*: new dryRun input parameter
 * *3.2.2*: upgraded runtime to Node.js 12.x
