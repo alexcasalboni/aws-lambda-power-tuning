@@ -4,6 +4,18 @@ const expect = require('expect.js');
 
 // const AWS = require('aws-sdk');
 var AWS = require('aws-sdk-mock');
+
+process.env.sfCosts = `{"us-gov-west-1": 0.00003,"eu-north-1": 0.000025,
+"eu-central-1": 0.000025,"us-east-1": 0.000025,"ap-northeast-1": 0.000025,
+"ap-northeast-2": 0.0000271,"eu-south-1": 0.00002625,"af-south-1": 0.00002975,
+"us-west-1": 0.0000279,"eu-west-3": 0.0000297,"ap-southeast-2": 0.000025,
+"ap-east-1": 0.0000275,"eu-west-2": 0.000025,"me-south-1": 0.0000275,
+"us-east-2": 0.000025,"ap-south-1": 0.0000285,"ap-southeast-1": 0.000025,
+"us-gov-east-1": 0.00003,"ca-central-1": 0.000025,"eu-west-1": 0.000025,
+"us-west-2": 0.000025,"sa-east-1": 0.0000375}`;
+
+process.env.AWS_REGION = 'af-south-1';
+
 const utils = require('../../lambda/utils');
 
 // AWS SDK mocks
@@ -51,6 +63,32 @@ describe('Lambda Utils', () => {
                 expect(result).to.be.a(Promise);
             });
             // TODO add more tests!
+        });
+    });
+
+    describe('stepFunctionsCost', () => {
+        it('should return expected step base cost', () => {
+            process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
+            process.env.AWS_REGION = 'us-gov-west-1';
+            const result = utils.stepFunctionsBaseCost();
+            expect(result).to.be.equal(0.00003);
+        });
+        it('should return default step base cost', () => {
+            process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
+            process.env.AWS_REGION = 'af-south-1';
+            const result = utils.stepFunctionsBaseCost();
+            expect(result).to.be.equal(0.000025);
+        });
+    });
+
+    describe('stepFunctionsBaseCost', () => {
+        it('should return expected step total cost', () => {
+            process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
+            process.env.AWS_REGION = 'us-gov-west-1';
+            const nPower = 10;
+            const expectedCost = +(0.00003 * (6 + nPower)).toFixed(5);
+            const result = utils.stepFunctionsCost(nPower);
+            expect(result).to.be.equal(expectedCost);
         });
     });
 
@@ -262,19 +300,19 @@ describe('Lambda Utils', () => {
     });
 
     describe('baseCostForRegion', () => {
-        process.env.baseCosts = JSON.stringify({
+        const prices = {
             'ap-east-1': 0.0000002865,
             'af-south-1': 0.0000002763,
             'me-south-1': 0.0000002583,
             default: 0.0000002083,
-        });
+        };
 
         it('should return ap-east-1 base price', () => {
-            expect(utils.baseCostForRegion('ap-east-1')).to.be(0.0000002865);
+            expect(utils.baseCostForRegion(prices, 'ap-east-1')).to.be(0.0000002865);
         });
 
         it('should return default base price', () => {
-            expect(utils.baseCostForRegion('eu-west-1')).to.be(0.0000002083);
+            expect(utils.baseCostForRegion(prices, 'eu-west-1')).to.be(0.0000002083);
         });
     });
 });

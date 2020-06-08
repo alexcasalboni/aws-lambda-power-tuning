@@ -20,6 +20,7 @@ AWS.mock('Lambda', 'invoke', {});
 const powerValues = [128, 256, 512, 1024];
 process.env.defaultPowerValues = powerValues.join(',');
 process.env.minRAM = 128;
+process.env.baseCosts = '{"eu-west-1":0.00000003, "af-south-1": 0.0000002763, "default": 0.00000028}';
 const fakeContext = {};
 
 // variables used during tests
@@ -84,7 +85,7 @@ describe('Lambda Functions', async() => {
                 return arn;
             });
         sandBox.stub(utils, 'baseCostForRegion')
-            .callsFake((region) => {
+            .callsFake((_priceMap, region) => {
                 return region === 'af-south-1' ? 0.0000002763 : 0.0000002083;
             });
         getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
