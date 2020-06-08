@@ -6,8 +6,13 @@ const AWS = require('aws-sdk');
 const utils = module.exports;
 
 // cost of 6+N state transitions (AWS Step Functions)
-module.exports.stepFunctionsCost = (nPower) => +(0.000025 * (6 + nPower)).toFixed(5);
+module.exports.stepFunctionsCost = (nPower) => +(this.stepFunctionsBaseCost() * (6 + nPower)).toFixed(5);
 
+module.exports.stepFunctionsBaseCost = () => {
+    const prices = JSON.parse(process.env.sfCosts);
+    // assume the AWS_REGION variable is set for this function
+    return this.baseCostForRegion(prices, process.env.AWS_REGION);
+};
 
 module.exports.allPowerValues = () => {
     const increment = 64;
@@ -346,15 +351,14 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
 };
 
 /**
- * Using the prices supplied via prices.json,
+ * Using the prices supplied,
  * to figure what the base price is for the
  * supplied lambda's region
  */
-module.exports.baseCostForRegion = (region) => {
-    const prices = JSON.parse(process.env.baseCosts);
-    if (prices[region]) {
-        return prices[region];
+module.exports.baseCostForRegion = (priceMap, region) => {
+    if (priceMap[region]) {
+        return priceMap[region];
     }
-    console.log(region + ' not found in base price map, using default: ' + prices['default']);
-    return prices['default'];
+    console.log(region + ' not found in base price map, using default: ' + priceMap['default']);
+    return priceMap['default'];
 };

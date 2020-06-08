@@ -1,6 +1,6 @@
 # config
-BUCKET_NAME=your-sam-templates-bucket
-STACK_NAME=lambda-power-tuning
+BUCKET_NAME=sam-templates-demos-cpt
+STACK_NAME=lambda-power-tuning-new
 PowerValues='128,256,512,1024,1536,3008'
 LambdaResource='*'
 

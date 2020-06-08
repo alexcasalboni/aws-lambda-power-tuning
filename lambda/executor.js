@@ -42,7 +42,8 @@ module.exports.handler = async(event, context) => {
     }
 
     // get base cost
-    const baseCost = utils.baseCostForRegion(utils.regionFromARN(lambdaARN));
+    const prices = JSON.parse(process.env.baseCosts);
+    const baseCost = utils.baseCostForRegion(prices, utils.regionFromARN(lambdaARN));
 
     return computeStatistics(baseCost, results, value);
 };
