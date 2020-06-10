@@ -159,6 +159,8 @@ The AWS Step Functions state machine accepts the following parameters:
 
 Additionally, you can specify a list of power values at deploy-time in the `PowerValues` CloudFormation parameter. These power values will be used as the default in case no `powerValues` input parameter is provided.
 
+Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can customize this timeout at deploy time with the `totalExecutionTimeout` CloudFormation parameter. You can easily estimate the total execution timout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min.
+
 ### Usage in CI/CD pipelines
 
 If you want to run the state machine as part of your continuous integration pipeline and automatically fine-tune your functions at every deployment, you can execute it with the script `scripts/execute.sh` (or similar) by providing the following input parameters:
@@ -297,9 +299,11 @@ There are three main costs associated with AWS Lambda Power Tuning:
 
 ## Error handling
 
-If something goes wrong during the initialization or execution states, the `CleanUpOnError` step will be executed. All versions and alises will be deleted as expected (the same happens in the `Cleaner` step).
+If something goes wrong during the initialization or execution states, the `CleanUpOnError` step will be executed. All temporary versions and alises will be deleted as expected (the same happens in the `Cleaner` step).
 
-Note: the error `Lambda.Unknown` corresponds to unhandled errors in Lambda such as out-of-memory errors, function timeouts, and hitting the concurrent Lambda invoke limit. If you encounter it as input of `CleanUpOnError`, it's very likely that the Executor function has timed out and you'll need to enable `parallelInvocation`.
+You can customize the `totalExecutionTimeout` parameter at deploy time (up to 15min). This parameter will be used both for Lambda function timeouts and Step Function tasks timeouts. In case the `Executor` raises a timeout error, you will see a `States.Timeout` error. Keep in mind that the timeout you configure will vary whether you're setting `parallelInvocation` to `true` or `false`. When you enable parallel invocation, all the function executions will run concurrently (rather than in series) so that you can keep that timeout lower and your overall state machine execution faster.
+
+In all other error cases, you will see a `Lambda.Unknown` error, which corresponds to unhandled errors in Lambda such as out-of-memory errors and hitting the concurrent Lambda invoke limit. If you encounter it as input of `CleanUpOnError`, it's very likely that something went wrong with the function you're power-tuning.
 
 ### Retry policy
 
@@ -322,9 +326,7 @@ The AWS Step Functions state machine is composed of five Lambda functions:
 * **analyzer**: compute the optimal power value (current logic: lowest average cost per invocation)
 * **optimizer**: automatically set the power to its optimal value (only if `autoOptimize` is `true`)
 
-Initializer, cleaner, analyzer, and optimizer are executed only once, while the executor is used by N parallel branches of the state machine (one for each configured power value). By default, the executor will execute the given Lambda function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`.
-
-Please note that the total invocation time should stay below 300 seconds (5 min), which means that the average duration of your functions should stay below 3 seconds with `num=100`, 30 seconds with `num=10`, and so on. In case you need more time, you can edit the `Timeout` property in the `template.yml` file and redeploy.
+Initializer, cleaner, analyzer, and optimizer are executed only once, while the executor is used by N parallel branches of the state machine - one for each configured power value. By default, the executor will execute the given Lambda function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`.
 
 
 ## CHANGELOG (SAR versioning)
