@@ -1,10 +1,24 @@
 'use strict';
 
+const sinon = require('sinon');
 const expect = require('expect.js');
 
-// const AWS = require('aws-sdk');
 var AWS = require('aws-sdk-mock');
-const utils = require('../lambda/utils');
+
+process.env.sfCosts = `{"us-gov-west-1": 0.00003,"eu-north-1": 0.000025,
+"eu-central-1": 0.000025,"us-east-1": 0.000025,"ap-northeast-1": 0.000025,
+"ap-northeast-2": 0.0000271,"eu-south-1": 0.00002625,"af-south-1": 0.00002975,
+"us-west-1": 0.0000279,"eu-west-3": 0.0000297,"ap-southeast-2": 0.000025,
+"ap-east-1": 0.0000275,"eu-west-2": 0.000025,"me-south-1": 0.0000275,
+"us-east-2": 0.000025,"ap-south-1": 0.0000285,"ap-southeast-1": 0.000025,
+"us-gov-east-1": 0.00003,"ca-central-1": 0.000025,"eu-west-1": 0.000025,
+"us-west-2": 0.000025,"sa-east-1": 0.0000375}`;
+
+process.env.AWS_REGION = 'af-south-1';
+
+const utils = require('../../lambda/utils');
+
+const sandBox = sinon.createSandbox();
 
 // AWS SDK mocks
 AWS.mock('Lambda', 'getAlias', {});
@@ -28,10 +42,8 @@ describe('Lambda Utils', () => {
         utils.updateLambdaAlias,
         utils.deleteLambdaAlias,
         utils.invokeLambda,
+        utils.invokeLambdaWithProcessors,
     ];
-
-    // TODO fix me (use proper mocking in test-lambda.js)
-    const getLambdaPower = utils.getLambdaPower;
 
     // just returns the utility name for convenience
     function _fname(func) {
@@ -54,9 +66,40 @@ describe('Lambda Utils', () => {
         });
     });
 
+    afterEach('Global mock utilities afterEach', () => {
+        // restore everything to its natural order
+        sandBox.restore();
+    });
+
+    describe('stepFunctionsCost', () => {
+        it('should return expected step base cost', () => {
+            process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
+            process.env.AWS_REGION = 'us-gov-west-1';
+            const result = utils.stepFunctionsBaseCost();
+            expect(result).to.be.equal(0.00003);
+        });
+        it('should return default step base cost', () => {
+            process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
+            process.env.AWS_REGION = 'af-south-1';
+            const result = utils.stepFunctionsBaseCost();
+            expect(result).to.be.equal(0.000025);
+        });
+    });
+
+    describe('stepFunctionsBaseCost', () => {
+        it('should return expected step total cost', () => {
+            process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
+            process.env.AWS_REGION = 'us-gov-west-1';
+            const nPower = 10;
+            const expectedCost = +(0.00003 * (6 + nPower)).toFixed(5);
+            const result = utils.stepFunctionsCost(nPower);
+            expect(result).to.be.equal(expectedCost);
+        });
+    });
+
     describe('getLambdaPower', () => {
         it('should return the memory value', async() => {
-            const value = await getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
+            const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
             expect(value).to.be(1024);
         });
     });
@@ -64,19 +107,21 @@ describe('Lambda Utils', () => {
     describe('verifyAliasExistance', () => {
 
         it('should return true if the alias exists', async() => {
-            utils.getLambdaAlias = async() => {
-                return { FunctionVersion: '1' };
-            };
+            sandBox.stub(utils, 'getLambdaAlias')
+                .callsFake(async() => {
+                    return { FunctionVersion: '1' };
+                });
             const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
             expect(aliasExists).to.be(true);
         });
 
         it('should return false if the alias does not exists', async() => {
-            utils.getLambdaAlias = async() => {
-                const error = new Error('alias is not defined');
-                error.code = 'ResourceNotFoundException';
-                throw error;
-            };
+            sandBox.stub(utils, 'getLambdaAlias')
+                .callsFake(async() => {
+                    const error = new Error('alias is not defined');
+                    error.code = 'ResourceNotFoundException';
+                    throw error;
+                });
             const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
             expect(aliasExists).to.be(false);
         });
@@ -262,19 +307,60 @@ describe('Lambda Utils', () => {
     });
 
     describe('baseCostForRegion', () => {
-        process.env.baseCosts = JSON.stringify({
+        const prices = {
             'ap-east-1': 0.0000002865,
             'af-south-1': 0.0000002763,
             'me-south-1': 0.0000002583,
             default: 0.0000002083,
-        });
+        };
 
         it('should return ap-east-1 base price', () => {
-            expect(utils.baseCostForRegion('ap-east-1')).to.be(0.0000002865);
+            expect(utils.baseCostForRegion(prices, 'ap-east-1')).to.be(0.0000002865);
         });
 
         it('should return default base price', () => {
-            expect(utils.baseCostForRegion('eu-west-1')).to.be(0.0000002083);
+            expect(utils.baseCostForRegion(prices, 'eu-west-1')).to.be(0.0000002083);
         });
     });
+
+    describe('invokeLambdaProcessor', () => {
+
+        var invokeLambdaCounter;
+        beforeEach('mock API call', () => {
+            invokeLambdaCounter = 0;
+        });
+
+        it('should invoke the processing function', async() => {
+            sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async() => {
+                    invokeLambdaCounter++;
+                    return {
+                        Payload: '{"OK": "OK"}',
+                    };
+                });
+            const data = await utils.invokeLambdaProcessor('arnOK', {});
+            expect(invokeLambdaCounter).to.be(1);
+            expect(data).to.be('{"OK": "OK"}');
+        });
+
+        it('should explode if processor fails', async() => {
+            sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async() => {
+                    invokeLambdaCounter++;
+                    return {
+                        Payload: '{"KO": "KO"}',
+                        FunctionError: 'Unhandled',
+                    };
+                });
+            try {
+                const data = await utils.invokeLambdaProcessor('arnOK', {});
+                expect(data).to.be(null);
+            } catch (ex) {
+                expect(ex.message.includes('failed with error')).to.be(true);
+            }
+
+            expect(invokeLambdaCounter).to.be(1);
+        });
+    });
+
 });
