@@ -7,6 +7,9 @@ node_js:
   - 12
 env:
     - AWS_DEFAULT_REGION=eu-west-1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy
+before_install:
+  - git clone https://github.com/Linuxbrew/brew.git ~/.linuxbrew
+  - export HOMEBREW_FORCE_VENDOR_RUBY=1
 install:
   - travis_retry npm ci
   - travis_retry brew tap aws/tap
