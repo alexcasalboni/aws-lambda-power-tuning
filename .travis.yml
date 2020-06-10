@@ -7,7 +7,7 @@ node_js:
   - 12
 env:
   # env variable needed by AWS SAM CLI
-  - AWS_DEFAULT_REGION=eu-west-1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy
+  - SAM_CLI_TELEMETRY=0 AWS_DEFAULT_REGION=eu-west-1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy
 install:
   # install Node.js dependencies
   - travis_retry npm ci
