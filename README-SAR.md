@@ -221,6 +221,7 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 ## CHANGELOG (SAR versioning)
 
+* *3.3.0*: Pre/Post-processing functions, correct regional pricing, customizable execution timeouts, and other internal improvements
 * *3.2.5*: improved logging for weighted payloads and in case of invocation errors
 * *3.2.4*: dryRun bugfix
 * *3.2.3*: new dryRun input parameter
