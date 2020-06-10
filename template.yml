@@ -162,11 +162,8 @@ Resources:
                       "ItemsPath": "$.powerValues",
                       "ResultPath": "$.stats",
                       "Parameters": {
-                        "value.$": "$$.Map.Item.Value",
-                        "lambdaARN.$": "$.lambdaARN",
-                        "num.$": "$.num",
-                        "payload.$": "$.payload",
-                        "parallelInvocation.$": "$.parallelInvocation"
+                        "input.$": "$",
+                        "value.$": "$$.Map.Item.Value"
                       },
                       "MaxConcurrency": 0,
                       "Catch": [{

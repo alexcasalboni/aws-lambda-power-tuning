@@ -61,15 +61,16 @@ const validateInput = (lambdaARN, value, num) => {
 };
 
 const extractDataFromInput = (event) => {
+    const input = event.input; // original state machine input
     return {
-        lambdaARN: event.lambdaARN,
         value: parseInt(event.value, 10),
-        num: parseInt(event.num, 10),
-        enableParallel: !!event.parallelInvocation,
-        payload: event.payload,
-        dryRun: event.dryRun === true,
-        preProcessorARN: event.preProcessorARN,
-        postProcessorARN: event.postProcessorARN,
+        lambdaARN: input.lambdaARN,
+        num: parseInt(input.num, 10),
+        enableParallel: !!input.parallelInvocation,
+        payload: input.payload,
+        dryRun: input.dryRun === true,
+        preProcessorARN: input.preProcessorARN,
+        postProcessorARN: input.postProcessorARN,
     };
 };
 

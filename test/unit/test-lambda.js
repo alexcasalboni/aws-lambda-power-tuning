@@ -380,14 +380,19 @@ describe('Lambda Functions', async() => {
                 { lambdaARN: false },
                 { lambdaARN: 0 },
                 { lambdaARN: 'arnOK' },
-                { lambdaARN: 'arnOK', value: null },
-                { lambdaARN: 'arnOK', value: 0 },
-                { lambdaARN: 'arnOK', value: 'invalid' },
-                { lambdaARN: 'arnOK', value: 128 }, // 128 is ok
-                { lambdaARN: 'arnOK', value: '128' }, // '128' is ok
-                { lambdaARN: 'arnOK', value: 128, num: null },
-                { lambdaARN: 'arnOK', value: 128, num: 0 },
-                { lambdaARN: 'arnOK', value: 128, num: 'invalid' },
+                { input: {lambdaARN: null} },
+                { input: {lambdaARN: ''} },
+                { input: {lambdaARN: false} },
+                { input: {lambdaARN: 0} },
+                { input: {lambdaARN: 'arnOK'} },
+                { input: {lambdaARN: 'arnOK'}, value: null },
+                { input: {lambdaARN: 'arnOK'}, value: 0 },
+                { input: {lambdaARN: 'arnOK'}, value: 'invalid' },
+                { input: {lambdaARN: 'arnOK'}, value: 128 }, // 128 is ok
+                { input: {lambdaARN: 'arnOK'}, value: '128' }, // '128' is ok
+                { input: {lambdaARN: 'arnOK', num: null}, value: 128 },
+                { input: {lambdaARN: 'arnOK', num: 0}, value: 128 },
+                { input: {lambdaARN: 'arnOK', num: 'invalid'}, value: 128 },
             ];
 
             invalidEvents.forEach(event => {
@@ -399,26 +404,32 @@ describe('Lambda Functions', async() => {
 
         it('should invoke the given cb, when done', async() => {
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 10,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                },
             });
         });
 
         it('should invoke the given cb, when done (parallelInvocation)', async() => {
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 10,
-                parallelInvocation: true,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    parallelInvocation: true,
+                },
             });
         });
 
         it('should return statistics, default', async() => {
             const response = await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 10,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                },
             });
 
             expect(response).to.be.an('object');
@@ -430,9 +441,11 @@ describe('Lambda Functions', async() => {
 
         it('should return statistics', async() => {
             const response = await invokeForSuccess(handler, {
-                lambdaARN: 'af-south-1',
                 value: '128',
-                num: 10,
+                input: {
+                    lambdaARN: 'af-south-1',
+                    num: 10,
+                },
             });
 
             expect(response).to.be.an('object');
@@ -445,10 +458,12 @@ describe('Lambda Functions', async() => {
         it('should invoke the given cb, when done (custom payload)', async() => {
             const expectedPayload = { key1: 'value1', key2: 'value2' };
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 10,
-                payload: expectedPayload,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    payload: expectedPayload,
+                },
             });
 
             expect(invokeLambdaPayloads.length).to.be(10);
@@ -464,10 +479,12 @@ describe('Lambda Functions', async() => {
                 { name: 'C', payload: {test: 'C'}, weight: 60 },
             ];
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 10,
-                payload: weightedPayload,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    payload: weightedPayload,
+                },
             });
 
             expect(invokeLambdaPayloads.length).to.be(10);
@@ -489,10 +506,12 @@ describe('Lambda Functions', async() => {
                 { payload: {test: 'C'}, weight: 30 },
             ];
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 100,
-                payload: weightedPayload,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 100,
+                    payload: weightedPayload,
+                },
             });
 
             expect(invokeLambdaPayloads.length).to.be(100);
@@ -524,10 +543,12 @@ describe('Lambda Functions', async() => {
             expect(weightedPayload.length).to.be(10);
 
             await invokeForFailure(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 9, // num is too low here (# of payloads - 1)
-                payload: weightedPayload,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 9, // num is too low here (# of payloads - 1)
+                    payload: weightedPayload,
+                },
             });
 
         });
@@ -540,10 +561,12 @@ describe('Lambda Functions', async() => {
             ];
 
             await invokeForFailure(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 5, // num is too low here (10% of 5 is 0.5, not enough times for payload A)
-                payload: weightedPayload,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 5, // num is too low here (10% of 5 is 0.5, not enough times for payload A)
+                    payload: weightedPayload,
+                },
             });
         });
 
@@ -564,10 +587,12 @@ describe('Lambda Functions', async() => {
 
             invalidWeightedPayloads.forEach(async(weightedPayload) => {
                 await invokeForFailure(handler, {
-                    lambdaARN: 'arnOK',
                     value: '128',
-                    num: 100,
-                    payload: weightedPayload,
+                    input: {
+                        lambdaARN: 'arnOK',
+                        num: 100,
+                        payload: weightedPayload,
+                    },
                 });
             });
         });
@@ -575,18 +600,22 @@ describe('Lambda Functions', async() => {
         [1, 10, 100].forEach(num => {
             it('should invoke Lambda ' + num + ' time(s)', async() => {
                 await invokeForSuccess(handler, {
-                    lambdaARN: 'arnOK',
                     value: '128',
-                    num: num,
+                    input: {
+                        lambdaARN: 'arnOK',
+                        num: num,
+                    },
                 });
                 expect(invokeLambdaCounter).to.be(num);
             });
             it('should invoke Lambda ' + num + ' time(s) in parallel', async() => {
                 await invokeForSuccess(handler, {
-                    lambdaARN: 'arnOK',
                     value: '128',
-                    num: num,
-                    parallelInvocation: true,
+                    input: {
+                        lambdaARN: 'arnOK',
+                        num: num,
+                        parallelInvocation: true,
+                    },
                 });
                 expect(invokeLambdaCounter).to.be(num);
             });
@@ -602,9 +631,11 @@ describe('Lambda Functions', async() => {
                     };
                 });
             await invokeForFailure(handler, {
-                lambdaARN: 'arnOK',
                 value: '1024',
-                num: 10,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                },
             });
         });
 
@@ -618,10 +649,12 @@ describe('Lambda Functions', async() => {
                     };
                 });
             const error = await invokeForFailure(handler, {
-                lambdaARN: 'arnOK',
                 value: '1024',
-                num: 10,
-                payload: 'SENTINEL',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    payload: 'SENTINEL',
+                },
             });
 
             expect(error.message).to.contain('SENTINEL');
@@ -638,11 +671,13 @@ describe('Lambda Functions', async() => {
                     };
                 });
             const error = await invokeForFailure(handler, {
-                lambdaARN: 'arnOK',
                 value: '1024',
-                num: 10,
-                parallelInvocation: true,
-                payload: 'SENTINEL',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    parallelInvocation: true,
+                    payload: 'SENTINEL',
+                },
             });
 
             expect(error.message).to.contain('SENTINEL');
@@ -660,13 +695,15 @@ describe('Lambda Functions', async() => {
                     };
                 });
             const error = await invokeForFailure(handler, {
-                lambdaARN: 'arnOK',
                 value: '1024',
-                num: 10,
-                payload: [
-                    {payload: {key: 'SENTINEL1'}, weight: 1},
-                    {payload: {key: 'SENTINEL2'}, weight: 1},
-                ],
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    payload: [
+                        {payload: {key: 'SENTINEL1'}, weight: 1},
+                        {payload: {key: 'SENTINEL2'}, weight: 1},
+                    ],
+                },
             });
 
             expect(error.message).to.contain('SENTINEL1');
@@ -683,14 +720,16 @@ describe('Lambda Functions', async() => {
                     };
                 });
             const error = await invokeForFailure(handler, {
-                lambdaARN: 'arnOK',
                 value: '1024',
-                num: 10,
-                parallelInvocation: true,
-                payload: [
-                    {payload: 'SENTINEL1', weight: 1},
-                    {payload: 'SENTINEL2', weight: 1},
-                ],
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    parallelInvocation: true,
+                    payload: [
+                        {payload: 'SENTINEL1', weight: 1},
+                        {payload: 'SENTINEL2', weight: 1},
+                    ],
+                },
             });
 
             expect(error.message).to.contain('SENTINEL1');
@@ -707,19 +746,23 @@ describe('Lambda Functions', async() => {
                     };
                 });
             await invokeForFailure(handler, {
-                lambdaARN: 'arnOK',
                 value: '1024',
-                num: 10,
-                parallelInvocation: true,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    parallelInvocation: true,
+                },
             });
 
         });
 
         it('should return price as output', async() => {
             const stats = await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 10,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                },
             });
             expect(stats.averagePrice).to.be.a('number');
             expect(stats.averageDuration).to.be.a('number');
@@ -727,10 +770,12 @@ describe('Lambda Functions', async() => {
 
         it('should run only once if dryRun', async() => {
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 1000,
-                dryRun: true,
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 1000,
+                    dryRun: true,
+                },
             });
             expect(invokeLambdaCounter).to.be(1);
         });
@@ -738,10 +783,12 @@ describe('Lambda Functions', async() => {
         it('should invoke pre-processor', async() => {
             const num = 10;
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: num,
-                preProcessorARN: 'preArnOK',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: num,
+                    preProcessorARN: 'preArnOK',
+                },
             });
             expect(invokeLambdaCounter).to.be(num * 2);
             expect(invokeProcessorCounter).to.be(num);
@@ -750,10 +797,12 @@ describe('Lambda Functions', async() => {
         it('should invoke post-processor', async() => {
             const num = 10;
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: num,
-                postProcessorARN: 'postArnOK',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: num,
+                    postProcessorARN: 'postArnOK',
+                },
             });
             expect(invokeLambdaCounter).to.be(num * 2);
             expect(invokeProcessorCounter).to.be(num);
@@ -762,11 +811,13 @@ describe('Lambda Functions', async() => {
         it('should invoke pre-processor and post-processor', async() => {
             const num = 10;
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: num,
-                preProcessorARN: 'preArnOK',
-                postProcessorARN: 'postArnOK',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: num,
+                    preProcessorARN: 'preArnOK',
+                    postProcessorARN: 'postArnOK',
+                },
             });
             expect(invokeLambdaCounter).to.be(num * 3);
             expect(invokeProcessorCounter).to.be(num * 2);
@@ -775,10 +826,12 @@ describe('Lambda Functions', async() => {
         it('should invoke function with pre-processor output', async() => {
             const num = 10;
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: num,
-                preProcessorARN: 'preArnOK',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: num,
+                    preProcessorARN: 'preArnOK',
+                },
             });
             expect(invokeLambdaPayloads[0].includes('Processed')).to.be(true);
         });
@@ -795,11 +848,13 @@ describe('Lambda Functions', async() => {
 
             const num = 10;
             await invokeForSuccess(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: num,
-                payload: {Original: true},
-                preProcessorARN: 'preArnOK',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: num,
+                    payload: {Original: true},
+                    preProcessorARN: 'preArnOK',
+                },
             });
             expect(invokeLambdaPayloads[0].includes('Original')).to.be(true);
         });
@@ -813,11 +868,13 @@ describe('Lambda Functions', async() => {
                 });
 
             await invokeForFailure(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 10,
-                payload: {Original: true},
-                preProcessorARN: 'preArnOK',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    payload: {Original: true},
+                    preProcessorARN: 'preArnOK',
+                },
             });
 
         });
@@ -831,11 +888,13 @@ describe('Lambda Functions', async() => {
                 });
 
             await invokeForFailure(handler, {
-                lambdaARN: 'arnOK',
                 value: '128',
-                num: 10,
-                payload: {Original: true},
-                postProcessorARN: 'postArnOK',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    payload: {Original: true},
+                    postProcessorARN: 'postArnOK',
+                },
             });
 
         });
