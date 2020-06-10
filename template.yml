@@ -160,10 +160,7 @@ Resources:
             ResultPath: $.stats
             Parameters:
               value.$: $$.Map.Item.Value
-              lambdaARN.$: $.lambdaARN
-              num.$: $.num
-              payload.$: $.payload
-              parallelInvocation.$: $.parallelInvocation
+              input.$: $
             MaxConcurrency: 0
             Catch:
               - ErrorEquals: [ States.ALL ]
