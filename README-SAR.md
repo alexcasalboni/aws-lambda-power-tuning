@@ -116,7 +116,7 @@ function Executor:
     [execute Post-processor (results)]
 ```
 
-A few things to note:
+Please also keep in mind the following:
 
 * You can configure a pre-processor and/or a post-processor independently
 * The pre-processor will receive the original payload
