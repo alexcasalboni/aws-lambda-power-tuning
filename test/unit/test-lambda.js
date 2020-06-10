@@ -123,7 +123,7 @@ describe('Lambda Functions', async() => {
     });
 
     afterEach('Global mock utilities afterEach', () => {
-        // restore everything to it's natural order
+        // restore everything to its natural order
         sandBox.restore();
     });
 

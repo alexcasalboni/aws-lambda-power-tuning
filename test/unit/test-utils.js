@@ -1,8 +1,8 @@
 'use strict';
 
+const sinon = require('sinon');
 const expect = require('expect.js');
 
-// const AWS = require('aws-sdk');
 var AWS = require('aws-sdk-mock');
 
 process.env.sfCosts = `{"us-gov-west-1": 0.00003,"eu-north-1": 0.000025,
@@ -17,6 +17,8 @@ process.env.sfCosts = `{"us-gov-west-1": 0.00003,"eu-north-1": 0.000025,
 process.env.AWS_REGION = 'af-south-1';
 
 const utils = require('../../lambda/utils');
+
+const sandBox = sinon.createSandbox();
 
 // AWS SDK mocks
 AWS.mock('Lambda', 'getAlias', {});
@@ -43,10 +45,6 @@ describe('Lambda Utils', () => {
         utils.invokeLambdaWithProcessors,
     ];
 
-    // TODO fix me (use proper mocking in test-lambda.js)
-    const getLambdaPower = utils.getLambdaPower;
-    const invokeLambdaProcessor = utils.invokeLambdaProcessor;
-
     // just returns the utility name for convenience
     function _fname(func) {
         const keys = Object.keys(utils);
@@ -66,6 +64,11 @@ describe('Lambda Utils', () => {
             });
             // TODO add more tests!
         });
+    });
+
+    afterEach('Global mock utilities afterEach', () => {
+        // restore everything to its natural order
+        sandBox.restore();
     });
 
     describe('stepFunctionsCost', () => {
@@ -96,7 +99,7 @@ describe('Lambda Utils', () => {
 
     describe('getLambdaPower', () => {
         it('should return the memory value', async() => {
-            const value = await getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
+            const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
             expect(value).to.be(1024);
         });
     });
@@ -104,19 +107,21 @@ describe('Lambda Utils', () => {
     describe('verifyAliasExistance', () => {
 
         it('should return true if the alias exists', async() => {
-            utils.getLambdaAlias = async() => {
-                return { FunctionVersion: '1' };
-            };
+            sandBox.stub(utils, 'getLambdaAlias')
+                .callsFake(async() => {
+                    return { FunctionVersion: '1' };
+                });
             const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
             expect(aliasExists).to.be(true);
         });
 
         it('should return false if the alias does not exists', async() => {
-            utils.getLambdaAlias = async() => {
-                const error = new Error('alias is not defined');
-                error.code = 'ResourceNotFoundException';
-                throw error;
-            };
+            sandBox.stub(utils, 'getLambdaAlias')
+                .callsFake(async() => {
+                    const error = new Error('alias is not defined');
+                    error.code = 'ResourceNotFoundException';
+                    throw error;
+                });
             const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
             expect(aliasExists).to.be(false);
         });
@@ -319,7 +324,6 @@ describe('Lambda Utils', () => {
     });
 
     describe('invokeLambdaProcessor', () => {
-        // TODO proper mocking
 
         var invokeLambdaCounter;
         beforeEach('mock API call', () => {
@@ -327,27 +331,29 @@ describe('Lambda Utils', () => {
         });
 
         it('should invoke the processing function', async() => {
-            utils.invokeLambda = async(_arn, _alias, payload) => {
-                invokeLambdaCounter++;
-                return {
-                    Payload: '{"OK": "OK"}',
-                };
-            };
-            const data = await invokeLambdaProcessor('arnOK', {});
+            sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async() => {
+                    invokeLambdaCounter++;
+                    return {
+                        Payload: '{"OK": "OK"}',
+                    };
+                });
+            const data = await utils.invokeLambdaProcessor('arnOK', {});
             expect(invokeLambdaCounter).to.be(1);
             expect(data).to.be('{"OK": "OK"}');
         });
 
         it('should explode if processor fails', async() => {
-            utils.invokeLambda = async(_arn, _alias, _payload) => {
-                invokeLambdaCounter++;
-                return {
-                    Payload: '{"KO": "KO"}',
-                    FunctionError: 'Unhandled',
-                };
-            };
+            sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async() => {
+                    invokeLambdaCounter++;
+                    return {
+                        Payload: '{"KO": "KO"}',
+                        FunctionError: 'Unhandled',
+                    };
+                });
             try {
-                const data = await invokeLambdaProcessor('arnOK', {});
+                const data = await utils.invokeLambdaProcessor('arnOK', {});
                 expect(data).to.be(null);
             } catch (ex) {
                 expect(ex.message.includes('failed with error')).to.be(true);
