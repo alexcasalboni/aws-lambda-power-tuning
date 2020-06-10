@@ -12,7 +12,7 @@ install:
   # install Node.js dependencies
   - travis_retry npm ci
   # install AWS SAM CLI
-  - pip install aws-sam-cli
+  - pip install aws-sam-cli --user
 script:
   # run test suite
   - travis_retry npm test
