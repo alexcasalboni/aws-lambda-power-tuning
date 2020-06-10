@@ -12,8 +12,7 @@ install:
   # install Node.js dependencies
   - travis_retry npm ci
   # install AWS SAM CLI
-  - git clone https://github.com/awslabs/aws-sam-cli.git
-  - cd aws-sam-cli && python setup.py install
+  - pip install aws-sam-cli
 script:
   # run test suite
   - travis_retry npm test
