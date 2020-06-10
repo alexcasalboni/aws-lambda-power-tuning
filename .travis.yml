@@ -8,8 +8,10 @@ node_js:
 env:
     - AWS_DEFAULT_REGION=eu-west-1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy
 before_install:
-  - git clone https://github.com/Linuxbrew/brew.git ~/.linuxbrew
-  - export HOMEBREW_FORCE_VENDOR_RUBY=1
+  - git clone https://github.com/Homebrew/brew ~/.linuxbrew/Homebrew
+  - mkdir ~/.linuxbrew/bin
+  - ln -s ~/.linuxbrew/Homebrew/bin/brew ~/.linuxbrew/bin
+  - eval $(~/.linuxbrew/bin/brew shellenv)
 install:
   - travis_retry npm ci
   - travis_retry brew tap aws/tap
