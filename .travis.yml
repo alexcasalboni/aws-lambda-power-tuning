@@ -5,9 +5,14 @@ node_js:
   - 10.13
   - 11
   - 12
+env:
+    - AWS_DEFAULT_REGION=eu-west-1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy
 install:
-  - travis_retry npm install
+  - travis_retry npm ci
+  - travis_retry brew tap aws/tap
+  - travis_retry brew install aws-sam-cli
 script:
   - travis_retry npm test
+  - sam validate
 after_success:
   - npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
