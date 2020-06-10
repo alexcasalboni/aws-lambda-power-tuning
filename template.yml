@@ -32,6 +32,8 @@ Parameters:
   totalExecutionTimeout:
     Type: Number
     Default: 300
+    MinValue: 10
+    MaxValue: 900
     Description: Maximum invocation timeout (in seconds) for the Executor step, after which you get a States.Timeout error
 
 Globals:
