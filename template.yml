@@ -166,7 +166,9 @@ Resources:
                         "lambdaARN.$": "$.lambdaARN",
                         "num.$": "$.num",
                         "payload.$": "$.payload",
-                        "parallelInvocation.$": "$.parallelInvocation"
+                        "parallelInvocation.$": "$.parallelInvocation",
+                        "preProcessorARN.$": "$.preProcessorARN",
+                        "postProcessorARN.$": "$.postProcessorARN"
                       },
                       "MaxConcurrency": 0,
                       "Catch": [{
