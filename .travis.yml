@@ -6,18 +6,19 @@ node_js:
   - 11
   - 12
 env:
-    - AWS_DEFAULT_REGION=eu-west-1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy
-before_install:
-  - git clone https://github.com/Homebrew/brew ~/.linuxbrew/Homebrew
-  - mkdir ~/.linuxbrew/bin
-  - ln -s ~/.linuxbrew/Homebrew/bin/brew ~/.linuxbrew/bin
-  - eval $(~/.linuxbrew/bin/brew shellenv)
+  # env variable needed by AWS SAM CLI
+  - AWS_DEFAULT_REGION=eu-west-1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy
 install:
+  # install Node.js dependencies
   - travis_retry npm ci
-  - travis_retry brew tap aws/tap
-  - travis_retry brew install aws-sam-cli
+  # install AWS SAM CLI
+  - git clone https://github.com/awslabs/aws-sam-cli.git
+  - cd aws-sam-cli && python setup.py install
 script:
+  # run test suite
   - travis_retry npm test
+  # validate YAML template
   - sam validate
 after_success:
+  # udpate coverate stats
   - npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
