@@ -81,7 +81,7 @@ import sam = require('@aws-cdk/aws-sam');
 new sam.CfnApplication(this, 'powerTuner', {
   location: {
     applicationId: 'arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning',
-    semanticVersion: '3.2.5'
+    semanticVersion: '3.3.0'
   },
   parameters: {
     "lambdaResource": "*",
@@ -329,6 +329,7 @@ Please note that the total invocation time should stay below 300 seconds (5 min)
 
 ## CHANGELOG (SAR versioning)
 
+* *3.3.0*: Pre/Post-processing functions, correct regional pricing, and other minor internal improvements (test mocking and new SAM resource for StateMachine)
 * *3.2.5*: improved logging for weighted payloads and in case of invocation errors
 * *3.2.4*: dryRun bugfix
 * *3.2.3*: new dryRun input parameter
