@@ -6,8 +6,11 @@ node_js:
   - 11
   - 12
 install:
-  - travis_retry npm install
+  # install Node.js dependencies
+  - travis_retry npm ci
 script:
+  # run test suite
   - travis_retry npm test
 after_success:
+  # udpate coverate stats
   - npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
