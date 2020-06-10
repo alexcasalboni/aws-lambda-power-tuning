@@ -47,6 +47,8 @@ The AWS Step Functions state machine accepts the following parameters:
 * **autoOptimize** (false by default): if `true`, the state machine will apply the optimal configuration at the end of its execution
 * **autoOptimizeAlias** (string): if provided - and only if `autoOptimize` if `true`, the state machine will create or update this alias with the new optimal power value
 * **dryRun** (false by default): if true, the state machine will execute the input function only once and it will disable every functionality related to logs analysis, auto-tuning, and visualization; the dry-run mode is intended for testing purposes, for example to verify that IAM permissions are set up correctly
+* **preProcessorARN** (string): it must be the ARN of a Lambda function; if provided, the function will be invoked before every invocation of `lambdaARN`; more details below in the Pre/Post-processing functions section
+* **postProcessorARN** (string): it must be the ARN of a Lambda function; if provided, the function will be invoked after every invocation of `lambdaARN`; more details below in the Pre/Post-processing functions section
 
 
 Additionally, you can specify a list of power values at deploy-time in the `PowerValues` CloudFormation parameter. These power values will be used as the default in case no `powerValues` input parameter is provided.
@@ -96,6 +98,33 @@ For example, if `num=100` the first payload will be used 10 times, the second 30
 To simplify these calculations, you could use weights that sum up to 100.
 
 Note: the number of weighted payloads must always be smaller or equal than `num` (or `num >= count(payloads)`). For example, if you have 50 weighted payloads, you'll need to set at least `num: 50` so that each payload will be used at least once.
+
+
+### Pre/Post-processing functions
+
+Sometimes you need to power-tune Lambda functions that have side effects such as creating or deleting records in a database. In these cases, you may need to execute some pre-processing or post-processing logic before and/or after each function invocation.
+
+For example, imagine that you are power-tuning a function that deletes one record from a downstream database. Since you want to execute this function `num` times you'd need to insert some records in advance and then find a way to delete all of them with a dynamic payload. Or you could simply configure a pre-processing function (using the `preProcessorARN` input parameter) that will create a brand new record before the actual function is executed.
+
+Here's the flow in pseudo-code:
+
+```
+function Executor:
+  iterate from 0 to num:
+    [payload = execute Pre-processor (payload)]
+    results = execute Main Function (payload)
+    [execute Post-processor (results)]
+```
+
+A few things to note:
+
+* You can configure a pre-processor and/or a post-processor independently
+* The pre-processor will receive the original payload
+* If the pre-processor returns a non-empty output, it will overwrite the original payload
+* The post-processor will receive the main function's output as payload
+* If a pre-processor or post-processor fails, the whole power-tuning state machine will fail
+* Pre/post-processors don't have to be in the same region of the main function
+* Pre/post-processors don't alter the statistics related to cost and performance
 
 ## State Machine Output
 
