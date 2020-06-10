@@ -40,10 +40,12 @@ describe('Lambda Utils', () => {
         utils.updateLambdaAlias,
         utils.deleteLambdaAlias,
         utils.invokeLambda,
+        utils.invokeLambdaWithProcessors,
     ];
 
     // TODO fix me (use proper mocking in test-lambda.js)
     const getLambdaPower = utils.getLambdaPower;
+    const invokeLambdaProcessor = utils.invokeLambdaProcessor;
 
     // just returns the utility name for convenience
     function _fname(func) {
@@ -315,4 +317,44 @@ describe('Lambda Utils', () => {
             expect(utils.baseCostForRegion(prices, 'eu-west-1')).to.be(0.0000002083);
         });
     });
+
+    describe('invokeLambdaProcessor', () => {
+        // TODO proper mocking
+
+        var invokeLambdaCounter;
+        beforeEach('mock API call', () => {
+            invokeLambdaCounter = 0;
+        });
+
+        it('should invoke the processing function', async() => {
+            utils.invokeLambda = async(_arn, _alias, payload) => {
+                invokeLambdaCounter++;
+                return {
+                    Payload: '{"OK": "OK"}',
+                };
+            };
+            const data = await invokeLambdaProcessor('arnOK', {});
+            expect(invokeLambdaCounter).to.be(1);
+            expect(data).to.be('{"OK": "OK"}');
+        });
+
+        it('should explode if processor fails', async() => {
+            utils.invokeLambda = async(_arn, _alias, _payload) => {
+                invokeLambdaCounter++;
+                return {
+                    Payload: '{"KO": "KO"}',
+                    FunctionError: 'Unhandled',
+                };
+            };
+            try {
+                const data = await invokeLambdaProcessor('arnOK', {});
+                expect(data).to.be(null);
+            } catch (ex) {
+                expect(ex.message.includes('failed with error')).to.be(true);
+            }
+
+            expect(invokeLambdaCounter).to.be(1);
+        });
+    });
+
 });
