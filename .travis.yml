@@ -5,19 +5,12 @@ node_js:
   - 10.13
   - 11
   - 12
-env:
-  # env variable needed by AWS SAM CLI
-  - SAM_CLI_TELEMETRY=0 AWS_DEFAULT_REGION=eu-west-1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy
 install:
   # install Node.js dependencies
   - travis_retry npm ci
-  # install AWS SAM CLI
-  - pip install aws-sam-cli --user
 script:
   # run test suite
   - travis_retry npm test
-  # validate YAML template
-  - sam validate
 after_success:
   # udpate coverate stats
   - npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
