@@ -29,12 +29,18 @@ Parameters:
     Type: String
     Default: '*'
     Description: AWS Lambda resource (or prefix) to be used for IAM policies
+  totalExecutionTimeout:
+    Type: Number
+    Default: 300
+    MinValue: 10
+    MaxValue: 900
+    Description: Maximum invocation timeout (in seconds) for the Executor step, after which you get a States.Timeout error
 
 Globals:
   Function:
     Runtime: nodejs12.x
     MemorySize: 128
-    Timeout: 300
+    Timeout: !Ref totalExecutionTimeout
     Environment:
       Variables:
         defaultPowerValues: !Join [ ",", !Ref PowerValues ]
@@ -135,74 +141,98 @@ Resources:
             Action: sts:AssumeRole
 
   powerTuningStateMachine:
-    Type: AWS::Serverless::StateMachine
+    Type: AWS::StepFunctions::StateMachine
     Properties:
-      Role: !GetAtt statemachineRole.Arn
-      Definition:
-        Comment: AWS Lambda Power Tuning state machine
-        StartAt: Initializer
-        States:
-
-          Initializer:
-            Type: Task
-            Resource: !GetAtt initializer.Arn
-            Next: Branching
-            ResultPath: $.powerValues
-            Catch:
-              - ErrorEquals: [ States.ALL ]
-                Next: CleanUpOnError
-                ResultPath: $.error
-
-          Branching:
-            Type: Map
-            Next: Cleaner
-            ItemsPath: $.powerValues
-            ResultPath: $.stats
-            Parameters:
-              value.$: $$.Map.Item.Value
-              input.$: $
-            MaxConcurrency: 0
-            Catch:
-              - ErrorEquals: [ States.ALL ]
-                Next: CleanUpOnError
-                ResultPath: $.error
-            Iterator:
-              StartAt: Executor
-              States:
-                Executor:
-                  Type: Task
-                  Resource: !GetAtt executor.Arn
-                  End: true
-                  Retry:
-                    - ErrorEquals: [ States.ALL ]
-                      IntervalSeconds: 3
-                      MaxAttempts: 2
-
-          Cleaner:
-            Type: Task
-            Resource: !GetAtt cleaner.Arn
-            Next: Analyzer
-            ResultPath: null
-
-          Analyzer:
-            Type: Task
-            Resource: !GetAtt analyzer.Arn
-            Next: Optimizer
-            ResultPath: $.analysis
-
-          Optimizer:
-            Type: Task
-            Resource: !GetAtt optimizer.Arn
-            ResultPath: null
-            OutputPath: $.analysis
-            End: true
-
-          CleanUpOnError:
-            Type: Task
-            ResultPath: null
-            OutputPath: null
-            Resource: !GetAtt cleaner.Arn
-            End: true
+      RoleArn: !GetAtt statemachineRole.Arn
+      DefinitionString:
+        !Sub
+          - '
+            {
+              "Comment": "AWS Lambda Power Tuning state machine",
+              "StartAt": "Initializer",
+              "States": {
+                  "Initializer": {
+                      "Type": "Task",
+                      "Resource": "${initializerArn}",
+                      "Next": "Branching",
+                      "ResultPath": "$.powerValues",
+                      "TimeoutSeconds": ${totalExecutionTimeout},
+                      "Catch": [{
+                        "ErrorEquals": [ "States.ALL" ],
+                        "Next": "CleanUpOnError",
+                        "ResultPath": "$.error"
+                      }]
+                  },
+                  "Branching": {
+                      "Type": "Map",
+                      "Next": "Cleaner",
+                      "ItemsPath": "$.powerValues",
+                      "ResultPath": "$.stats",
+                      "Parameters": {
+                        "input.$": "$",
+                        "value.$": "$$.Map.Item.Value"
+                      },
+                      "MaxConcurrency": 0,
+                      "Catch": [{
+                        "ErrorEquals": ["States.ALL"],
+                        "Next": "CleanUpOnError",
+                        "ResultPath": "$.error"
+                      }],
+                      "Iterator": {
+                          "StartAt": "Executor",
+                          "States": {
+                              "Executor": {
+                                  "Type": "Task",
+                                  "Resource": "${executorArn}",
+                                  "End": true,
+                                  "TimeoutSeconds": ${totalExecutionTimeout},
+                                  "Retry": [{
+                                      "ErrorEquals": ["States.ALL"],
+                                      "IntervalSeconds": 3,
+                                      "MaxAttempts": 2
+                                  }]
+                              }
+                          }
+                      }
+                  },
+                  "Cleaner": {
+                      "Type": "Task",
+                      "Next": "Analyzer",
+                      "ResultPath": null,
+                      "TimeoutSeconds": ${totalExecutionTimeout},
+                      "Resource": "${cleanerArn}"
+                  },
+                  "Analyzer": {
+                      "Type": "Task",
+                      "Resource": "${analyzerArn}",
+                      "ResultPath": "$.analysis",
+                      "TimeoutSeconds": 10,
+                      "Next": "Optimizer"
+                  },
+                  "Optimizer": {
+                      "Type": "Task",
+                      "Resource": "${optimizerArn}",
+                      "ResultPath": null,
+                      "OutputPath": "$.analysis",
+                      "TimeoutSeconds": ${totalExecutionTimeout},
+                      "End": true
+                  },
+                  "CleanUpOnError": {
+                      "Type": "Task",
+                      "ResultPath": null,
+                      "OutputPath": null,
+                      "Resource": "${cleanerArn}",
+                      "TimeoutSeconds": ${totalExecutionTimeout},
+                      "End": true
+                  }
+              }
+          }'
+          - initializerArn: !GetAtt initializer.Arn
+            executorArn: !GetAtt executor.Arn
+            cleanerArn: !GetAtt cleaner.Arn
+            analyzerArn: !GetAtt analyzer.Arn
+            optimizerArn: !GetAtt optimizer.Arn
+            totalExecutionTimeout: !Ref totalExecutionTimeout
 
 Outputs:
   StateMachineARN:
