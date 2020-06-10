@@ -154,6 +154,7 @@ Resources:
                       "Resource": "${initializerArn}",
                       "Next": "Branching",
                       "ResultPath": "$.powerValues",
+                      "TimeoutSeconds": ${totalExecutionTimeout},
                       "Catch": [{
                         "ErrorEquals": [ "States.ALL" ],
                         "Next": "CleanUpOnError",
@@ -196,12 +197,14 @@ Resources:
                       "Type": "Task",
                       "Next": "Analyzer",
                       "ResultPath": null,
+                      "TimeoutSeconds": ${totalExecutionTimeout},
                       "Resource": "${cleanerArn}"
                   },
                   "Analyzer": {
                       "Type": "Task",
                       "Resource": "${analyzerArn}",
                       "ResultPath": "$.analysis",
+                      "TimeoutSeconds": 10,
                       "Next": "Optimizer"
                   },
                   "Optimizer": {
@@ -209,6 +212,7 @@ Resources:
                       "Resource": "${optimizerArn}",
                       "ResultPath": null,
                       "OutputPath": "$.analysis",
+                      "TimeoutSeconds": ${totalExecutionTimeout},
                       "End": true
                   },
                   "CleanUpOnError": {
@@ -216,6 +220,7 @@ Resources:
                       "ResultPath": null,
                       "OutputPath": null,
                       "Resource": "${cleanerArn}",
+                      "TimeoutSeconds": ${totalExecutionTimeout},
                       "End": true
                   }
               }
