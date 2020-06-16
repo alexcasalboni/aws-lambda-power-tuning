@@ -214,7 +214,7 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
  * Invoke a given Lambda Function:Alias with payload and return its logs.
  */
 module.exports.invokeLambda = (lambdaARN, alias, payload) => {
-    console.log(`Invoking function ${lambdaARN}:${alias || "$LATEST"} with payload ${JSON.stringify(payload)}`);
+    console.log(`Invoking function ${lambdaARN}:${alias || '$LATEST'} with payload ${JSON.stringify(payload)}`);
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
@@ -223,6 +223,67 @@ module.exports.invokeLambda = (lambdaARN, alias, payload) => {
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.invoke(params).promise();
+};
+
+
+/**
+ * Generate a list of `num` payloads (repeated or weighted)
+ */
+module.exports.generatePayloads = (num, payloadInput) => {
+    if (Array.isArray(payloadInput)) {
+        // if array, generate a list of payloads based on weights
+
+        // fail if empty list or missing weight/payload
+        if (payloadInput.length === 0 || payloadInput.some(p => !p.weight || !p.payload)) {
+            throw new Error('Invalid weighted payload structure');
+        }
+
+        if (num < payloadInput.length) {
+            throw new Error(`You have ${payloadInput.length} payloads and only "num"=${num}. Please increase "num".`);
+        }
+
+        // we use relative weights (not %), so here we compute the total weight
+        const total = payloadInput.map(p => p.weight).reduce((a, b) => a + b, 0);
+
+        // generate an array of num items (to be filled)
+        const payloads = utils.range(num);
+
+        // iterate over weighted payloads and fill the array based on relative weight
+        let done = 0;
+        for (let p of payloadInput) {
+            var howMany = Math.floor(p.weight * num / total);
+            if (howMany < 1) {
+                throw new Error('Invalid payload weight (num is too small)');
+            }
+            // if it's an uneven division, make sure the last item fills the remaining gap
+            const howManyWillBeLeft = num - done - howMany;
+            if (howManyWillBeLeft > 0 && howManyWillBeLeft < howMany) {
+                howMany += howManyWillBeLeft;
+            }
+            // finally fill the list with howMany items
+            payloads.fill(utils.convertPayload(p.payload), done, done + howMany);
+            done += howMany;
+        }
+
+        return payloads;
+    } else {
+        // if not an array, always use the same payload (still generate a list)
+        const payloads = utils.range(num);
+        payloads.fill(utils.convertPayload(payloadInput), 0, num);
+        return payloads;
+    }
+};
+
+/**
+ * Convert payload to string, if it's not a string already
+ */
+module.exports.convertPayload = (payload) => {
+    // optionally convert everything into string
+    if (typeof payload !== 'string' && typeof payload !== 'undefined') {
+        console.log('Converting payload to string from ', typeof payload);
+        payload = JSON.stringify(payload);
+    }
+    return payload;
 };
 
 /**
