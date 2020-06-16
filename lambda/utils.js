@@ -214,10 +214,7 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
  * Invoke a given Lambda Function:Alias with payload and return its logs.
  */
 module.exports.invokeLambda = (lambdaARN, alias, payload) => {
-    if (!alias) {
-        alias = '$LATEST';
-    }
-    console.log(`Invoking function ${lambdaARN}:${alias} with payload ${JSON.stringify(payload)}`);
+    console.log(`Invoking function ${lambdaARN}:${alias || '$LATEST'} with payload ${JSON.stringify(payload)}`);
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
