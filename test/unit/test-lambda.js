@@ -474,9 +474,9 @@ describe('Lambda Functions', async() => {
 
         it('should invoke the given cb, when done (weighted payload)', async() => {
             const weightedPayload = [
-                { name: 'A', payload: {test: 'A'}, weight: 10 },
-                { name: 'B', payload: {test: 'B'}, weight: 30 },
-                { name: 'C', payload: {test: 'C'}, weight: 60 },
+                { payload: {test: 'A'}, weight: 10 },
+                { payload: {test: 'B'}, weight: 30 },
+                { payload: {test: 'C'}, weight: 60 },
             ];
             await invokeForSuccess(handler, {
                 value: '128',
@@ -524,6 +524,28 @@ describe('Lambda Functions', async() => {
             expect(counters.A).to.be(10);
             expect(counters.B).to.be(30);
             expect(counters.C).to.be(60);
+        });
+
+        it('should invoke the given cb, when done (weighted payload 3)', async() => {
+            const weightedPayload = [
+                { payload: {test: 'A'}, weight: 1 },
+                { payload: {test: 'B'}, weight: 1 },
+                { payload: {test: 'C'}, weight: 1 },
+            ];
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    payload: weightedPayload,
+                },
+            });
+
+            expect(invokeLambdaPayloads.length).to.be(10);
+            invokeLambdaPayloads.forEach(payload => {
+                expect(payload).to.be.a('string');
+            });
+
         });
 
         it('should explode if count(payloads) < num', async() => {

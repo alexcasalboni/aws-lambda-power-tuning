@@ -363,4 +363,136 @@ describe('Lambda Utils', () => {
         });
     });
 
+    describe('convertPayload', () => {
+
+        it('should return the same string when a string is given', async() => {
+            const strings = [
+                'test',
+                '{"test": true}',
+                'undefined',
+                'true',
+                'null',
+                '',
+            ];
+            strings.forEach(s => {
+                expect(utils.convertPayload(s)).to.be(s);
+            });
+        });
+
+        it('should return undefined when undefined is given', async() => {
+            expect(utils.convertPayload()).to.be(undefined);
+            expect(utils.convertPayload(undefined)).to.be(undefined);
+        });
+
+        it('should convert everything else to string', async() => {
+            expect(utils.convertPayload({})).to.be('{}');
+            expect(utils.convertPayload({test: true})).to.be('{"test":true}');
+            expect(utils.convertPayload([])).to.be('[]');
+            expect(utils.convertPayload([1, 2, 3])).to.be('[1,2,3]');
+            expect(utils.convertPayload(['ok', {}])).to.be('["ok",{}]');
+        });
+    });
+
+    describe('generatePayloads', () => {
+
+        it('should generate a list of the same payload, if not weighted', async() => {
+            const payload = {test: true};
+
+            expect(utils.generatePayloads(10, payload).length).to.be(10);
+            utils.generatePayloads(10, payload).forEach(p => {
+                expect(p).to.be('{"test":true}');
+            });
+        });
+
+        it('should explode if invalid weighted payloads', async() => {
+            expect(() => utils.generatePayloads(10, [])).to.be.throwError();
+            expect(() => utils.generatePayloads(10, [{}])).to.be.throwError();
+            expect(() => utils.generatePayloads(10, [{weight: 1}])).to.be.throwError();
+            expect(() => utils.generatePayloads(10, [{payload: {}}])).to.be.throwError();
+        });
+
+        it('should explode if num < count(payloads)', async() => {
+            const payload = [
+                {weight: 1, payload: {}},
+                {weight: 1, payload: {test: 1}},
+                {weight: 1, payload: {test: 2}},
+                {weight: 1, payload: {ok: 1}},
+                {weight: 1, payload: {ok: 2}},
+                {weight: 1, payload: {ok: 3}},
+            ];
+            expect(() => utils.generatePayloads(5, payload)).to.be.throwError();
+        });
+
+        it('should return weighted payloads (100/2)', async() => {
+            const payload = [
+                { payload: {test: 'A'}, weight: 1 },
+                { payload: {test: 'B'}, weight: 1 },
+            ];
+
+            const counters = {
+                A: 0, B: 0,
+            };
+
+            const output = utils.generatePayloads(100, payload);
+            expect(output.length).to.be(100);
+
+            output.forEach(payload => {
+                counters[JSON.parse(payload).test] += 1;
+            });
+
+            expect(counters.A).to.be(50);
+            expect(counters.B).to.be(50);
+        });
+
+        it('should return weighted payloads (100/3)', async() => {
+            const payload = [
+                { payload: {test: 'A'}, weight: 1 },
+                { payload: {test: 'B'}, weight: 1 },
+                { payload: {test: 'C'}, weight: 1 },
+            ];
+
+            const counters = {
+                A: 0, B: 0, C: 0,
+            };
+
+            const output = utils.generatePayloads(100, payload);
+            expect(output.length).to.be(100);
+
+            output.forEach(payload => {
+                expect(payload).to.be.a('string');
+                counters[JSON.parse(payload).test] += 1;
+            });
+
+            expect(counters.A).to.be(33);
+            expect(counters.B).to.be(33);
+            expect(counters.C).to.be(34); // the last payload will fill the missing gap
+        });
+
+        it('should return weighted payloads (20/3)', async() => {
+            const payload = [
+                { payload: {test: 'A'}, weight: 1 },
+                { payload: {test: 'B'}, weight: 1 },
+                { payload: {test: 'C'}, weight: 1 },
+            ];
+
+            const counters = {
+                A: 0, B: 0, C: 0,
+            };
+
+            const output = utils.generatePayloads(20, payload);
+            expect(output.length).to.be(20);
+
+            output.forEach(payload => {
+                expect(payload).to.be.a('string');
+                counters[JSON.parse(payload).test] += 1;
+            });
+
+            expect(counters.A).to.be(6);
+            expect(counters.B).to.be(6);
+            expect(counters.C).to.be(8); // the last payload will fill the missing gap
+        });
+
+
+    });
+
 });
