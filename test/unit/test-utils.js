@@ -369,10 +369,12 @@ describe('Lambda Utils', () => {
             const strings = [
                 'test',
                 '{"test": true}',
+                '[]',
                 'undefined',
                 'true',
                 'null',
                 '',
+                ' ',
             ];
             strings.forEach(s => {
                 expect(utils.convertPayload(s)).to.be(s);
@@ -398,21 +400,23 @@ describe('Lambda Utils', () => {
         it('should generate a list of the same payload, if not weighted', async() => {
             const payload = {test: true};
 
-            expect(utils.generatePayloads(10, payload).length).to.be(10);
-            utils.generatePayloads(10, payload).forEach(p => {
+            const output = utils.generatePayloads(10, payload);
+            expect(output.length).to.be(10);
+            output.forEach(p => {
                 expect(p).to.be('{"test":true}');
             });
         });
 
         it('should explode if invalid weighted payloads', async() => {
-            expect(() => utils.generatePayloads(10, [])).to.be.throwError();
-            expect(() => utils.generatePayloads(10, [{}])).to.be.throwError();
-            expect(() => utils.generatePayloads(10, [{weight: 1}])).to.be.throwError();
-            expect(() => utils.generatePayloads(10, [{payload: {}}])).to.be.throwError();
+            expect(() => utils.generatePayloads(10, [])).to.throwError();
+            expect(() => utils.generatePayloads(10, [{}])).to.throwError();
+            expect(() => utils.generatePayloads(10, [1, 2, 3])).to.throwError();
+            expect(() => utils.generatePayloads(10, [{weight: 1}])).to.throwError();
+            expect(() => utils.generatePayloads(10, [{payload: {}}])).to.throwError();
         });
 
         it('should explode if num < count(payloads)', async() => {
-            const payload = [
+            const weightedPayload = [ // 6 weighted payloads
                 {weight: 1, payload: {}},
                 {weight: 1, payload: {test: 1}},
                 {weight: 1, payload: {test: 2}},
@@ -420,11 +424,11 @@ describe('Lambda Utils', () => {
                 {weight: 1, payload: {ok: 2}},
                 {weight: 1, payload: {ok: 3}},
             ];
-            expect(() => utils.generatePayloads(5, payload)).to.be.throwError();
+            expect(() => utils.generatePayloads(5, weightedPayload)).to.throwError();
         });
 
         it('should return weighted payloads (100/2)', async() => {
-            const payload = [
+            const weightedPayload = [
                 { payload: {test: 'A'}, weight: 1 },
                 { payload: {test: 'B'}, weight: 1 },
             ];
@@ -433,7 +437,7 @@ describe('Lambda Utils', () => {
                 A: 0, B: 0,
             };
 
-            const output = utils.generatePayloads(100, payload);
+            const output = utils.generatePayloads(100, weightedPayload);
             expect(output.length).to.be(100);
 
             output.forEach(payload => {
@@ -445,7 +449,7 @@ describe('Lambda Utils', () => {
         });
 
         it('should return weighted payloads (100/3)', async() => {
-            const payload = [
+            const weightedPayload = [
                 { payload: {test: 'A'}, weight: 1 },
                 { payload: {test: 'B'}, weight: 1 },
                 { payload: {test: 'C'}, weight: 1 },
@@ -455,7 +459,7 @@ describe('Lambda Utils', () => {
                 A: 0, B: 0, C: 0,
             };
 
-            const output = utils.generatePayloads(100, payload);
+            const output = utils.generatePayloads(100, weightedPayload);
             expect(output.length).to.be(100);
 
             output.forEach(payload => {
@@ -469,7 +473,7 @@ describe('Lambda Utils', () => {
         });
 
         it('should return weighted payloads (20/3)', async() => {
-            const payload = [
+            const weightedPayload = [
                 { payload: {test: 'A'}, weight: 1 },
                 { payload: {test: 'B'}, weight: 1 },
                 { payload: {test: 'C'}, weight: 1 },
@@ -479,7 +483,7 @@ describe('Lambda Utils', () => {
                 A: 0, B: 0, C: 0,
             };
 
-            const output = utils.generatePayloads(20, payload);
+            const output = utils.generatePayloads(20, weightedPayload);
             expect(output.length).to.be(20);
 
             output.forEach(payload => {
@@ -492,6 +496,79 @@ describe('Lambda Utils', () => {
             expect(counters.C).to.be(8); // the last payload will fill the missing gap
         });
 
+        it('should return weighted payloads (10/1)', async() => {
+            const weightedPayload = [
+                { payload: {test: 'A'}, weight: 1 },
+            ];
+
+            const counters = {
+                A: 0,
+            };
+
+            const output = utils.generatePayloads(10, weightedPayload);
+            expect(output.length).to.be(10);
+
+            output.forEach(payload => {
+                expect(payload).to.be.a('string');
+                counters[JSON.parse(payload).test] += 1;
+            });
+
+            expect(counters.A).to.be(10);
+        });
+
+        it('should return weighted payloads (23/4)', async() => {
+            const weightedPayload = [
+                { payload: {test: 'A'}, weight: 1 },
+                { payload: {test: 'B'}, weight: 1 },
+                { payload: {test: 'C'}, weight: 1 },
+                { payload: {test: 'D'}, weight: 1 },
+            ];
+
+            const counters = {
+                A: 0, B: 0, C: 0, D: 0,
+            };
+
+            const output = utils.generatePayloads(23, weightedPayload);
+            expect(output.length).to.be(23);
+
+            output.forEach(payload => {
+                expect(payload).to.be.a('string');
+                counters[JSON.parse(payload).test] += 1;
+            });
+
+            expect(counters.A).to.be(5);
+            expect(counters.B).to.be(5);
+            expect(counters.C).to.be(5);
+            expect(counters.D).to.be(8);
+        });
+
+        it('should return weighted payloads (54/5)', async() => {
+            const weightedPayload = [
+                { payload: {test: 'A'}, weight: 1 },
+                { payload: {test: 'B'}, weight: 1 },
+                { payload: {test: 'C'}, weight: 1 },
+                { payload: {test: 'D'}, weight: 1 },
+                { payload: {test: 'E'}, weight: 1 },
+            ];
+
+            const counters = {
+                A: 0, B: 0, C: 0, D: 0, E: 0,
+            };
+
+            const output = utils.generatePayloads(54, weightedPayload);
+            expect(output.length).to.be(54);
+
+            output.forEach(payload => {
+                expect(payload).to.be.a('string');
+                counters[JSON.parse(payload).test] += 1;
+            });
+
+            expect(counters.A).to.be(10);
+            expect(counters.B).to.be(10);
+            expect(counters.C).to.be(10);
+            expect(counters.D).to.be(10);
+            expect(counters.E).to.be(14);
+        });
 
     });
 
