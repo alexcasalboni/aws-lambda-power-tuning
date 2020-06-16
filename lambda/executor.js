@@ -33,7 +33,7 @@ module.exports.handler = async(event, context) => {
     let results;
 
     // pre-generate an array of N payloads
-    const payloads = generatePayloads(num, payload);
+    const payloads = utils.generatePayloads(num, payload);
 
     if (enableParallel) {
         results = await runInParallel(num, lambdaARN, lambdaAlias, payloads, preProcessorARN, postProcessorARN);
@@ -72,55 +72,6 @@ const extractDataFromInput = (event) => {
         preProcessorARN: input.preProcessorARN,
         postProcessorARN: input.postProcessorARN,
     };
-};
-
-const generatePayloads = (num, payloadInput) => {
-    if (Array.isArray(payloadInput)) {
-        // if array, generate a list of payloads based on weights
-
-        // fail if empty list or missing weight/payload
-        if (payloadInput.length === 0 || payloadInput.some(p => !p.weight || !p.payload)) {
-            throw new Error('Invalid weighted payload structure');
-        }
-
-        if (num < payloadInput.length) {
-            throw new Error(`You have ${payloadInput.length} payloads and only "num"=${num}. Please increase "num".`);
-        }
-
-        // we use relative weights (not %), so here we compute the total weight
-        const total = payloadInput.map(p => p.weight).reduce((a, b) => a + b, 0);
-
-        // generate an array of num items (to be filled)
-        const payloads = utils.range(num);
-
-        // iterate over weighted payloads and fill the array based on relative weight
-        let done = 0;
-        for (let p of payloadInput) {
-            const howMany = Math.floor(p.weight * num / total);
-            if (howMany < 1) {
-                throw new Error('Invalid payload weight (num is too small)');
-            }
-            payloads.fill(convertPayload(p.payload), done, done + howMany);
-            done += howMany;
-        }
-
-        return payloads;
-
-    } else {
-        // if not an array, always use the same payload (still generate a list)
-        const payloads = utils.range(num);
-        payloads.fill(convertPayload(payloadInput), 0, num);
-        return payloads;
-    }
-};
-
-const convertPayload = (payload) => {
-    // optionally convert everything into string
-    if (typeof payload !== 'string' && typeof payload !== 'undefined') {
-        console.log('Converting payload to string from ', typeof payload);
-        payload = JSON.stringify(payload);
-    }
-    return payload;
 };
 
 const runInParallel = async(num, lambdaARN, lambdaAlias, payloads, preARN, postARN) => {
