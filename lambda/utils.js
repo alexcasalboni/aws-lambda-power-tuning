@@ -255,10 +255,12 @@ module.exports.generatePayloads = (num, payloadInput) => {
             if (howMany < 1) {
                 throw new Error('Invalid payload weight (num is too small)');
             }
+            // if it's an uneven division, make sure the last item fills the remaining gap
             const howManyWillBeLeft = num - done - howMany;
             if (howManyWillBeLeft > 0 && howManyWillBeLeft < howMany) {
                 howMany += howManyWillBeLeft;
             }
+            // finally fill the list with howMany items
             payloads.fill(utils.convertPayload(p.payload), done, done + howMany);
             done += howMany;
         }
