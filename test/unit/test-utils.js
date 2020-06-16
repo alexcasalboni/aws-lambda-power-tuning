@@ -330,6 +330,12 @@ describe('Lambda Utils', () => {
             invokeLambdaCounter = 0;
         });
 
+        it('should invoke the processing function without an alias', async() => {
+            const ARN = "arn:aws:lambda:eu-west-1:XXX:function:name";
+            const data = await utils.invokeLambdaProcessor(ARN, "{}");
+            expect(data).to.be(undefined); // mocked API call
+        });
+
         it('should invoke the processing function', async() => {
             sandBox.stub(utils, 'invokeLambda')
                 .callsFake(async() => {
