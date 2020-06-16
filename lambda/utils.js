@@ -214,7 +214,7 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
  * Invoke a given Lambda Function:Alias with payload and return its logs.
  */
 module.exports.invokeLambda = (lambdaARN, alias, payload) => {
-    console.log(`Invoking function ${lambdaARN}:${alias || "$LATEST"} with payload ${JSON.stringify(payload)}`);
+    console.log(`Invoking function ${lambdaARN}:${alias || '$LATEST'} with payload ${JSON.stringify(payload)}`);
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
@@ -256,7 +256,7 @@ module.exports.generatePayloads = (num, payloadInput) => {
                 throw new Error('Invalid payload weight (num is too small)');
             }
             const howManyWillBeLeft = num - done - howMany;
-            if (howManyWillBeLeft > 0 && howManyWillBeLeft < howMany ) {
+            if (howManyWillBeLeft > 0 && howManyWillBeLeft < howMany) {
                 howMany += howManyWillBeLeft;
             }
             payloads.fill(utils.convertPayload(p.payload), done, done + howMany);
