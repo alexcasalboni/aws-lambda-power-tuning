@@ -250,7 +250,7 @@ module.exports.generatePayloads = (num, payloadInput) => {
 
         // iterate over weighted payloads and fill the array based on relative weight
         let done = 0;
-        for (let i=0; i < payloadInput.length; i++) {
+        for (let i = 0; i < payloadInput.length; i++) {
             const p = payloadInput[i];
             var howMany = Math.floor(p.weight * num / total);
             if (howMany < 1) {

@@ -331,8 +331,8 @@ describe('Lambda Utils', () => {
         });
 
         it('should invoke the processing function without an alias', async() => {
-            const ARN = "arn:aws:lambda:eu-west-1:XXX:function:name";
-            const data = await utils.invokeLambdaProcessor(ARN, "{}");
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const data = await utils.invokeLambdaProcessor(ARN, '{}');
             expect(data).to.be(undefined); // mocked API call
         });
 
@@ -620,13 +620,10 @@ describe('Lambda Utils', () => {
                 counters[JSON.parse(payload).test] += 1;
             });
 
-            for(let i=1; i<26; i++) {
-                if(counters[i] !== 1) {
-                    expect().fail(`i=${i}, counter=${counters[i]}`)
-                }
-                // expect(counters[i]).to.be(1);
+            for (let i = 1; i < 26; i++) {
+                expect(counters[i]).to.be(1);
             }
-            expect(counters[26]).to.be(1+4);
+            expect(counters[26]).to.be(1 + 4);
         });
 
     });
