@@ -221,6 +221,7 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 ## CHANGELOG (SAR versioning)
 
+* *3.3.2*: weighted payloads bugfix (for real)
 * *3.3.1*: weighted payloads bugfix
 * *3.3.0*: Pre/Post-processing functions, correct regional pricing, customizable execution timeouts, and other internal improvements
 * *3.2.5*: improved logging for weighted payloads and in case of invocation errors
