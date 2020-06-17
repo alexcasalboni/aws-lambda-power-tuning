@@ -576,6 +576,59 @@ describe('Lambda Utils', () => {
             expect(counters.E).to.be(14);
         });
 
+        it('should return weighted payloads (30/26)', async() => {
+            const weightedPayload = [
+                { payload: {test: '1'}, weight: 1 },
+                { payload: {test: '2'}, weight: 1 },
+                { payload: {test: '3'}, weight: 1 },
+                { payload: {test: '4'}, weight: 1 },
+                { payload: {test: '5'}, weight: 1 },
+                { payload: {test: '6'}, weight: 1 },
+                { payload: {test: '7'}, weight: 1 },
+                { payload: {test: '8'}, weight: 1 },
+                { payload: {test: '9'}, weight: 1 },
+                { payload: {test: '10'}, weight: 1 },
+                { payload: {test: '11'}, weight: 1 },
+                { payload: {test: '12'}, weight: 1 },
+                { payload: {test: '13'}, weight: 1 },
+                { payload: {test: '14'}, weight: 1 },
+                { payload: {test: '15'}, weight: 1 },
+                { payload: {test: '16'}, weight: 1 },
+                { payload: {test: '17'}, weight: 1 },
+                { payload: {test: '18'}, weight: 1 },
+                { payload: {test: '19'}, weight: 1 },
+                { payload: {test: '20'}, weight: 1 },
+                { payload: {test: '21'}, weight: 1 },
+                { payload: {test: '22'}, weight: 1 },
+                { payload: {test: '23'}, weight: 1 },
+                { payload: {test: '24'}, weight: 1 },
+                { payload: {test: '25'}, weight: 1 },
+                { payload: {test: '26'}, weight: 1 },
+            ];
+
+            const counters = {
+                1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0,
+                11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0, 18: 0, 19: 0, 20: 0,
+                21: 0, 22: 0, 23: 0, 24: 0, 25: 0, 26: 0,
+            };
+
+            const output = utils.generatePayloads(30, weightedPayload);
+            expect(output.length).to.be(30);
+
+            output.forEach(payload => {
+                expect(payload).to.be.a('string');
+                counters[JSON.parse(payload).test] += 1;
+            });
+
+            for(let i=1; i<26; i++) {
+                if(counters[i] !== 1) {
+                    expect().fail(`i=${i}, counter=${counters[i]}`)
+                }
+                // expect(counters[i]).to.be(1);
+            }
+            expect(counters[26]).to.be(1+4);
+        });
+
     });
 
 });
