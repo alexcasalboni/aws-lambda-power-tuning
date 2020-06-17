@@ -250,16 +250,18 @@ module.exports.generatePayloads = (num, payloadInput) => {
 
         // iterate over weighted payloads and fill the array based on relative weight
         let done = 0;
-        for (let p of payloadInput) {
+        for (let i=0; i < payloadInput.length; i++) {
+            const p = payloadInput[i];
             var howMany = Math.floor(p.weight * num / total);
             if (howMany < 1) {
                 throw new Error('Invalid payload weight (num is too small)');
             }
-            // if it's an uneven division, make sure the last item fills the remaining gap
-            const howManyWillBeLeft = num - done - howMany;
-            if (howManyWillBeLeft > 0 && howManyWillBeLeft < howMany) {
-                howMany += howManyWillBeLeft;
+
+            // make sure the last item fills the remaining gap
+            if (i === payloadInput.length - 1) {
+                howMany = num - done;
             }
+
             // finally fill the list with howMany items
             payloads.fill(utils.convertPayload(p.payload), done, done + howMany);
             done += howMany;
