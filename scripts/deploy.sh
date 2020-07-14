@@ -1,6 +1,9 @@
 # config
-BUCKET_NAME=your-sam-templates-bucket
-STACK_NAME=lambda-power-tuning
+DEFAULT_BUCKET_NAME=your-sam-templates-bucket
+DEFAULT_STACK_NAME=lambda-power-tuning
+
+BUCKET_NAME=${BUCKET_NAME:-$DEFAULT_BUCKET_NAME}
+STACK_NAME=${STACK_NAME:-$DEFAULT_STACK_NAME}
 PowerValues='128,256,512,1024,1536,3008'
 LambdaResource='*'
 TotalExecutionTimeout="300"
