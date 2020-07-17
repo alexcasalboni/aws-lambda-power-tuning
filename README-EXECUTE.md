@@ -35,3 +35,6 @@ Click "**Start Execution**" again and the execution will start. In the next page
 
 Once the execution has completed, you will find the execution results in the "**Output**" tab of the "**Execution Details**" section at the top of the page. The output will contain the optimal power configuration and its corresponding average cost per execution.
 
+## Need an even simpler option?
+
+If you don't like the two alternatives above, you could have a look at the Lumigo CLI integration which takes care of both deploying and executing the SAR app transparently. Check it out [here](README-DEPLOY.md#user-content-option-4-deploy-with-the-lumigo-cli).
