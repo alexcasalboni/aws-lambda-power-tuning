@@ -331,34 +331,36 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 ## CHANGELOG (SAR versioning)
 
-* *3.3.3*: payload logging bugfix for pre-processors
-* *3.3.2*: weighted payloads bugfix (for real)
-* *3.3.1*: weighted payloads bugfix
-* *3.3.0*: Pre/Post-processing functions, correct regional pricing, customizable execution timeouts, and other internal improvements
-* *3.2.5*: improved logging for weighted payloads and in case of invocation errors
-* *3.2.4*: dryRun bugfix
-* *3.2.3*: new dryRun input parameter
-* *3.2.2*: upgraded runtime to Node.js 12.x
-* *3.2.1*: improved scripts and SAR template reference
-* *3.2.0*: support for weighted payloads
-* *3.1.2*: improved optimal selection when same speed/cost
-* *3.1.1*: customizable least-privilege (lambdaResource CFN param)
-* *3.1.0*: $LATEST power reset and optional auto-tuning (new Optimizer step)
-* *3.0.0*: dynamic parallelism (powerValues as execution parameter)
-* *2.1.3*: upgraded runtime to Node.js 10.x
-* *2.1.2*: new balanced optimization strategy
-* *2.1.1*: custom domain for visualization URL
-* *2.1.0*: average statistics visualization (URL in state machine output)
-* *2.0.0*: multiple optimization strategies (cost and speed), new output format with AWS Step Functions and AWS Lambda cost
-* *1.3.1*: retry policies and failed invocations management
-* *1.3.0*: implemented error handling
-* *1.2.1*: Node.js refactor and updated IAM permissions (added lambda:UpdateAlias)
-* *1.2.0*: updated IAM permissions (least privilege for actions)
-* *1.1.1*: updated docs
-* *1.1.0*: cross-region invocation support
-* *1.0.1*: new README for SAR
-* *1.0.0*: AWS SAM refactor (published on SAR)
-* *0.0.1*: previous project (serverless framework)
+From most recent to oldest, with major releases in bold:
+
+* *3.3.3* (2020-07-17): payload logging bugfix for pre-processors
+* *3.3.2* (2020-06-17): weighted payloads bugfix (for real)
+* *3.3.1* (2020-06-16): weighted payloads bugfix
+* ***3.3.0*** (2020-06-10): Pre/Post-processing functions, correct regional pricing, customizable execution timeouts, and other internal improvements
+* *3.2.5* (2020-05-19): improved logging for weighted payloads and in case of invocation errors
+* *3.2.4* (2020-03-11): dryRun bugfix
+* *3.2.3* (2020-02-25): new dryRun input parameter
+* *3.2.2* (2020-01-30): upgraded runtime to Node.js 12.x
+* *3.2.1* (2020-01-27): improved scripts and SAR template reference
+* ***3.2.0*** (2020-01-17): support for weighted payloads
+* *3.1.2* (2020-01-17): improved optimal selection when same speed/cost
+* *3.1.1* (2019-10-24): customizable least-privilege (lambdaResource CFN param)
+* ***3.1.0*** (2019-10-24): $LATEST power reset and optional auto-tuning (new Optimizer step)
+* ***3.0.0*** (2019-10-22): dynamic parallelism (powerValues as execution parameter)
+* *2.1.3* (2019-10-22): upgraded runtime to Node.js 10.x
+* *2.1.2* (2019-10-17): new balanced optimization strategy
+* *2.1.1* (2019-10-10): custom domain for visualization URL
+* ***2.1.0*** (2019-10-10): average statistics visualization (URL in state machine output)
+* ***2.0.0*** (2019-07-28): multiple optimization strategies (cost and speed), new output format with AWS Step Functions and AWS Lambda cost
+* *1.3.1* (2019-07-23): retry policies and failed invocations management
+* ***1.3.0*** (2019-07-22): implemented error handling
+* *1.2.1* (2019-07-22): Node.js refactor and updated IAM permissions (added lambda:UpdateAlias)
+* ***1.2.0*** (2019-05-24): updated IAM permissions (least privilege for actions)
+* *1.1.1* (2019-05-15): updated docs
+* ***1.1.0*** (2019-05-15): cross-region invocation support
+* *1.0.1* (2019-05-13): new README for SAR
+* ***1.0.0*** (2019-05-13): AWS SAM refactor (published on SAR)
+* *0.0.1* (2017-03-27): previous project (serverless framework)
 
 ## Contributing
 Contributors and PRs are always welcome!
