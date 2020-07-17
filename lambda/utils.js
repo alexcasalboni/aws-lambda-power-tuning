@@ -207,7 +207,10 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
         await utils.invokeLambdaProcessor(postARN, data.Payload);
     }
 
-    return data;
+    return {
+        actualPayload: payload, // may be different from the original payload (pre-processor)
+        invocationResults: data,
+    };
 };
 
 /**
