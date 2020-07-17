@@ -13,7 +13,7 @@ If you don't want to deal with CloudFormation or SAR at all, you can use the Lum
 
 You can find this app in the [Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/arn:aws:serverlessrepo:us-east-1:451282441545:applications~aws-lambda-power-tuning) and deploy it with just a few clicks in the AWS Management Console.
 
-You can also integrate the SAR app in your existing CloudFormation stacks - check the `scripts/deploy-sar-app.yml` and `scripts/deploy-sar-app.sh` files for a working reference.
+You can also integrate the SAR app in your existing CloudFormation stacks - check [scripts/deploy-sar-app.yml](scripts/deploy-sar-app.yml) and [scripts/deploy-sar-app.sh](scripts/deploy-sar-app.sh) for a sample implementation.
 
 
 ## Option 2: fork this repo and deploy with AWS SAM
