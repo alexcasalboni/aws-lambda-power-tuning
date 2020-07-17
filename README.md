@@ -28,15 +28,15 @@ It's pretty simple and you can visually inspect each step in the AWS management 
 
 The state machine will generate a visualization of average cost and speed for each power configuration.
 
-For example, this is what the results look like for two CPU-intensive functions (which become cheaper AND faster with more power).
+For example, this is what the results look like for two CPU-intensive functions, which become cheaper AND faster with more power:
 
 ![visualization1](imgs/visualization1.jpg?raw=true)
 
-(execution time goes from 35s with 128MB to less than 3s with 1.5GB, while being 14% cheaper to run)
+How to interpret the chart above: execution time goes from 35s with 128MB to less than 3s with 1.5GB, while being 14% cheaper to run.
 
 ![visualization2](imgs/visualization2.jpg?raw=true)
 
-(execution time goes from 2.4s with 128MB to 300ms with 1GB, for the very same average cost)
+How to interpret the chart above: execution time goes from 2.4s with 128MB to 300ms with 1GB, for the very same average cost.
 
 
 ## How to deploy the state machine 
@@ -62,7 +62,7 @@ Here's a typical execution input with basic parameters:
 }
 ```
 
-Full input documentation [here](README-INPUT-OUTPUT.md).
+Full input documentation [here](README-INPUT-OUTPUT.md#user-content-state-machine-input).
 
 The state machine output will look like this:
 
@@ -81,16 +81,14 @@ The state machine output will look like this:
 }
 ```
 
-Full output documentation [here](README-INPUT-OUTPUT.md).
+Full output documentation [here](README-INPUT-OUTPUT.md#user-content-state-machine-output).
 
 
-## Statistics visualization
+## Data visualization
 
 You can visually inspect the tuning results to identify the optimal tradeoff between cost and performance.
 
-The data visualization tool has been built by the community: it's a static website deployed via AWS Amplify Console and it's free to use.
-
-If you don't want to use the visualization tool, you can simply ignore the `stateMachine.visualization` output. No data is ever shared or stored by this tool.
+The data visualization tool has been built by the community: it's a static website deployed via AWS Amplify Console and it's free to use. If you don't want to use the visualization tool, you can simply ignore the visualization URL provided in the execution output. No data is ever shared or stored by this tool.
 
 Website repository: [matteo-ronchetti/aws-lambda-power-tuning-ui](https://github.com/matteo-ronchetti/aws-lambda-power-tuning-ui)
 
@@ -134,9 +132,11 @@ From most recent to oldest, with major releases in bold:
 * ***1.0.0*** (2019-05-13): AWS SAM refactor (published on SAR)
 * *0.0.1* (2017-03-27): previous project (serverless framework)
 
+
 ## Contributing
-Contributors and PRs are always welcome!
 
-### Tests and coverage
+Feature requests and pull requests are more than welcome!
 
-Install dev dependencies with `npm install --dev`. Then run tests with `npm test`, or coverage with `npm run coverage`.
+### How to get started with local development?
+
+For this repository, install dev dependencies with `npm install`. You can run tests with `npm test`, linting with `npm run lint`, and coverage with `npm run coverage`. Travis will automatically run the test suite on every commit and PR.
