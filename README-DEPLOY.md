@@ -1,4 +1,4 @@
-# How to deploy and execute the state machine
+# How to deploy the state machine
 
 There are multiple ways to deploy the project.
 
@@ -99,10 +99,27 @@ For Python deployment, see the instructions [here](https://github.com/cdk-patter
 
 ## Option 4: deploy with the Lumigo CLI
 
+You can install the Lumigo CLI:
 
-TBD
+```bash
+npm install -g lumigo-cli
+```
+
+And then power-tune your functions as follows:
+
+```bash
+lumigo-cli powertune-lambda <OPTIONS>
+```
+
+For the full documentation of the command parameters:
+
+```bash
+lumigo-cli --help powertune-lambda
+```
+
+(or check it out [here](https://www.npmjs.com/package/lumigo-cli#lumigo-cli-powertune-lambda)).
 
 
 ## How to execute the state machine once deployed?
 
-See here.
+See [here](README-EXECUTE.md).
