@@ -364,7 +364,7 @@ describe('Lambda Functions', async() => {
 
             invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
             invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
-                .callsFake(async(_arn, _alias, payload) => {
+                .callsFake(async(_arn, _payload, _preOrPost) => {
                     invokeProcessorCounter++;
                     invokeLambdaCounter++;
                     return '{"Processed": true}';
@@ -862,7 +862,7 @@ describe('Lambda Functions', async() => {
 
             invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
             invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
-                .callsFake(async(_arn, _alias, payload) => {
+                .callsFake(async(_arn, _payload, _preOrPost) => {
                     invokeProcessorCounter++;
                     invokeLambdaCounter++;
                     return null; // empty output from pre-processor
@@ -885,8 +885,8 @@ describe('Lambda Functions', async() => {
 
             invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
             invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
-                .callsFake(async(_arn, _alias, _payload) => {
-                    throw new Error('Processor XXX failed with error YYY and payload ZZZ');
+                .callsFake(async(_arn, _payload, _preOrPost) => {
+                    throw new Error('PreProcessor XXX failed with error YYY and payload ZZZ');
                 });
 
             await invokeForFailure(handler, {
@@ -905,8 +905,8 @@ describe('Lambda Functions', async() => {
 
             invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
             invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
-                .callsFake(async(_arn, _alias, _payload) => {
-                    throw new Error('Processor XXX failed with error YYY and payload ZZZ');
+                .callsFake(async(_arn, _payload, _preOrPost) => {
+                    throw new Error('PostProcessor XXX failed with error YYY and payload ZZZ');
                 });
 
             await invokeForFailure(handler, {
@@ -925,7 +925,7 @@ describe('Lambda Functions', async() => {
 
             invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
             invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
-                .callsFake(async(_arn, _alias, _payload) => {
+                .callsFake(async(_arn, _payload, _preOrPost) => {
                     invokeProcessorCounter++;
                     invokeLambdaCounter++;
                     return {Processed: true};
@@ -959,7 +959,7 @@ describe('Lambda Functions', async() => {
 
             invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
             invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
-                .callsFake(async(_arn, _alias, _payload) => {
+                .callsFake(async(_arn, _payload, _preOrPost) => {
                     invokeProcessorCounter++;
                     invokeLambdaCounter++;
                     return {Processed: true};
