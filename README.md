@@ -88,7 +88,7 @@ Full output documentation [here](README-INPUT-OUTPUT.md#user-content-state-machi
 
 You can visually inspect the tuning results to identify the optimal tradeoff between cost and performance.
 
-![visualization](imgs/visualization.jpg?raw=true)
+![visualization](imgs/visualization.png?raw=true)
 
 The data visualization tool has been built by the community: it's a static website deployed via AWS Amplify Console and it's free to use. If you don't want to use the visualization tool, you can simply ignore the visualization URL provided in the execution output. No data is ever shared or stored by this tool.
 
