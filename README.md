@@ -81,7 +81,7 @@ import sam = require('@aws-cdk/aws-sam');
 new sam.CfnApplication(this, 'powerTuner', {
   location: {
     applicationId: 'arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning',
-    semanticVersion: '3.3.1'
+    semanticVersion: '3.3.3'
   },
   parameters: {
     "lambdaResource": "*",
@@ -331,7 +331,9 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 ## CHANGELOG (SAR versioning)
 
-* *3.3.1* (2020-06-26): weighted payloads bugfix
+* *3.3.3* (2020-07-17): payload logging bugfix for pre-processors
+* *3.3.2* (2020-06-17): weighted payloads bugfix (for real)
+* *3.3.1* (2020-06-16): weighted payloads bugfix
 * *3.3.0* (2020-06-10): Pre/Post-processing functions, correct regional pricing, customizable execution timeouts, and other internal improvements
 * *3.2.5* (2020-05-19): improved logging for weighted payloads and in case of invocation errors
 * *3.2.4* (2020-03-11): dryRun bugfix

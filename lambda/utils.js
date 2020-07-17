@@ -175,10 +175,10 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
 /**
  * Invoke a (pre/post-)processor Lambda function and return its output (data.Payload).
  */
-module.exports.invokeLambdaProcessor = async(processorARN, payload) => {
+module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 'Pre') => {
     const processorData = await utils.invokeLambda(processorARN, null, payload);
     if (processorData.FunctionError) {
-        throw new Error(`Processor ${processorARN} failed with error ${processorData.Payload} and payload ${JSON.stringify(payload)}`);
+        throw new Error(`${preOrPost}Processor ${processorARN} failed with error ${processorData.Payload} and payload ${JSON.stringify(payload)}`);
     }
     return processorData.Payload;
 };
@@ -187,27 +187,33 @@ module.exports.invokeLambdaProcessor = async(processorARN, payload) => {
  * Wrapper around Lambda function invocation with pre/post-processor functions.
  */
 module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, preARN, postARN) => {
+
+    var actualPayload = payload; // might change based on pre-processor
+
     // first invoke pre-processor, if provided
     if (preARN) {
         console.log('Invoking pre-processor');
         // overwrite payload with pre-processor's output (only if not empty)
-        const preProcessorOutput = await utils.invokeLambdaProcessor(preARN, payload);
+        const preProcessorOutput = await utils.invokeLambdaProcessor(preARN, payload, 'Pre');
         if (preProcessorOutput) {
-            payload = preProcessorOutput;
+            actualPayload = preProcessorOutput;
         }
     }
 
     // invoke function to be power-tuned
-    const data = await utils.invokeLambda(lambdaARN, alias, payload);
+    const invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload);
 
     // then invoke post-processor, if provided
     if (postARN) {
         console.log('Invoking post-processor');
-        // note: invocation may have failed (data.FunctionError)
-        await utils.invokeLambdaProcessor(postARN, data.Payload);
+        // note: invocation may have failed (invocationResults.FunctionError)
+        await utils.invokeLambdaProcessor(postARN, invocationResults.Payload, 'Post');
     }
 
-    return data;
+    return {
+        actualPayload,
+        invocationResults,
+    };
 };
 
 /**
@@ -250,16 +256,18 @@ module.exports.generatePayloads = (num, payloadInput) => {
 
         // iterate over weighted payloads and fill the array based on relative weight
         let done = 0;
-        for (let p of payloadInput) {
+        for (let i = 0; i < payloadInput.length; i++) {
+            const p = payloadInput[i];
             var howMany = Math.floor(p.weight * num / total);
             if (howMany < 1) {
                 throw new Error('Invalid payload weight (num is too small)');
             }
-            // if it's an uneven division, make sure the last item fills the remaining gap
-            const howManyWillBeLeft = num - done - howMany;
-            if (howManyWillBeLeft > 0 && howManyWillBeLeft < howMany) {
-                howMany += howManyWillBeLeft;
+
+            // make sure the last item fills the remaining gap
+            if (i === payloadInput.length - 1) {
+                howMany = num - done;
             }
+
             // finally fill the list with howMany items
             payloads.fill(utils.convertPayload(p.payload), done, done + howMany);
             done += howMany;

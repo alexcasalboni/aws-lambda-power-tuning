@@ -78,12 +78,12 @@ const runInParallel = async(num, lambdaARN, lambdaAlias, payloads, preARN, postA
     const results = [];
     // run all invocations in parallel ...
     const invocations = utils.range(num).map(async(_, i) => {
-        const data = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN);
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN);
         // invocation errors return 200 and contain FunctionError and Payload
-        if (data.FunctionError) {
-            throw new Error(`Invocation error (running in parallel): ${data.Payload} with payload ${JSON.stringify(payloads[i])}`);
+        if (invocationResults.FunctionError) {
+            throw new Error(`Invocation error (running in parallel): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
         }
-        results.push(data);
+        results.push(invocationResults);
     });
     // ... and wait for results
     await Promise.all(invocations);
@@ -94,12 +94,12 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payloads, preARN, postARN
     const results = [];
     for (let i = 0; i < num; i++) {
         // run invocations in series
-        const data = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN);
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN);
         // invocation errors return 200 and contain FunctionError and Payload
-        if (data.FunctionError) {
-            throw new Error(`Invocation error (running in series): ${data.Payload} with payload ${JSON.stringify(payloads[i])}`);
+        if (invocationResults.FunctionError) {
+            throw new Error(`Invocation error (running in series): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
         }
-        results.push(data);
+        results.push(invocationResults);
     }
     return results;
 };
