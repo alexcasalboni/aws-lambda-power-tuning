@@ -18,7 +18,7 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
 
 ## Option 2: fork this repo and deploy with AWS SAM
 
-In case you want to deploy it "manually", you can run `scripts/deploy.sh`.
+In case you want to deploy it "manually", you can run [scripts/deploy.sh](scripts/deploy.sh).
 
 The script uses the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli) to create a new CloudFormation stack in your account.
 
@@ -102,19 +102,19 @@ For Python deployment, see the instructions [here](https://github.com/cdk-patter
 You can install the Lumigo CLI:
 
 ```bash
-npm install -g lumigo-cli
+$ npm install -g lumigo-cli
 ```
 
 And then power-tune your functions as follows:
 
 ```bash
-lumigo-cli powertune-lambda <OPTIONS>
+$ lumigo-cli powertune-lambda <OPTIONS>
 ```
 
 For the full documentation of the command parameters:
 
 ```bash
-lumigo-cli --help powertune-lambda
+$ lumigo-cli --help powertune-lambda
 ```
 
 (or check it out [here](https://www.npmjs.com/package/lumigo-cli#lumigo-cli-powertune-lambda)).
