@@ -29,7 +29,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "aws-sdk": "^2.697.0",
+    "aws-sdk": "^2.718.0",
     "aws-sdk-mock": "^1.7.0",
     "coveralls": "^3.0.3",
     "eslint": "^6.1.0",
