@@ -341,12 +341,14 @@ describe('Lambda Functions', async() => {
 
         var invokeLambdaCounter,
             invokeLambdaPayloads,
-            invokeProcessorCounter;
+            invokeProcessorCounter,
+            fetchPayloadFromS3Counter;
 
         beforeEach('mock utilities', () => {
             invokeLambdaCounter = 0;
             invokeLambdaPayloads = [];
             invokeProcessorCounter = 0;
+            fetchPayloadFromS3Counter = 0;
 
             invokeLambdaStub && invokeLambdaStub.restore();
             invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
@@ -368,6 +370,12 @@ describe('Lambda Functions', async() => {
                     invokeProcessorCounter++;
                     invokeLambdaCounter++;
                     return '{"Processed": true}';
+                });
+            
+            sandBox.stub(utils, 'fetchPayloadFromS3')
+                .callsFake(async(_arn, _alias, payload) => {
+                    fetchPayloadFromS3Counter++;
+                    return '{"ValueFromS3": "OK"}';
                 });
         });
 
@@ -988,6 +996,39 @@ describe('Lambda Functions', async() => {
             expect(error.message).to.contain('in parallel');
             expect(error.message).to.contain(JSON.stringify({Processed: true}));
 
+        });
+
+        it('should fetch payload from S3 if payloadS3 is given', async() => {
+
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 50,
+                    payloadS3: 's3://my-bucket/my-key.json',
+                },
+            });
+            expect(fetchPayloadFromS3Counter).to.be(1);
+            for(let payload of invokeLambdaPayloads){
+                expect(payload).to.be('{"ValueFromS3": "OK"}');
+            }
+        });
+
+        it('should fetch payload from S3 if boty payload and payloadS3 are given', async() => {
+
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 50,
+                    payloadS3: 's3://my-bucket/my-key.json',
+                    payload: '{"ValueInline": "OK"}', // won't be used
+                },
+            });
+            expect(fetchPayloadFromS3Counter).to.be(1);
+            for(let payload of invokeLambdaPayloads){
+                expect(payload).to.be('{"ValueFromS3": "OK"}');
+            }
         });
 
     });
