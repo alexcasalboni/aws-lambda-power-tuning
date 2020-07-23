@@ -29,6 +29,7 @@ AWS.mock('Lambda', 'deleteFunction', {});
 AWS.mock('Lambda', 'createAlias', {});
 AWS.mock('Lambda', 'deleteAlias', {});
 AWS.mock('Lambda', 'invoke', {});
+AWS.mock('S3', 'getObject', {Body: Buffer.from('{"Value": "OK"}')});
 
 describe('Lambda Utils', () => {
 
@@ -624,6 +625,41 @@ describe('Lambda Utils', () => {
                 expect(counters[i]).to.be(1);
             }
             expect(counters[26]).to.be(1 + 4);
+        });
+
+    });
+
+    describe('fetchPayloadFromS3', () => {
+
+        it('should fetch the object from S3 if valid URI', async() => {
+            const payload = await utils.fetchPayloadFromS3('s3://my-bucket/my-key.json');
+            expect(payload).to.be.a('string');
+            expect(payload).to.contain('OK');
+            expect(JSON.parse(payload).Value).to.be('OK');
+        });
+
+        const invalidURIs = [
+            '',
+            '/',
+            'bucket/key.json',
+            '/bucket/key.json',
+            '/key.json',
+            'key.json',
+            's3://bucket/',
+            's3://key.json',
+            's3://',
+        ];
+
+        invalidURIs.forEach(async(uri) => {
+            it(`should explode if invalid URI - ${uri}`, async() => {
+                try {
+                    await utils.fetchPayloadFromS3(uri)
+                    throw new Error(`${uri} did not throw`)
+                } catch (err) {
+                    expect(err.message).to.contain('Invalid S3 path');
+                }
+            });
+            
         });
 
     });
