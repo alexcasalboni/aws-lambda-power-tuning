@@ -653,13 +653,13 @@ describe('Lambda Utils', () => {
         invalidURIs.forEach(async(uri) => {
             it(`should explode if invalid URI - ${uri}`, async() => {
                 try {
-                    await utils.fetchPayloadFromS3(uri)
-                    throw new Error(`${uri} did not throw`)
+                    await utils.fetchPayloadFromS3(uri);
+                    throw new Error(`${uri} did not throw`);
                 } catch (err) {
                     expect(err.message).to.contain('Invalid S3 path');
                 }
             });
-            
+
         });
 
     });

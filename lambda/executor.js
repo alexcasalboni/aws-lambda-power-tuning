@@ -60,13 +60,13 @@ const validateInput = (lambdaARN, value, num) => {
     }
 };
 
-const extractPayloadValue = async (input) => {
+const extractPayloadValue = async(input) => {
     if (input.payloadS3) {
         return await utils.fetchPayloadFromS3(input.payloadS3); // might throw if access denied or 404
     } else if (input.payload) {
         return input.payload;
     }
-    return null;    
+    return null;
 };
 
 const extractDataFromInput = async(event) => {

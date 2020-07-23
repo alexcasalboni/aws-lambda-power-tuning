@@ -239,7 +239,7 @@ module.exports.invokeLambda = (lambdaARN, alias, payload) => {
 module.exports.fetchPayloadFromS3 = async(s3Path) => {
 
     if (typeof s3Path !== 'string' || s3Path.indexOf('s3://') === -1) {
-        throw new Error(`Invalid S3 path, not a string in the format s3://BUCKET/KEY`);
+        throw new Error('Invalid S3 path, not a string in the format s3://BUCKET/KEY');
     }
 
     const URI = url.parse(s3Path);
@@ -254,12 +254,12 @@ module.exports.fetchPayloadFromS3 = async(s3Path) => {
 
     const s3 = new AWS.S3();
     const data = await s3.getObject({
-        Bucket: bucket, 
+        Bucket: bucket,
         Key: key,
     }).promise();
 
     return data.Body.toString('utf-8');
-}  
+};
 
 /**
  * Generate a list of `num` payloads (repeated or weighted)

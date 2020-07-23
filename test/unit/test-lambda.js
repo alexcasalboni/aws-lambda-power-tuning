@@ -371,7 +371,7 @@ describe('Lambda Functions', async() => {
                     invokeLambdaCounter++;
                     return '{"Processed": true}';
                 });
-            
+
             sandBox.stub(utils, 'fetchPayloadFromS3')
                 .callsFake(async(_arn, _alias, payload) => {
                     fetchPayloadFromS3Counter++;
@@ -1009,7 +1009,7 @@ describe('Lambda Functions', async() => {
                 },
             });
             expect(fetchPayloadFromS3Counter).to.be(1);
-            for(let payload of invokeLambdaPayloads){
+            for (let payload of invokeLambdaPayloads){
                 expect(payload).to.be('{"ValueFromS3": "OK"}');
             }
         });
@@ -1026,7 +1026,7 @@ describe('Lambda Functions', async() => {
                 },
             });
             expect(fetchPayloadFromS3Counter).to.be(1);
-            for(let payload of invokeLambdaPayloads){
+            for (let payload of invokeLambdaPayloads){
                 expect(payload).to.be('{"ValueFromS3": "OK"}');
             }
         });
