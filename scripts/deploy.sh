@@ -1,3 +1,4 @@
+#!/bin/bash
 # config
 DEFAULT_BUCKET_NAME=your-sam-templates-bucket
 DEFAULT_STACK_NAME=lambda-power-tuning
