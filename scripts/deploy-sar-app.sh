@@ -1,3 +1,4 @@
+#!/bin/bash
 # config
 BUCKET_NAME=your-sam-templates-bucket
 STACK_NAME=lambda-power-tuning-app
