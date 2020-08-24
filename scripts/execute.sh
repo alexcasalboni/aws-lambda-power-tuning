@@ -1,3 +1,4 @@
+#!/bin/bash
 # config
 STACK_NAME=lambda-power-tuning
 INPUT=$(cat scripts/sample-execution-input.json)  # or use a static string
