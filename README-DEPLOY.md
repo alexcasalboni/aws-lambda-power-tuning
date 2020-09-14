@@ -6,7 +6,7 @@ If you are familiar with Infrastructure as Code, the easiest way is to deploy th
 
 If you prefer to verify and own the full YAML template, feel free to fork this repo and deploy everything with AWS SAM CLI - see option 2.
 
-If you don't want to deal with CloudFormation or SAR at all, you can use the Lumigo CLI (which will take care of both deployment and execution) - see option 4.
+If you don't want to deal with CloudFormation or SAR at all, you can use the Lumigo CLI (which will take care of both deployment and execution) or the Lambda Power Tuner UI - see option 4 and 5.
 
 
 ## Option 1: AWS Serverless Application Repository
