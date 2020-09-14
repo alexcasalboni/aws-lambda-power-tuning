@@ -1,6 +1,6 @@
 # How to execute the state machine
 
-Independently of how you've deployed the state machine, you can execute it in two different ways: manually using the AWS Step Functions web console, or programmatically using the AWS CLI (or SDK).
+Independently of how you've deployed the state machine, you can execute it in a few different ways. Programmatically, using the AWS CLI, AWS SDK, or Lumigo CLI. Manually, using the AWS Step Functions web console or the Lambda Power Tuner UI.
 
 ## Option 1: Execute the state machine programmatically (CLI)
 
