@@ -102,7 +102,7 @@ Lambda Power Tuner UI is a web interface to simplify the deployment and executio
 
 ![Power Tuner UI](https://github.com/mattymoomoo/aws-power-tuner-ui/blob/master/imgs/website.png?raw=true)
 
-Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/mattymoomoo/aws-power-tuner-ui).
+Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/mattymoomoo/aws-power-tuner-ui)
 
 ## Additional features, considerations, and internals
 
