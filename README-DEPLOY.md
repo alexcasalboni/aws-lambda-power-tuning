@@ -126,6 +126,8 @@ You can deploy and interact with Lambda Power Tuning with an ad-hoc web interfac
 
 Here's the open-source project and instructions to deploy it here: [mattymoomoo/aws-power-tuner-ui](https://github.com/mattymoomoo/aws-power-tuner-ui).
 
+![Power Tuner UI](https://github.com/mattymoomoo/aws-power-tuner-ui/blob/master/imgs/website.png?raw=true)
+
 ## How to execute the state machine once deployed?
 
 See [here](README-EXECUTE.md).
