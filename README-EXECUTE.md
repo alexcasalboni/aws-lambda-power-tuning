@@ -2,7 +2,7 @@
 
 Independently of how you've deployed the state machine, you can execute it in two different ways: manually using the AWS Step Functions web console, or programmatically using the AWS CLI (or SDK).
 
-## Execute the state machine programmatically (CLI)
+## Option 1: Execute the state machine programmatically (CLI)
 
 You'll find a few sample scripts in the `scripts` folder.
 
@@ -10,7 +10,13 @@ Feel free to customize the `scripts/sample-execution-input.json`, and then run `
 
 The script will start a state machine execution, wait for the execution to complete (polling), and then show the execution results.
 
-## Execute the state machine manually (web console)
+## Option 2: Execute the state machine programmatically (Lumigo CLI)
+
+The Lumigo CLI integration takes care of both deploying and executing the SAR app transparently.
+
+Check it out [here](README-DEPLOY.md#user-content-option-4-deploy-with-the-lumigo-cli).
+
+## Option 3: Execute the state machine manually (web console)
 
 Once the state machine is deployed, you can execute it and provide an input object.
 
@@ -35,6 +41,9 @@ Click "**Start Execution**" again and the execution will start. In the next page
 
 Once the execution has completed, you will find the execution results in the "**Output**" tab of the "**Execution Details**" section at the top of the page. The output will contain the optimal power configuration and its corresponding average cost per execution.
 
-## Need an even simpler option?
+## Option 4: Execute the state machine manually (AWS Lambda Power Tuner UI)
 
-If you don't like the two alternatives above, you could have a look at the Lumigo CLI integration which takes care of both deploying and executing the SAR app transparently. Check it out [here](README-DEPLOY.md#user-content-option-4-deploy-with-the-lumigo-cli).
+You can deploy and interact with Lambda Power Tuning with an ad-hoc web interface. This UI will deploy everything you need to power-tune your functions and also simplify the input/output management for Step Functions via API Gateway.
+
+Here's the open-source project and instructions to deploy it here: [mattymoomoo/aws-power-tuner-ui](https://github.com/mattymoomoo/aws-power-tuner-ui).
+
