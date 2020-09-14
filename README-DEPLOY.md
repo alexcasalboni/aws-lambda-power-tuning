@@ -120,6 +120,12 @@ $ lumigo-cli --help powertune-lambda
 (or check it out [here](https://www.npmjs.com/package/lumigo-cli#lumigo-cli-powertune-lambda)).
 
 
+## Option 5: deploy via AWS Lambda Power Tuner UI
+
+You can deploy and interact with Lambda Power Tuning with an ad-hoc web interface. This UI will deploy everything you need to power-tune your functions and also simplify the input/output management for Step Functions via API Gateway.
+
+Here's the open-source project and instructions to deploy it here: [mattymoomoo/aws-power-tuner-ui](https://github.com/mattymoomoo/aws-power-tuner-ui).
+
 ## How to execute the state machine once deployed?
 
 See [here](README-EXECUTE.md).
