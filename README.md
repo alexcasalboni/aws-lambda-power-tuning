@@ -98,7 +98,7 @@ Optionally, you could deploy your own custom visualization tool and configure th
 
 ## Power Tuner UI
 
-Lambda Power Tuner UI is a web interface to simplify the deployment and execution of Lambda Power Tuning. It's built and maintained by Matthew Dorrian at Liberty IT and it aims at providing a consistent interface and a uniform developer experience across teams and projects.
+Lambda Power Tuner UI is a web interface to simplify the deployment and execution of Lambda Power Tuning. It's built and maintained by [Matthew Dorrian](https://twitter.com/DorrianMatthew) and it aims at providing a consistent interface and a uniform developer experience across teams and projects.
 
 ![Power Tuner UI](https://github.com/mattymoomoo/aws-power-tuner-ui/blob/master/imgs/website.png?raw=true)
 
