@@ -144,7 +144,7 @@ describe('Lambda Utils', () => {
     });
 
     describe('computePrice', () => {
-        const minCost = 0.000000208; // $
+        const minCost = 2.083e-9; // $ per ms
         const minRAM = 128; // MB
         const value = 1024; // MB
         const averageDuration = 300; // ms
@@ -152,7 +152,7 @@ describe('Lambda Utils', () => {
         it('should return the average price', () => {
             const avgPrice = utils.computePrice(minCost, minRAM, value, averageDuration);
             expect(avgPrice).to.be.a('number');
-            expect(avgPrice).to.be(minCost * 8 * 3);
+            expect(avgPrice).to.be(minCost * (value / minRAM) * averageDuration);
         });
     });
 
@@ -207,16 +207,20 @@ describe('Lambda Utils', () => {
     });
 
     describe('computeTotalCost', () => {
-        const minCost = 0.000000208; // $
+        const minCost = 2.083e-9; // $ per ms
         const minRAM = 128; // MB
         const value = 1024; // MB
         const durations = [
-            100, 200, 200, 300, 400,
+            100, 150, 200, 300, 400,
         ];
+
+        // sum all
+        const totDuration = durations.reduce((a, b) => a + b, 0);
+
 
         it('should return the total cost', () => {
             const duration = utils.computeTotalCost(minCost, minRAM, value, durations);
-            expect(duration).to.be(minCost * 8 * (1 + 2 + 2 + 3 + 4));
+            expect(duration).to.be(minCost * (value / minRAM) * totDuration);
         });
         it('should return 0 if empty durations', () => {
             const duration = utils.computeTotalCost(minCost, minRAM, value, []);
