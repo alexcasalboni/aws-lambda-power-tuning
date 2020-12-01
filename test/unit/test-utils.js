@@ -144,7 +144,7 @@ describe('Lambda Utils', () => {
     });
 
     describe('computePrice', () => {
-        const minCost = 2.083e-9; // $ per ms
+        const minCost = 2.1e-9; // $ per ms
         const minRAM = 128; // MB
         const value = 1024; // MB
         const averageDuration = 300; // ms
@@ -207,7 +207,7 @@ describe('Lambda Utils', () => {
     });
 
     describe('computeTotalCost', () => {
-        const minCost = 2.083e-9; // $ per ms
+        const minCost = 2.1e-9; // $ per ms
         const minRAM = 128; // MB
         const value = 1024; // MB
         const durations = [
