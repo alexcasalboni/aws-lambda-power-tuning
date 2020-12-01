@@ -20,7 +20,7 @@ AWS.mock('Lambda', 'invoke', {});
 const powerValues = [128, 256, 512, 1024];
 process.env.defaultPowerValues = powerValues.join(',');
 process.env.minRAM = 128;
-process.env.baseCosts = '{"ap-east-1":2.865e-9,"af-south-1":2.763e-9,"me-south-1":2.583e-9,"eu-south-1":2.440e-9,"default":2.083e-9}';
+process.env.baseCosts = '{"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-south-1":2.6e-9,"eu-south-1":2.4e-9,"default":2.1e-9}';
 const fakeContext = {};
 
 // variables used during tests
@@ -87,7 +87,7 @@ describe('Lambda Functions', async() => {
             });
         sandBox.stub(utils, 'baseCostForRegion')
             .callsFake((_priceMap, region) => {
-                return region === 'af-south-1' ? 2.763e-9 : 2.083e-9;
+                return region === 'af-south-1' ? 2.8e-9 : 2.1e-9;
             });
         getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
             .callsFake(async() => {
@@ -436,7 +436,7 @@ describe('Lambda Functions', async() => {
             expect(response.averagePrice).to.be.a('number');
             expect(response.averageDuration).to.be.a('number');
             expect(response.totalCost).to.be.a('number');
-            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.083e-8);  // 10ms in total
+            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.1e-8);  // 10ms in total
         });
 
         it('should return statistics (af-south-1)', async() => {
@@ -452,7 +452,7 @@ describe('Lambda Functions', async() => {
             expect(response.averagePrice).to.be.a('number');
             expect(response.averageDuration).to.be.a('number');
             expect(response.totalCost).to.be.a('number');
-            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.763e-8); // 10ms in total
+            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.8e-8); // 10ms in total
         });
 
         it('should invoke the given cb, when done (custom payload)', async() => {
