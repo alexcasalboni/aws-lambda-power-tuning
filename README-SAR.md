@@ -225,6 +225,7 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 From most recent to oldest, with major releases in bold:
 
+* *3.4.0* (2020-12-01): 1ms billing
 * *3.3.3* (2020-07-17): payload logging bugfix for pre-processors
 * *3.3.2* (2020-06-17): weighted payloads bugfix (for real)
 * *3.3.1* (2020-06-16): weighted payloads bugfix
