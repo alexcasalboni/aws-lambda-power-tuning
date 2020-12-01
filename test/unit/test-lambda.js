@@ -20,7 +20,7 @@ AWS.mock('Lambda', 'invoke', {});
 const powerValues = [128, 256, 512, 1024];
 process.env.defaultPowerValues = powerValues.join(',');
 process.env.minRAM = 128;
-process.env.baseCosts = '{"eu-west-1":0.00000003, "af-south-1": 0.0000002763, "default": 0.00000028}';
+process.env.baseCosts = '{"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-south-1":2.6e-9,"eu-south-1":2.4e-9,"default":2.1e-9}';
 const fakeContext = {};
 
 // variables used during tests
@@ -87,7 +87,7 @@ describe('Lambda Functions', async() => {
             });
         sandBox.stub(utils, 'baseCostForRegion')
             .callsFake((_priceMap, region) => {
-                return region === 'af-south-1' ? 0.0000002763 : 0.0000002083;
+                return region === 'af-south-1' ? 2.8e-9 : 2.1e-9;
             });
         getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
             .callsFake(async() => {
@@ -356,7 +356,7 @@ describe('Lambda Functions', async() => {
                     // logs will always return 1ms duration with 128MB
                     return {
                         StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMTAwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
+                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMS4wIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
                         ExecutedVersion: '$LATEST',
                         Payload: '{}',
                     };
@@ -423,7 +423,7 @@ describe('Lambda Functions', async() => {
             });
         });
 
-        it('should return statistics, default', async() => {
+        it('should return statistics (default)', async() => {
             const response = await invokeForSuccess(handler, {
                 value: '128',
                 input: {
@@ -436,10 +436,10 @@ describe('Lambda Functions', async() => {
             expect(response.averagePrice).to.be.a('number');
             expect(response.averageDuration).to.be.a('number');
             expect(response.totalCost).to.be.a('number');
-            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(parseFloat((0.0000002083 * 10).toPrecision(10)));
+            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.1e-8);  // 10ms in total
         });
 
-        it('should return statistics', async() => {
+        it('should return statistics (af-south-1)', async() => {
             const response = await invokeForSuccess(handler, {
                 value: '128',
                 input: {
@@ -452,7 +452,7 @@ describe('Lambda Functions', async() => {
             expect(response.averagePrice).to.be.a('number');
             expect(response.averageDuration).to.be.a('number');
             expect(response.totalCost).to.be.a('number');
-            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(parseFloat((0.0000002763 * 10).toPrecision(10)));
+            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.8e-8); // 10ms in total
         });
 
         it('should invoke the given cb, when done (custom payload)', async() => {

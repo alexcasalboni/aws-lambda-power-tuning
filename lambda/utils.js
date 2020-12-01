@@ -295,13 +295,11 @@ module.exports.convertPayload = (payload) => {
 };
 
 /**
- * Compute average price and returns with average duration.
+ * Compute average price, given average duration.
  */
 module.exports.computePrice = (minCost, minRAM, value, duration) => {
-    // compute official price per 100ms
-    const pricePer100ms = value * minCost / minRAM;
-    // quantize price to upper 100ms (billed duration) and compute avg price
-    return Math.ceil(duration / 100) * pricePer100ms;
+    // it's just proportional to ms (ceiled) and memory value
+    return Math.ceil(duration) * minCost * (value / minRAM);
 };
 
 module.exports.parseLogAndExtractDurations = (data) => {
@@ -312,7 +310,7 @@ module.exports.parseLogAndExtractDurations = (data) => {
 };
 
 /**
- * Copute average duration
+ * Compute total cost
  */
 module.exports.computeTotalCost = (minCost, minRAM, value, durations) => {
     if (!durations || !durations.length) {
