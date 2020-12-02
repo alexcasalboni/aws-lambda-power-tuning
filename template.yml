@@ -35,12 +35,20 @@ Parameters:
     MinValue: 10
     MaxValue: 900
     Description: Maximum invocation timeout (in seconds) for the Executor step, after which you get a States.Timeout error
+  permissionsBoundary:
+    Type: String
+    Default: ''
+    Description: The ARN of a permissions boundary to use for all functions' execution role.
+
+Conditions:
+  UsePermissionsBoundary: !Not [!Equals [!Ref permissionsBoundary, '']]
 
 Globals:
   Function:
     Runtime: nodejs12.x
     MemorySize: 128
     Timeout: !Ref totalExecutionTimeout
+    PermissionsBoundary: !If [UsePermissionsBoundary, !Ref permissionsBoundary, !Ref AWS::NoValue]
     Environment:
       Variables:
         defaultPowerValues: !Join [ ",", !Ref PowerValues ]
