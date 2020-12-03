@@ -151,7 +151,7 @@ resource "aws_serverlessapplicationrepository_cloudformation_stack" "lambda-powe
 }
 ```
 
-See the [Terraform aws_serverlessapplicationrepository_cloudformation_stack documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/serverlessapplicationrepository_cloudformation_stack) for more Terraform configuration options
+See the [Terraform documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/serverlessapplicationrepository_cloudformation_stack) for more configuration options of `aws_serverlessapplicationrepository_cloudformation_stack`.
 
 If you don't yet have a Terraform project, check out the [Terraform introduction](https://www.terraform.io/intro/index.html).
 
