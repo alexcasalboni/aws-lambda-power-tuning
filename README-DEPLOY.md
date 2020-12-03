@@ -2,7 +2,7 @@
 
 There are multiple ways to deploy the project.
 
-If you are familiar with Infrastructure as Code, the easiest way is to deploy the app via the Serverless Application Repository (SAR) - see option 1 and 3.
+If you are familiar with Infrastructure as Code, the easiest way is to deploy the app via the Serverless Application Repository (SAR) - see option 1 and 3. If you prefer Terraform, see option 6.
 
 If you prefer to verify and own the full YAML template, feel free to fork this repo and deploy everything with AWS SAM CLI - see option 2.
 
@@ -127,6 +127,34 @@ You can deploy and interact with Lambda Power Tuning with an ad-hoc web interfac
 You can find the open-source project and the instructions to deploy it here: [mattymoomoo/aws-power-tuner-ui](https://github.com/mattymoomoo/aws-power-tuner-ui).
 
 ![Power Tuner UI](https://github.com/mattymoomoo/aws-power-tuner-ui/blob/master/imgs/website.png?raw=true)
+
+## Option 6: deploy the SAR app with Terraform
+
+Simply add the `aws_serverlessapplicationrepository_cloudformation_stack` resource below to your Terraform code and deploy as usual through `terraform apply`.
+
+```hcl
+resource "aws_serverlessapplicationrepository_cloudformation_stack" "lambda-power-tuning" {
+  name             = "lambda-power-tuner"
+  application_id   = "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning"
+  capabilities     = ["CAPABILITY_IAM"]
+  # Uncomment the next line to deploy a specific version
+  # semantic_version = "3.4.2"
+
+  parameters = {
+    # All of these parameters are optional and are only shown here for demonstration purposes
+    # See https://github.com/alexcasalboni/aws-lambda-power-tuning/blob/master/README-INPUT-OUTPUT.md#state-machine-input-at-deployment-time
+    # PowerValues           = "128,192,256,512,1024,2048,3072,4096,5120,6144,7168,8192,9216,10240"
+    # lambdaResource        = "*"
+    # totalExecutionTimeout = 900
+    # visualizationURL      = "https://lambda-power-tuning.show/"
+  }
+}
+```
+
+See the [Terraform aws_serverlessapplicationrepository_cloudformation_stack documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/serverlessapplicationrepository_cloudformation_stack) for more Terraform configuration options
+
+If you don't yet have a Terraform project, check out the [Terraform introduction](https://www.terraform.io/intro/index.html).
+
 
 ## How to execute the state machine once deployed?
 
