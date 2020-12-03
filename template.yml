@@ -138,6 +138,7 @@ Resources:
   statemachineRole:
     Type: AWS::IAM::Role
     Properties:
+      PermissionsBoundary: !If [UsePermissionsBoundary, !Ref permissionsBoundary, !Ref AWS::NoValue]
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
       AssumeRolePolicyDocument:
