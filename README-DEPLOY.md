@@ -139,11 +139,12 @@ resource "aws_serverlessapplicationrepository_cloudformation_stack" "lambda-powe
   capabilities   = ["CAPABILITY_IAM"]
 
   parameters = {
-    # Many of these parameters are optional and are only shown here for demonstration purposes
-    PowerValues           = "128,192,256,512,1024,2048,3072,4096,5120,6144,7168,8192,9216,10240"
-    lambdaResource        = "*"
-    totalExecutionTimeout = 900
-    visualizationURL      = "https://lambda-power-tuning.show/"
+    # All of these parameters are optional and are only shown here for demonstration purposes
+    # See https://github.com/alexcasalboni/aws-lambda-power-tuning/blob/master/README-INPUT-OUTPUT.md#state-machine-input-at-deployment-time
+    # PowerValues           = "128,192,256,512,1024,2048,3072,4096,5120,6144,7168,8192,9216,10240"
+    # lambdaResource        = "*"
+    # totalExecutionTimeout = 900
+    # visualizationURL      = "https://lambda-power-tuning.show/"
   }
 }
 ```
