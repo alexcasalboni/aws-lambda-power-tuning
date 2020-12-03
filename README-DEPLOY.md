@@ -134,9 +134,11 @@ Simply add the `aws_serverlessapplicationrepository_cloudformation_stack` resour
 
 ```hcl
 resource "aws_serverlessapplicationrepository_cloudformation_stack" "lambda-power-tuning" {
-  name           = "lambda-power-tuner"
-  application_id = "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning"
-  capabilities   = ["CAPABILITY_IAM"]
+  name             = "lambda-power-tuner"
+  application_id   = "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning"
+  capabilities     = ["CAPABILITY_IAM"]
+  # Uncomment the next line to deploy a specific version
+  # semantic_version = "3.4.2"
 
   parameters = {
     # All of these parameters are optional and are only shown here for demonstration purposes
