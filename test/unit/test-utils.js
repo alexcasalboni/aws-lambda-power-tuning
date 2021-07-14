@@ -22,13 +22,17 @@ const sandBox = sinon.createSandbox();
 
 // AWS SDK mocks
 AWS.mock('Lambda', 'getAlias', {});
-AWS.mock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024});
+AWS.mock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful'});
 AWS.mock('Lambda', 'updateFunctionConfiguration', {});
 AWS.mock('Lambda', 'publishVersion', {});
 AWS.mock('Lambda', 'deleteFunction', {});
 AWS.mock('Lambda', 'createAlias', {});
 AWS.mock('Lambda', 'deleteAlias', {});
 AWS.mock('Lambda', 'invoke', {});
+
+// note: waiters aren't correctly mocked by aws-sdk-mock (for now)
+// https://github.com/dwyl/aws-sdk-mock/issues/173
+AWS.mock('Lambda', 'waitFor', {}); 
 
 describe('Lambda Utils', () => {
 
@@ -43,6 +47,7 @@ describe('Lambda Utils', () => {
         utils.deleteLambdaAlias,
         utils.invokeLambda,
         utils.invokeLambdaWithProcessors,
+        utils.waitForFunctionUpdate,
     ];
 
     // just returns the utility name for convenience
@@ -125,6 +130,15 @@ describe('Lambda Utils', () => {
             const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
             expect(aliasExists).to.be(false);
         });
+    });
+
+    describe('waitForFunctionUpdate', () => {
+
+        it('should return if LastUpdateStatus is successful', async() => {
+            // TODO: remove waitFor mock and test this properly
+            await utils.waitForFunctionUpdate('arn:aws:lambda:us-east-1:XXX:function:YYY');
+        });
+
     });
 
     describe('extractDuration', () => {

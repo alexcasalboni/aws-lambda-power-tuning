@@ -28,7 +28,8 @@ var setLambdaPowerCounter,
     getLambdaPowerCounter,
     publishLambdaVersionCounter,
     createLambdaAliasCounter,
-    updateLambdaAliasCounter;
+    updateLambdaAliasCounter,
+    waitForFunctionUpdateCounter;
 
 // utility to invoke handler (success case)
 const invokeForSuccess = async(handler, event) => {
@@ -68,7 +69,8 @@ var getLambdaAliasStub,
     deleteLambdaVersionStub,
     invokeLambdaStub,
     invokeLambdaProcessorStub,
-    deleteLambdaAliasStub;
+    deleteLambdaAliasStub,
+    waitForFunctionUpdateStub;
 
 /** unit tests below **/
 
@@ -80,6 +82,7 @@ describe('Lambda Functions', async() => {
         publishLambdaVersionCounter = 0;
         createLambdaAliasCounter = 0;
         updateLambdaAliasCounter = 0;
+        waitForFunctionUpdateCounter = 0;
 
         sandBox.stub(utils, 'regionFromARN')
             .callsFake((arn) => {
@@ -118,6 +121,11 @@ describe('Lambda Functions', async() => {
         updateLambdaAliasStub = sandBox.stub(utils, 'updateLambdaAlias')
             .callsFake(async() => {
                 updateLambdaAliasCounter++;
+                return 'OK';
+            });
+        waitForFunctionUpdateStub = sandBox.stub(utils, 'waitForFunctionUpdate')
+            .callsFake(async() => {
+                waitForFunctionUpdateCounter++;
                 return 'OK';
             });
     });
@@ -198,6 +206,7 @@ describe('Lambda Functions', async() => {
             expect(getLambdaPowerCounter).to.be(1);
             expect(publishLambdaVersionCounter).to.be(powerValues.length);
             expect(createLambdaAliasCounter).to.be(powerValues.length);
+            expect(waitForFunctionUpdateCounter).to.be(powerValues.length);
         });
 
         it('should update an alias if it already exists', async() => {
@@ -215,6 +224,7 @@ describe('Lambda Functions', async() => {
             await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
             expect(updateLambdaAliasCounter).to.be(1);
             expect(createLambdaAliasCounter).to.be(powerValues.length - 1);
+            expect(waitForFunctionUpdateCounter).to.be(powerValues.length);
         });
 
         it('should update an alias if it already exists (2)', async() => {
@@ -226,6 +236,7 @@ describe('Lambda Functions', async() => {
                 });
             await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
             expect(createLambdaAliasCounter).to.be(powerValues.length * 10);
+            expect(waitForFunctionUpdateCounter).to.be(powerValues.length);
         });
 
         it('should explode if something goes wrong during power set', async() => {
@@ -235,6 +246,7 @@ describe('Lambda Functions', async() => {
                     throw new Error('Something went wrong');
                 });
             await invokeForFailure(handler, { lambdaARN: 'arnOK', num: 5 });
+            expect(waitForFunctionUpdateCounter).to.be(0);
         });
 
         it('should fail is something goes wrong with the initialization API calls', async() => {
@@ -246,6 +258,7 @@ describe('Lambda Functions', async() => {
                     throw error;
                 });
             await invokeForFailure(handler, { lambdaARN: 'arnOK', num: 5 });
+            expect(waitForFunctionUpdateCounter).to.be(1);
         });
 
     });
