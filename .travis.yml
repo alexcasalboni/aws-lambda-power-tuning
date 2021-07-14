@@ -5,6 +5,8 @@ node_js:
   - 10.13
   - 11
   - 12
+  - 13
+  - 14
 install:
   # install Node.js dependencies
   - travis_retry npm ci
