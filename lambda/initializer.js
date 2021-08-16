@@ -16,7 +16,7 @@ module.exports.handler = async(event, context) => {
     // fetch initial $LATEST value so we can reset it later
     const initialPower = await utils.getLambdaPower(lambdaARN);
 
-    // reminder: configuration updates must run sequencially
+    // reminder: configuration updates must run sequentially
     // (otherwise you get a ResourceConflictException)
     for (let value of powerValues){
         const alias = 'RAM' + value;

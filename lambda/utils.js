@@ -61,6 +61,10 @@ module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
 module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
     try {
         await utils.setLambdaPower(lambdaARN, value);
+
+        // wait for functoin update to complete
+        await utils.waitForFunctionUpdate(lambdaARN);
+
         const {Version} = await utils.publishLambdaVersion(lambdaARN);
         const aliasExists = await utils.verifyAliasExistance(lambdaARN, alias);
         if (aliasExists) {
@@ -77,6 +81,23 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
             throw error; // a real error :)
         }
     }
+};
+
+/**
+ * Wait for the function's LastUpdateStatus to become Successful.
+ * Documentation: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Lambda.html#functionUpdated-waiter
+ * Why is this needed? https://aws.amazon.com/blogs/compute/coming-soon-expansion-of-aws-lambda-states-to-all-functions/
+ */
+ module.exports.waitForFunctionUpdate = async(lambdaARN) => {
+    console.log('Waiting for update to complete');
+    const params = {
+        FunctionName: lambdaARN,
+        $waiter: { // override delay (5s by default)
+            delay: 0.5
+        }
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    return lambda.waitFor('functionUpdated', params).promise();
 };
 
 /**
