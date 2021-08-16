@@ -113,6 +113,7 @@ Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/m
 
 From most recent to oldest, with major releases in bold:
 
+* ***4.0.0*** (2021-08-16): support AWS Lambda states expansion to all functions
 * *3.4.2* (2020-12-03): permissions boundary bugfix (Step Functions role)
 * *3.4.1* (2020-12-02): permissions boundary support
 * ***3.4.0*** (2020-12-01): 1ms billing
