@@ -36,14 +36,20 @@ Now, you can clone this repository as follows:
 $ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
 ```
 
-Configure your deployment bucket name ([create one first!](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html)) and stack name in the deployment script:
+Configure your deployment bucket name ([create one first!](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html)) and stack name in `scripts/deploy.sh`:
 
 
 ```bash
 # config
 BUCKET_NAME=your-sam-templates-bucket
 STACK_NAME=lambda-power-tuning
-PowerValues='128,512,1024,1536,3008'
+# more config parameters are available too!
+```
+
+Build the SDK layer as follows:
+
+```bash
+$ bash scripts/build-layer.sh
 ```
 
 You can finally deploy the serverless app:
