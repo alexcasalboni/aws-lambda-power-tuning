@@ -16,3 +16,5 @@ serverless.yml
 
 .idea/
 .vscode/
+
+layer-sdk/src

@@ -59,11 +59,24 @@ Globals:
 
 Resources:
 
+  SDKlayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: AWS-SDK-v2_989_0
+      Description: AWS SDK 2.989.0
+      ContentUri: ./layer-sdk/src
+      CompatibleRuntimes:
+        - nodejs14.x
+      LicenseInfo: 'Available under the MIT-0 license.'
+      RetentionPolicy: Retain
+
   initializer:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: lambda
       Handler: initializer.handler
+      Layers:
+        - !Ref SDKlayer
       Policies:
         - AWSLambdaExecute # Managed Policy
         - Version: '2012-10-17' # Policy Document
@@ -83,6 +96,8 @@ Resources:
     Properties:
       CodeUri: lambda
       Handler: executor.handler
+      Layers:
+        - !Ref SDKlayer
       Policies:
         - AWSLambdaExecute # Managed Policy
         - Version: '2012-10-17' # Policy Document
@@ -97,6 +112,8 @@ Resources:
     Properties:
       CodeUri: lambda
       Handler: cleaner.handler
+      Layers:
+        - !Ref SDKlayer
       Policies:
         - AWSLambdaExecute # Managed Policy
         - Version: '2012-10-17' # Policy Document
@@ -122,6 +139,8 @@ Resources:
     Properties:
       CodeUri: lambda
       Handler: optimizer.handler
+      Layers:
+        - !Ref SDKlayer
       Policies:
         - AWSLambdaExecute # Managed Policy
         - Version: '2012-10-17' # Policy Document
