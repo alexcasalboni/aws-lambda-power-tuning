@@ -20,7 +20,7 @@ AWS.mock('Lambda', 'invoke', {});
 const powerValues = [128, 256, 512, 1024];
 process.env.defaultPowerValues = powerValues.join(',');
 process.env.minRAM = 128;
-process.env.baseCosts = '{"x86_64": {"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-south-1":2.6e-9,"eu-south-1":2.4e-9,"default":2.1e-9}, "arm64": {"default":1.68e-9}}';
+process.env.baseCosts = '{"x86_64": {"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-south-1":2.6e-9,"eu-south-1":2.4e-9,"default":2.1e-9}, "arm64": {"default":1.7e-9}}';
 const fakeContext = {};
 
 // variables used during tests

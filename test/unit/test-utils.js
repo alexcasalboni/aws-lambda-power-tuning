@@ -13,6 +13,8 @@ process.env.sfCosts = `{"us-gov-west-1": 0.00003,"eu-north-1": 0.000025,
 "us-east-2": 0.000025,"ap-south-1": 0.0000285,"ap-southeast-1": 0.000025,
 "us-gov-east-1": 0.00003,"ca-central-1": 0.000025,"eu-west-1": 0.000025,
 "us-west-2": 0.000025,"sa-east-1": 0.0000375}`;
+process.env.baseCosts = '{"x86_64": {"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-south-1":2.6e-9,"eu-south-1":2.4e-9,"default":2.1e-9}, "arm64": {"default":1.7e-9}}';
+
 
 process.env.AWS_REGION = 'af-south-1';
 
@@ -22,7 +24,7 @@ const sandBox = sinon.createSandbox();
 
 // AWS SDK mocks
 AWS.mock('Lambda', 'getAlias', {});
-AWS.mock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful'});
+AWS.mock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ["x86_64"]});
 AWS.mock('Lambda', 'updateFunctionConfiguration', {});
 AWS.mock('Lambda', 'publishVersion', {});
 AWS.mock('Lambda', 'deleteFunction', {});
@@ -338,6 +340,29 @@ describe('Lambda Utils', () => {
 
         it('should return default base price', () => {
             expect(utils.baseCostForRegion(prices, 'eu-west-1')).to.be(0.0000002083);
+        });
+    });
+
+    describe('lambdaBaseCost', () => {
+        it('should return x86 base prices', () => {
+            expect(utils.lambdaBaseCost('eu-west-1', 'x86_64')).to.be(2.1e-9);
+        });
+
+        it('should return default base price', () => {
+            expect(utils.lambdaBaseCost('eu-west-1', 'arm64')).to.be(1.7e-9);
+        });
+
+        it('should explode if invalid architecture', () => {
+            expect(() => utils.lambdaBaseCost('eu-west-1', 'invalid_arch')).to.throwError();
+        });
+    });
+
+    describe('getLambdaArchitecture', () => {
+
+        it('should return a string representing the arch type', async() => {
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const data = await utils.getLambdaArchitecture(ARN);
+            expect(data).to.be('x86_64');
         });
     });
 
