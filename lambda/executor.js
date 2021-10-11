@@ -34,6 +34,7 @@ module.exports.handler = async(event, context) => {
 
     // fetch architecture from $LATEST
     const architecture = await utils.getLambdaArchitecture(lambdaARN);
+    console.log(`Detected architecture type: ${architecture}`);
 
     // pre-generate an array of N payloads
     const payloads = utils.generatePayloads(num, payload);

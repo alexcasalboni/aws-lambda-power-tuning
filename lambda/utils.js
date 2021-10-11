@@ -134,7 +134,7 @@ module.exports.getLambdaArchitecture = async(lambdaARN) => {
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     const config = await lambda.getFunctionConfiguration(params).promise();
-    return config.Architectures[0]; // TODO verify this!
+    return config.Architectures[0];
 };
 
 /**
