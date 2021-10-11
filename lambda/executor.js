@@ -32,6 +32,10 @@ module.exports.handler = async(event, context) => {
     const lambdaAlias = 'RAM' + value;
     let results;
 
+    // fetch architecture from $LATEST
+    const architecture = await utils.getLambdaArchitecture(lambdaARN);
+    console.log(`Detected architecture type: ${architecture}`);
+
     // pre-generate an array of N payloads
     const payloads = utils.generatePayloads(num, payload);
 
@@ -41,9 +45,8 @@ module.exports.handler = async(event, context) => {
         results = await runInSeries(num, lambdaARN, lambdaAlias, payloads, preProcessorARN, postProcessorARN);
     }
 
-    // get base cost
-    const prices = JSON.parse(process.env.baseCosts);
-    const baseCost = utils.baseCostForRegion(prices, utils.regionFromARN(lambdaARN));
+    // get base cost for Lambda
+    const baseCost = utils.lambdaBaseCost(utils.regionFromARN(lambdaARN), architecture);
 
     return computeStatistics(baseCost, results, value);
 };

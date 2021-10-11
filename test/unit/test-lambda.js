@@ -20,7 +20,7 @@ AWS.mock('Lambda', 'invoke', {});
 const powerValues = [128, 256, 512, 1024];
 process.env.defaultPowerValues = powerValues.join(',');
 process.env.minRAM = 128;
-process.env.baseCosts = '{"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-south-1":2.6e-9,"eu-south-1":2.4e-9,"default":2.1e-9}';
+process.env.baseCosts = '{"x86_64": {"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-south-1":2.6e-9,"eu-south-1":2.4e-9,"default":2.1e-9}, "arm64": {"default":1.68e-9}}';
 const fakeContext = {};
 
 // variables used during tests
@@ -70,7 +70,8 @@ var getLambdaAliasStub,
     invokeLambdaStub,
     invokeLambdaProcessorStub,
     deleteLambdaAliasStub,
-    waitForFunctionUpdateStub;
+    waitForFunctionUpdateStub,
+    getLambdaArchitectureStub;
 
 /** unit tests below **/
 
@@ -354,12 +355,14 @@ describe('Lambda Functions', async() => {
 
         var invokeLambdaCounter,
             invokeLambdaPayloads,
-            invokeProcessorCounter;
+            invokeProcessorCounter,
+            getLambdaArchitectureCounter;
 
         beforeEach('mock utilities', () => {
             invokeLambdaCounter = 0;
             invokeLambdaPayloads = [];
             invokeProcessorCounter = 0;
+            getLambdaArchitectureCounter = 0;
 
             invokeLambdaStub && invokeLambdaStub.restore();
             invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
@@ -382,6 +385,15 @@ describe('Lambda Functions', async() => {
                     invokeLambdaCounter++;
                     return '{"Processed": true}';
                 });
+
+            getLambdaArchitectureStub && getLambdaArchitectureStub.restore();
+            getLambdaArchitectureStub = sandBox.stub(utils, 'getLambdaArchitecture')
+                .callsFake(async(_arn) => {
+                    getLambdaArchitectureCounter++;
+                    // return x86_64 or arm64 randomly
+                    return Math.floor(Math.random()*2)===0 ? 'x86_64' : 'arm64';
+                });
+
         });
 
         it('should explode if invoked with invalid input', async() => {

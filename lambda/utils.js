@@ -14,6 +14,15 @@ module.exports.stepFunctionsBaseCost = () => {
     return this.baseCostForRegion(prices, process.env.AWS_REGION);
 };
 
+module.exports.lambdaBaseCost = (region, architecture) => {
+    const prices = JSON.parse(process.env.baseCosts);
+    const priceMap = prices[architecture];
+    if(!priceMap){
+        throw new Error("Unsupported architecture: " + architecture);
+    }
+    return this.baseCostForRegion(priceMap, region);
+};
+
 module.exports.allPowerValues = () => {
     const increment = 64;
     const powerValues = [];
@@ -112,6 +121,20 @@ module.exports.getLambdaPower = async(lambdaARN) => {
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     const config = await lambda.getFunctionConfiguration(params).promise();
     return config.MemorySize;
+};
+
+/**
+ * Retrieve a given Lambda Function's architecture (always $LATEST version)
+ */
+module.exports.getLambdaArchitecture = async(lambdaARN) => {
+    console.log('Getting current architecture');
+    const params = {
+        FunctionName: lambdaARN,
+        Qualifier: '$LATEST',
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    const config = await lambda.getFunctionConfiguration(params).promise();
+    return config.Architectures[0];
 };
 
 /**
@@ -444,7 +467,7 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
 /**
  * Using the prices supplied,
  * to figure what the base price is for the
- * supplied lambda's region
+ * supplied region.
  */
 module.exports.baseCostForRegion = (priceMap, region) => {
     if (priceMap[region]) {
