@@ -224,7 +224,7 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 ## CHANGELOG (SAR versioning)
 
 From most recent to oldest, with major releases in bold:
-
+* ***4.1.0*** (2021-10-11): support Lambda functions powered by Graviton2
 * ***4.0.0*** (2021-08-16): support AWS Lambda states expansion to all functions
 * *3.4.2* (2020-12-03): permissions boundary bugfix (Step Functions role)
 * *3.4.1* (2020-12-02): permissions boundary support
