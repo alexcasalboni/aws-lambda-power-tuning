@@ -105,6 +105,7 @@ Resources:
             - Effect: Allow
               Action:
                 - lambda:InvokeFunction
+                - lambda:GetFunctionConfiguration
               Resource: !Ref lambdaResource
 
   cleaner:
