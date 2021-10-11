@@ -6,6 +6,6 @@
   "licence": "MIT-0",
   "scripts": {},
   "dependencies": {
-    "aws-sdk": "^2.989.0"
+    "aws-sdk": "^2.1004.0"
   }
 }
