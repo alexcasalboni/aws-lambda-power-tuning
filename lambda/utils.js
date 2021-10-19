@@ -135,7 +135,7 @@ module.exports.getLambdaArchitecture = async(lambdaARN) => {
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     const config = await lambda.getFunctionConfiguration(params).promise();
     if (typeof config.Architectures !== 'undefined') {
-         return config.Architectures[0];
+        return config.Architectures[0];
     };
     return 'x86_64';
 };

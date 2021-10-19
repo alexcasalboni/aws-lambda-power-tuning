@@ -364,6 +364,20 @@ describe('Lambda Utils', () => {
             const data = await utils.getLambdaArchitecture(ARN);
             expect(data).to.be('x86_64');
         });
+
+        it('should return arm64 when Graviton is supported', async() => {
+            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ["arm64"]});
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const data = await utils.getLambdaArchitecture(ARN);
+            expect(data).to.be('arm64');
+        });
+
+        it('should always return x86_64 when Graviton is not supported', async() => {
+            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful'});
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const data = await utils.getLambdaArchitecture(ARN);
+            expect(data).to.be('x86_64');
+        });
     });
 
     describe('invokeLambdaProcessor', () => {
