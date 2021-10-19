@@ -225,7 +225,8 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 From most recent to oldest, with major releases in bold:
 
-* *4.1.1* (2020-10-12): fixed connection timeout for long-running functions
+* *4.1.2* (2021-10-12): add x86_64 fallback when Graviton is not supported yet
+* *4.1.1* (2021-10-12): fixed connection timeout for long-running functions
 * ***4.1.0*** (2021-10-11): support Lambda functions powered by Graviton2
 * ***4.0.0*** (2021-08-16): support AWS Lambda states expansion to all functions
 * *3.4.2* (2020-12-03): permissions boundary bugfix (Step Functions role)
