@@ -24,7 +24,7 @@ const sandBox = sinon.createSandbox();
 
 // AWS SDK mocks
 AWS.mock('Lambda', 'getAlias', {});
-AWS.mock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ["x86_64"]});
+AWS.mock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ['x86_64']});
 AWS.mock('Lambda', 'updateFunctionConfiguration', {});
 AWS.mock('Lambda', 'publishVersion', {});
 AWS.mock('Lambda', 'deleteFunction', {});
@@ -34,7 +34,7 @@ AWS.mock('Lambda', 'invoke', {});
 
 // note: waiters aren't correctly mocked by aws-sdk-mock (for now)
 // https://github.com/dwyl/aws-sdk-mock/issues/173
-AWS.mock('Lambda', 'waitFor', {}); 
+AWS.mock('Lambda', 'waitFor', {});
 
 describe('Lambda Utils', () => {
 
@@ -366,7 +366,7 @@ describe('Lambda Utils', () => {
         });
 
         it('should return arm64 when Graviton is supported', async() => {
-            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ["arm64"]});
+            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ['arm64']});
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
             const data = await utils.getLambdaArchitecture(ARN);
             expect(data).to.be('arm64');

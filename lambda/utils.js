@@ -17,8 +17,8 @@ module.exports.stepFunctionsBaseCost = () => {
 module.exports.lambdaBaseCost = (region, architecture) => {
     const prices = JSON.parse(process.env.baseCosts);
     const priceMap = prices[architecture];
-    if(!priceMap){
-        throw new Error("Unsupported architecture: " + architecture);
+    if (!priceMap){
+        throw new Error('Unsupported architecture: ' + architecture);
     }
     return this.baseCostForRegion(priceMap, region);
 };
@@ -97,13 +97,13 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
  * Documentation: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Lambda.html#functionUpdated-waiter
  * Why is this needed? https://aws.amazon.com/blogs/compute/coming-soon-expansion-of-aws-lambda-states-to-all-functions/
  */
- module.exports.waitForFunctionUpdate = async(lambdaARN) => {
+module.exports.waitForFunctionUpdate = async(lambdaARN) => {
     console.log('Waiting for update to complete');
     const params = {
         FunctionName: lambdaARN,
         $waiter: { // override delay (5s by default)
-            delay: 0.5
-        }
+            delay: 0.5,
+        },
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.waitFor('functionUpdated', params).promise();

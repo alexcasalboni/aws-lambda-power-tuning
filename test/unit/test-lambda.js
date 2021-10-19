@@ -391,7 +391,7 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn) => {
                     getLambdaArchitectureCounter++;
                     // return x86_64 or arm64 randomly
-                    return Math.floor(Math.random()*2)===0 ? 'x86_64' : 'arm64';
+                    return Math.floor(Math.random() * 2) === 0 ? 'x86_64' : 'arm64';
                 });
 
         });
@@ -461,7 +461,7 @@ describe('Lambda Functions', async() => {
             expect(response.averagePrice).to.be.a('number');
             expect(response.averageDuration).to.be.a('number');
             expect(response.totalCost).to.be.a('number');
-            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.1e-8);  // 10ms in total
+            expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.1e-8); // 10ms in total
         });
 
         it('should return statistics (af-south-1)', async() => {

@@ -4,7 +4,7 @@ const AWS = require('aws-sdk');
 
 // the executor needs a longer socket timeout to invoke long-running functions
 // 15 minutes is fine here because the Executor will timeout anyway
-AWS.config.update({httpOptions: {timeout: 15*60*1000}});
+AWS.config.update({httpOptions: {timeout: 15 * 60 * 1000}});
 
 const utils = require('./utils');
 
