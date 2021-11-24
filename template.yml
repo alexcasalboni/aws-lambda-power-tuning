@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
+Description: AWS Lambda Power Tuning resources.
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -64,11 +65,13 @@ Resources:
     Properties:
       LayerName: AWS-SDK-v2_989_0
       Description: AWS SDK 2.989.0
-      ContentUri: ./layer-sdk/src
+      ContentUri: ./layer-sdk
       CompatibleRuntimes:
         - nodejs14.x
       LicenseInfo: 'Available under the MIT-0 license.'
       RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: nodejs14.x
 
   initializer:
     Type: AWS::Serverless::Function
