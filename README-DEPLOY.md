@@ -2,14 +2,14 @@
 
 There are multiple options to deploy the tool.
 
-If you are familiar with Infrastructure as Code, there are 4 ways for you to create all of the resources neccesary for Lambda Power Tuning:
+If you are familiar with Infrastructure as Code, there are 4 ways for you to create all of the resources neccesary for Lambda Power Tuning.
 
 The following three options utilize [AWS CloudFormation](https://aws.amazon.com/cloudformation/) on your behalf to create the neccessary resources. Each will create a new CloudFormation stack in your AWS account containing all the resources for the Lambda Power Tuning tool.
 1. The easiest way is to [deploy the app via the AWS Serverless Application Repository (SAR)](#option1)
 1. Manually [using the AWS SAM CLI](#option2)
 1. Manually [using the AWS CDK](#option3)
 
-You can also [deploy manually with Terraform](#option6) by Hashicorp
+You can also [deploy manually with Terraform](#option6) by Hashicorp.
 
 If you don't want to deal with any Infrastructure as Code tool, you can use one of the following:
 1. The [Lumigo CLI](#option4) (which will take care of both deployment and execution)
@@ -80,7 +80,7 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
     })
     ```
 
-    Alternatively you can use [CDK Patterns](https://github.com/cdk-patterns/serverless) to give you a pre configured project in either TypeScript or Python:
+    Alternatively, you can use [CDK Patterns](https://github.com/cdk-patterns/serverless) to give you a pre configured project in either TypeScript or Python:
     
     ```bash
     # For the TypeScript CDK version
