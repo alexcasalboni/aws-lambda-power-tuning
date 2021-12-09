@@ -333,9 +333,25 @@ module.exports.generatePayloads = (num, payloadInput) => {
  * Convert payload to string, if it's not a string already
  */
 module.exports.convertPayload = (payload) => {
+    /**
+     * Return true only if the input is a JSON-encoded string.
+     * For example, '"test"' or '{"key": "value"}'.
+     */
+    const isJsonString = (s) => {
+        if (typeof s !== 'string')
+            return false;
+
+        try {
+            JSON.parse(s);
+        } catch (e) {
+            return false;
+        }
+        return true;
+    };
+
     // optionally convert everything into string
-    if (typeof payload !== 'string' && typeof payload !== 'undefined') {
-        console.log('Converting payload to string from ', typeof payload);
+    if (typeof payload !== 'undefined' && !isJsonString(payload)) {
+        console.log('Converting payload to JSON string from ', typeof payload);
         payload = JSON.stringify(payload);
     }
     return payload;
