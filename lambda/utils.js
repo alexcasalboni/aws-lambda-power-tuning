@@ -351,6 +351,7 @@ module.exports.convertPayload = (payload) => {
 
     // optionally convert everything into string
     if (typeof payload !== 'undefined' && !isJsonString(payload)) {
+        // note: 'just a string' becomes '"just a string"'
         console.log('Converting payload to JSON string from ', typeof payload);
         payload = JSON.stringify(payload);
     }
