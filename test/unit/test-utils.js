@@ -426,21 +426,39 @@ describe('Lambda Utils', () => {
         });
     });
 
+    const isJsonString = (str) => {
+        try {
+            JSON.parse(str);
+        } catch (e) {
+            return false;
+        }
+        return true;
+    };
+
     describe('convertPayload', () => {
 
-        it('should return the same string when a string is given', async() => {
+        it('should JSON-encode strings, if not JSON strings already', async() => {
             const strings = [
                 'test',
-                '{"test": true}',
-                '[]',
-                'undefined',
-                'true',
-                'null',
                 '',
                 ' ',
             ];
             strings.forEach(s => {
+                expect(utils.convertPayload(s)).to.be('"' + s + '"');
+                expect(isJsonString(utils.convertPayload(s))).to.be(true);
+            });
+        });
+
+        it('should return already a JSON-encoded string as is', async() => {
+            const strings = [
+                '{"test": true}',
+                '[]',
+                'true',
+                'null',
+            ];
+            strings.forEach(s => {
                 expect(utils.convertPayload(s)).to.be(s);
+                expect(isJsonString(utils.convertPayload(s))).to.be(true);
             });
         });
 
@@ -450,6 +468,7 @@ describe('Lambda Utils', () => {
         });
 
         it('should convert everything else to string', async() => {
+            expect(utils.convertPayload(null)).to.be('null');
             expect(utils.convertPayload({})).to.be('{}');
             expect(utils.convertPayload({test: true})).to.be('{"test":true}');
             expect(utils.convertPayload([])).to.be('[]');
@@ -467,6 +486,18 @@ describe('Lambda Utils', () => {
             expect(output.length).to.be(10);
             output.forEach(p => {
                 expect(p).to.be('{"test":true}');
+                expect(isJsonString(p)).to.be(true);
+            });
+        });
+
+        it('should generate a list of encoded JSON strings, if not weighted', async() => {
+            const payload = 'just a string';
+
+            const output = utils.generatePayloads(10, payload);
+            expect(output.length).to.be(10);
+            output.forEach(p => {
+                expect(p).to.be('"just a string"');
+                expect(isJsonString(p)).to.be(true);
             });
         });
 
