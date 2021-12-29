@@ -209,7 +209,7 @@ describe('Lambda Utils', () => {
 
     describe('computeAverageDuration', () => {
         const durations = [
-            1, 1, 2, 3, 3,
+            1, 1, 2, 3, 2000
         ];
 
         it('should return the average duration', () => {
