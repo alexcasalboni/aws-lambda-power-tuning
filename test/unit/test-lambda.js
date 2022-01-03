@@ -382,8 +382,6 @@ describe('Lambda Functions', async() => {
                     return Math.floor(Math.random() * 2) === 0 ? 'x86_64' : 'arm64';
                 });
 
-        });
-
             sandBox.stub(utils, 'fetchPayloadFromS3')
                 .callsFake(async(_arn, _alias, payload) => {
                     fetchPayloadFromS3Counter++;
