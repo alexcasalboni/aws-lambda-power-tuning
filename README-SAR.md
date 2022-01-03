@@ -157,6 +157,8 @@ Your state machine input will look like this:
 
 Please note that the state machine will require IAM access to your S3 bucket, so you might need to redeploy the Lambda Power Tuning application and configure the `payloadS3Bucket` parameter at deployment time. This will automatically generate a custom IAM managed policy to grant read-only access to that bucket. If you want to narrow down the read-only policy to a specific object or pattern, use the `payloadS3Key` parameter (which is `*` by default).
 
+S3 payloads work fine with weighted payloads too.
+
 
 ## State Machine Output
 
