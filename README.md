@@ -113,6 +113,7 @@ Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/m
 
 From most recent to oldest, with major releases in bold:
 
+* *4.1.4* (2022-01-03): sorting bugfix and updated dependencies
 * *4.1.3* (2021-12-16): support simple strings as event payload
 * *4.1.2* (2021-10-12): add x86_64 fallback when Graviton is not supported yet
 * *4.1.1* (2021-10-12): fixed connection timeout for long-running functions
