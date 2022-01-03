@@ -35,14 +35,15 @@ As soon as you click "**Start Execution**" again, you'll be able to visualize th
 Once the execution has completed, you will find the execution results in the "**Output**" tab of the "**Execution Details**" section. The output will contain the optimal power configuration and its corresponding average cost per execution.
 
 
-## State Machine Input
+## State machine input (at execution time)
 
-The AWS Step Functions state machine accepts the following parameters:
+The state machine accepts the following intput parameters:
 
 * **lambdaARN** (required, string): unique identifier of the Lambda function you want to optimize
-* **powerValues** (optional, string or list of integers): the list of power values to be tested; if not provided, the default values configured at deploy-time are used (by default: 128MB, 256MB, 512MB, 1024MB, 1536MB, and 3008MB); you can provide any power values between 128MB and 3,008MB in 64 MB increments; if you provide the string `"ALL"` instead of a list, all possible power configurations will be tested
+* **powerValues** (optional, string or list of integers): the list of power values to be tested; if not provided, the default values configured at deploy-time are used (by default: 128MB, 256MB, 512MB, 1024MB, 1536MB, and 3008MB); you can provide any power values between 128MB and 10,240MB
 * **num** (required, integer): the # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)
 * **payload** (string, object, or list): the static payload that will be used for every invocation (object or string); when using a list, a weighted payload is expected in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not perentages); more details below in the Weighted Payloads section
+* **payloadS3** (string): a reference to Amazon S3 for large payloads (>256KB), formatted as `s3://bucket/key`; it requires read-only IAM permissions, see `payloadS3Bucket` and `payloadS3Key` below and find more details in the S3 payloads section
 * **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
 * **strategy** (string): it can be `"cost"` or `"speed"` or `"balanced"` (the default value is `"cost"`); if you use `"cost"` the state machine will suggest the cheapest option (disregarding its performance), while if you use `"speed"` the state machine will suggest the fastest option (disregarding its cost). When using `"balanced"` the state machine will choose a compromise between `"cost"` and `"speed"` according to the parameter `"balancedWeight"`
 * **balancedWeight** (number between 0.0 and 1.0, by default is 0.5): parameter that express the trade-off between cost and time, 0.0 is equivalent to `"speed"` strategy, 1.0 is equivalent to `"cost"` strategy
@@ -53,9 +54,19 @@ The AWS Step Functions state machine accepts the following parameters:
 * **postProcessorARN** (string): it must be the ARN of a Lambda function; if provided, the function will be invoked after every invocation of `lambdaARN`; more details below in the Pre/Post-processing functions section
 
 
-Additionally, you can specify a list of power values at deploy-time in the `PowerValues` CloudFormation parameter. These power values will be used as the default in case no `powerValues` input parameter is provided.
+## State machine configuration (at deployment time)
 
-Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can customize this timeout at deploy time with the `totalExecutionTimeout` CloudFormation parameter. You can easily estimate the total execution timout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min.
+The CloudFormation template accepts the following parameters:
+
+* **PowerValues** (list of numbers): these power values will be used as the default in case no `powerValues` input parameter is provided at execution time
+* **visualizationURL** (string): the base URL for the visualization tool, by default it's `lambda-power-tuning.show` but you could use your own custom tool
+* **totalExecutionTimeout** (number in seconds, default=`300`): the timeout in seconds applied to all functions of the state machine
+* **lambdaResource** (string, default=`*`): the `Resource` used in IAM policies; it's `*` by default but you could restrict it to a prefix or a specific function ARN
+* **permissionsBoundary** (string): the ARN of a permissions boundary (policy), applied to all functions of the state machine
+* **payloadS3Bucket** (string): the S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the [S3 payloads section](#user-content-s3-payloads)
+* **payloadS3Key** (string, default=`*`): they S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](#user-content-s3-payloads)
+
+Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can easily estimate the total execution timout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min.
 
 ### Usage in CI/CD pipelines
 
@@ -72,21 +83,20 @@ If you want to run the state machine as part of your continuous integration pipe
 }
 ```
 
-Of course, you can use different alias names such as `dev`, `test`, `production`, etc.
-
-If you don't configure any alias name, the state machine will only update the `$LATEST` alias.
+You can use different alias names such as `dev`, `test`, `production`, etc. If you don't configure any alias name, the state machine will only update the `$LATEST` alias.
 
 ### Weighted Payloads
 
-Weighted payloads can be used in scenarios where the payload structure and the corresponding performance/speed can vary a lot in production and you'd like to include multiple payloads in the tuning process.
+Weighted payloads can be used in scenarios where the payload structure and the corresponding performance/speed could vary a lot in production and you'd like to include multiple payloads in the tuning process.
 
 You may want to use weighted payloads also in case of functions with side effects that would be hard or impossible to test with the very same payload (for example, a function that deletes records from a database).
 
-You can use weighted payloads as follows in the execution input:
+You configure weighted payloads as follows:
 
 ```json
 {
     ...
+    "num": 50,
     "payload": [
         { "payload": {...}, "weight": 5 },
         { "payload": {...}, "weight": 15 },
@@ -95,7 +105,7 @@ You can use weighted payloads as follows in the execution input:
 }
 ```
 
-In the example above the weights `5`, `15` and `30` are used as relative weights. They will correspond to `10%` (5 out of 50), `30%` (15 out of 50), and `60%` (30 out of 50) respectively - meaning that the corresponding payload will be used 10%, 30% and 60% of the time.
+In the example above, the weights `5`, `15`, and `30` are used as relative weights. They will correspond to `10%` (5 out of 50), `30%` (15 out of 50), and `60%` (30 out of 50) respectively - meaning that the corresponding payload will be used 10%, 30% and 60% of the time.
 
 For example, if `num=100` the first payload will be used 10 times, the second 30 times, and the third 60 times.
 
@@ -129,6 +139,26 @@ Please also keep in mind the following:
 * If a pre-processor or post-processor fails, the whole power-tuning state machine will fail
 * Pre/post-processors don't have to be in the same region of the main function
 * Pre/post-processors don't alter the statistics related to cost and performance
+
+### S3 payloads
+
+In case of very large payloads above 256KB, you can provide an S3 object reference (`s3://bucket/key`) instead of an inline payload.
+
+Your state machine input will look like this:
+
+```json
+{
+    "lambdaARN": "your-lambda-function-arn",
+    "powerValues": [128, 256, 512, 1024],
+    "num": 50,
+    "payloadS3": "s3://your-bucket/your-object.json"
+}
+```
+
+Please note that the state machine will require IAM access to your S3 bucket, so you might need to redeploy the Lambda Power Tuning application and configure the `payloadS3Bucket` parameter at deployment time. This will automatically generate a custom IAM managed policy to grant read-only access to that bucket. If you want to narrow down the read-only policy to a specific object or pattern, use the `payloadS3Key` parameter (which is `*` by default).
+
+S3 payloads work fine with weighted payloads too.
+
 
 ## State Machine Output
 

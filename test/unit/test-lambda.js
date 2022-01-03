@@ -71,7 +71,8 @@ var getLambdaAliasStub,
     invokeLambdaProcessorStub,
     deleteLambdaAliasStub,
     waitForFunctionUpdateStub,
-    getLambdaArchitectureStub;
+    getLambdaArchitectureStub,
+    fetchPayloadFromS3Stub;
 
 /** unit tests below **/
 
@@ -140,45 +141,34 @@ describe('Lambda Functions', async() => {
 
         const handler = require('../../lambda/initializer').handler;
 
-        it('should explode if invoked without a lambdaARN', async() => {
-            const invalidEvents = [
-                null,
-                {},
-                { lambdaARN: null },
-                { lambdaARN: '' },
-                { lambdaARN: false },
-                { lambdaARN: 0 },
-            ];
-            invalidEvents.forEach(event => {
-                expect(async() => {
-                    await invokeForFailure(handler, event);
-                }).to.not.throwError();
-            });
+        let invalidEvents = [
+            null,
+            {},
+            { lambdaARN: null },
+            { lambdaARN: '' },
+            { lambdaARN: false },
+            { lambdaARN: 0 },
+        ];
 
-            expect(async() => {
-                await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
-            }).to.not.throwError();
+        invalidEvents.forEach(async(event) => {
+            it('should explode if invoked without a lambdaARN - ' + JSON.stringify(event), async() => {
+                await invokeForFailure(handler, event);
+            });
         });
 
-        it('should explode if invoked with a low num', async() => {
-            const invalidEvents = [
-                { num: -1, lambdaARN: 'arnOK' },
-                { num: 0, lambdaARN: 'arnOK' },
-                { num: 1, lambdaARN: 'arnOK' },
-                { num: 2, lambdaARN: 'arnOK' },
-                { num: 3, lambdaARN: 'arnOK' },
-                { num: 4, lambdaARN: 'arnOK' },
-            ];
-            invalidEvents.forEach(event => {
-                expect(async() => {
-                    await invokeForFailure(handler, event);
-                }).to.not.throwError();
+        invalidEvents = [
+            { num: -1, lambdaARN: 'arnOK' },
+            { num: 0, lambdaARN: 'arnOK' },
+            { num: 1, lambdaARN: 'arnOK' },
+            { num: 2, lambdaARN: 'arnOK' },
+            { num: 3, lambdaARN: 'arnOK' },
+            { num: 4, lambdaARN: 'arnOK' },
+        ];
+
+        invalidEvents.forEach(async(event) => {
+            it('should explode if invoked with a low num - ' + JSON.stringify(event), async() => {
+                await invokeForFailure(handler, event);
             });
-
-            expect(async() => {
-                await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
-            }).to.not.throwError();
-
         });
 
         it('should invoke the given cb without powerValues as input', async() => {
@@ -268,26 +258,23 @@ describe('Lambda Functions', async() => {
 
         const handler = require('../../lambda/cleaner').handler;
 
-        it('should explode if invoked without a lambdaARN', async() => {
-            const invalidEvents = [
-                null,
-                {},
-                { lambdaARN: null },
-                { lambdaARN: '' },
-                { lambdaARN: false },
-                { lambdaARN: 0 },
-            ];
-            invalidEvents.forEach(async(event) => {
-                expect(async() => {
-                    await invokeForFailure(handler, event);
-                }).to.not.throwError();
+        let invalidEvents = [
+            null,
+            {},
+            { lambdaARN: null },
+            { lambdaARN: '' },
+            { lambdaARN: false },
+            { lambdaARN: 0 },
+        ];
+
+        invalidEvents.forEach(async(event) => {
+            it('should explode if invoked without a lambdaARN - ' + JSON.stringify(event), async() => {
+                await invokeForFailure(handler, event);
             });
         });
 
         it('should explode if invoked without powerValues', async() => {
-            expect(async() => {
-                await invokeForFailure(handler, {lambdaARN: 'arnOK'});
-            }).to.not.throwError();
+            await invokeForFailure(handler, {lambdaARN: 'arnOK'});
         });
 
         beforeEach('mock utilities', () => {
@@ -356,12 +343,14 @@ describe('Lambda Functions', async() => {
         var invokeLambdaCounter,
             invokeLambdaPayloads,
             invokeProcessorCounter,
+            fetchPayloadFromS3Counter,
             getLambdaArchitectureCounter;
 
         beforeEach('mock utilities', () => {
             invokeLambdaCounter = 0;
             invokeLambdaPayloads = [];
             invokeProcessorCounter = 0;
+            fetchPayloadFromS3Counter = 0;
             getLambdaArchitectureCounter = 0;
 
             invokeLambdaStub && invokeLambdaStub.restore();
@@ -394,36 +383,40 @@ describe('Lambda Functions', async() => {
                     return Math.floor(Math.random() * 2) === 0 ? 'x86_64' : 'arm64';
                 });
 
+            fetchPayloadFromS3Stub && fetchPayloadFromS3Stub.restore();
+            fetchPayloadFromS3Stub = sandBox.stub(utils, 'fetchPayloadFromS3')
+                .callsFake(async(_arn, _alias, payload) => {
+                    fetchPayloadFromS3Counter++;
+                    return {ValueFromS3: 'OK'};
+                });
         });
 
-        it('should explode if invoked with invalid input', async() => {
-            const invalidEvents = [
-                null,
-                {},
-                { lambdaARN: null },
-                { lambdaARN: '' },
-                { lambdaARN: false },
-                { lambdaARN: 0 },
-                { lambdaARN: 'arnOK' },
-                { input: {lambdaARN: null} },
-                { input: {lambdaARN: ''} },
-                { input: {lambdaARN: false} },
-                { input: {lambdaARN: 0} },
-                { input: {lambdaARN: 'arnOK'} },
-                { input: {lambdaARN: 'arnOK'}, value: null },
-                { input: {lambdaARN: 'arnOK'}, value: 0 },
-                { input: {lambdaARN: 'arnOK'}, value: 'invalid' },
-                { input: {lambdaARN: 'arnOK'}, value: 128 }, // 128 is ok
-                { input: {lambdaARN: 'arnOK'}, value: '128' }, // '128' is ok
-                { input: {lambdaARN: 'arnOK', num: null}, value: 128 },
-                { input: {lambdaARN: 'arnOK', num: 0}, value: 128 },
-                { input: {lambdaARN: 'arnOK', num: 'invalid'}, value: 128 },
-            ];
+        let invalidEvents = [
+            null,
+            {},
+            { lambdaARN: null },
+            { lambdaARN: '' },
+            { lambdaARN: false },
+            { lambdaARN: 0 },
+            { lambdaARN: 'arnOK' },
+            { input: {lambdaARN: null} },
+            { input: {lambdaARN: ''} },
+            { input: {lambdaARN: false} },
+            { input: {lambdaARN: 0} },
+            { input: {lambdaARN: 'arnOK'} },
+            { input: {lambdaARN: 'arnOK'}, value: null },
+            { input: {lambdaARN: 'arnOK'}, value: 0 },
+            { input: {lambdaARN: 'arnOK'}, value: 'invalid' },
+            { input: {lambdaARN: 'arnOK'}, value: 128 }, // 128 is ok
+            { input: {lambdaARN: 'arnOK'}, value: '128' }, // '128' is ok
+            { input: {lambdaARN: 'arnOK', num: null}, value: 128 },
+            { input: {lambdaARN: 'arnOK', num: 0}, value: 128 },
+            { input: {lambdaARN: 'arnOK', num: 'invalid'}, value: 128 },
+        ];
 
-            invalidEvents.forEach(event => {
-                expect(async() => {
-                    await invokeForFailure(handler, event);
-                }).to.not.throwError();
+        invalidEvents.forEach(async(event) => {
+            it('should explode if invoked with invalid input - ' + JSON.stringify(event), async() => {
+                await invokeForFailure(handler, event);
             });
         });
 
@@ -1015,24 +1008,90 @@ describe('Lambda Functions', async() => {
 
         });
 
+        it('should fetch payload from S3 if payloadS3 is given', async() => {
+
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 50,
+                    payloadS3: 's3://my-bucket/my-key.json',
+                },
+            });
+            expect(fetchPayloadFromS3Counter).to.be(1);
+            for (let payload of invokeLambdaPayloads){
+                expect(payload).to.be('{"ValueFromS3":"OK"}');
+            }
+        });
+
+        it('should fetch payload from S3 if both payload and payloadS3 are given', async() => {
+
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 50,
+                    payloadS3: 's3://my-bucket/my-key.json',
+                    payload: '{"ValueInline": "OK"}', // won't be used
+                },
+            });
+            expect(fetchPayloadFromS3Counter).to.be(1);
+            for (let payload of invokeLambdaPayloads){
+                expect(payload).to.be('{"ValueFromS3":"OK"}');
+            }
+        });
+
+        it('should generate weighted payload from S3', async() => {
+            fetchPayloadFromS3Stub && fetchPayloadFromS3Stub.restore();
+            fetchPayloadFromS3Stub = sandBox.stub(utils, 'fetchPayloadFromS3')
+                .callsFake(async(_arn, _alias, payload) => {
+                    fetchPayloadFromS3Counter++;
+                    return [
+                        { payload: {test: 'A'}, weight: 10 },
+                        { payload: {test: 'B'}, weight: 30 },
+                        { payload: {test: 'C'}, weight: 60 },
+                    ];
+                });
+
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    payloadS3: 's3://my-bucket/my-key.json',
+                },
+            });
+
+            expect(fetchPayloadFromS3Counter).to.be(1);
+            expect(invokeLambdaPayloads.length).to.be(10);
+            const counters = {
+                A: 0, B: 0, C: 0,
+            };
+            invokeLambdaPayloads.forEach(payload => {
+                counters[JSON.parse(payload).test] += 1;
+            });
+            expect(counters.A).to.be(1);
+            expect(counters.B).to.be(3);
+            expect(counters.C).to.be(6);
+        });
+
     });
 
     describe('analyzer', () => {
 
         const handler = require('../../lambda/analyzer').handler;
 
-        it('should explode if invoked without invalid event', async() => {
-            const invalidEvents = [
-                null,
-                {},
-                [],
-                { lambdaARN: '' },
-                { whatever: 1 },
-            ];
-            invalidEvents.forEach(event => {
-                expect(async() => {
-                    await invokeForFailure(handler, event);
-                }).to.not.throwError();
+        let invalidEvents = [
+            null,
+            {},
+            [],
+            { lambdaARN: '' },
+            { whatever: 1 },
+        ];
+
+        invalidEvents.forEach(async(event) => {
+            it('should explode if invoked without invalid event - ' + JSON.stringify(event), async() => {
+                await invokeForFailure(handler, event);
             });
         });
 
@@ -1266,19 +1325,30 @@ describe('Lambda Functions', async() => {
             expect(result).to.be(undefined);
         });
 
-        it('should explode if invalid strategy', async() => {
-            const event = {
-                strategy: 'foobar',
-                stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
-                    { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
-                    { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
-                ],
-            };
+        const invalidStrategies = [
+            'foobar', // doesn't exist
+            'Balanced', // capitalized
+            ' ',
+            '-',
+        ];
 
-            expect(async() => {
+        invalidStrategies.forEach(strategy => {
+
+            it(`should explode if invalid strategy - "${strategy}"`, async() => {
+
+                const event = {
+                    strategy: strategy,
+                    stats: [
+                        { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
+                        { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
+                        { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
+                    ],
+                };
+
                 await invokeForFailure(handler, event);
-            }).to.not.throwError();
+
+            });
+
         });
 
     });
@@ -1322,23 +1392,22 @@ describe('Lambda Functions', async() => {
                 });
         });
 
-        it('should explode if invoked without lambdaARN or optimal power', async() => {
-            const invalidEvents = [
-                {},
-                { lambdaARN: null },
-                { lambdaARN: '' },
-                { lambdaARN: false },
-                { lambdaARN: 0 },
-                { lambdaARN: '', analysis: null },
-                { lambdaARN: 'arnOK', analysis: {} },
-                { lambdaARN: 'arnOK', analysis: { power: null} },
-            ];
-            invalidEvents.forEach(event => {
-                expect(async() => {
-                    await invokeForFailure(handler, event);
-                }).to.not.throwError();
-            });
 
+        let invalidEvents = [
+            {},
+            { lambdaARN: null },
+            { lambdaARN: '' },
+            { lambdaARN: false },
+            { lambdaARN: 0 },
+            { lambdaARN: '', analysis: null },
+            { lambdaARN: 'arnOK', analysis: {} },
+            { lambdaARN: 'arnOK', analysis: { power: null} },
+        ];
+
+        invalidEvents.forEach(async(event) => {
+            it('should explode if invoked without lambdaARN or optimal power - ' + JSON.stringify(event), async() => {
+                await invokeForFailure(handler, event);
+            });
         });
 
         it('should not do anything if invoked without autoOptimize', async() => {

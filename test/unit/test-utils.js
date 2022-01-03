@@ -31,6 +31,7 @@ AWS.mock('Lambda', 'deleteFunction', {});
 AWS.mock('Lambda', 'createAlias', {});
 AWS.mock('Lambda', 'deleteAlias', {});
 AWS.mock('Lambda', 'invoke', {});
+AWS.mock('S3', 'getObject', {Body: Buffer.from('{"Value": "OK"}')});
 
 // note: waiters aren't correctly mocked by aws-sdk-mock (for now)
 // https://github.com/dwyl/aws-sdk-mock/issues/173
@@ -209,7 +210,7 @@ describe('Lambda Utils', () => {
 
     describe('computeAverageDuration', () => {
         const durations = [
-            1, 1, 2, 3, 2000
+            1, 1, 2, 3, 2000,
         ];
 
         it('should return the average duration', () => {
@@ -712,6 +713,109 @@ describe('Lambda Utils', () => {
                 expect(counters[i]).to.be(1);
             }
             expect(counters[26]).to.be(1 + 4);
+        });
+
+    });
+
+    describe('fetchPayloadFromS3', () => {
+
+        it('should fetch the object from S3 if valid URI', async() => {
+            const payload = await utils.fetchPayloadFromS3('s3://my-bucket/my-key.json');
+            expect(payload).to.be.an('object');
+            expect(payload.Value).to.be('OK');
+        });
+
+        const invalidURIs = [
+            '',
+            '/',
+            'bucket/key.json',
+            '/bucket/key.json',
+            '/key.json',
+            'key.json',
+            's3://bucket/',
+            's3://key.json',
+            's3://',
+        ];
+
+        invalidURIs.forEach(async(uri) => {
+            it(`should explode if invalid URI - ${uri}`, async() => {
+                try {
+                    await utils.fetchPayloadFromS3(uri);
+                    throw new Error(`${uri} did not throw`);
+                } catch (err) {
+                    expect(err.message).to.contain('Invalid S3 path');
+                }
+            });
+        });
+
+        it('should throw if access denied', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                const err = new Error('Access Denied');
+                err.statusCode = 403;
+                callback(err, null);
+            });
+            try {
+                await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                throw new Error('Did not catch 403');
+            } catch (err) {
+                expect(err.message).to.contain('Permission denied');
+            }
+        });
+
+        it('should throw if object not found', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                const err = new Error('Object not found');
+                err.statusCode = 404;
+                callback(err, null);
+            });
+            try {
+                await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                throw new Error('Did not catch 404');
+            } catch (err) {
+                expect(err.message).to.contain('does not exist');
+            }
+        });
+
+        it('should throw if unknown error', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                const err = new Error('Whatever error');
+                err.statusCode = 500;
+                callback(err, null);
+            });
+            try {
+                await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                throw new Error('Did not catch unknown error');
+            } catch (err) {
+                expect(err.message).to.contain('Unknown error');
+                expect(err.message).to.contain('Whatever error');
+            }
+        });
+
+        const validJson = [
+            '{"value": "ok"}',
+            '[1, 2, 3]',
+            '[{"value": "ok"}, {"value2": "ok2"}]',
+        ];
+
+        validJson.forEach(async(str) => {
+            it('should parse string if valid json - ' + str, async() => {
+                AWS.remock('S3', 'getObject', (params, callback) => {
+                    callback(null, {Body: str});
+                });
+
+                const payload = await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                expect(payload).to.be.an('object');
+            });
+        });
+
+        it('should return string if invalid json', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                callback(null, {Body: 'just a string'});
+            });
+
+            const payload = await utils.fetchPayloadFromS3('s3://bucket/key.json');
+            expect(payload).to.be.a('string');
+            expect(payload).to.equal('just a string');
         });
 
     });

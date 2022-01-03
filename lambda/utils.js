@@ -1,6 +1,8 @@
 'use strict';
 
 const AWS = require('aws-sdk');
+const url = require('url');
+
 
 // local reference to this module
 const utils = module.exports;
@@ -278,6 +280,63 @@ module.exports.invokeLambda = (lambdaARN, alias, payload) => {
     return lambda.invoke(params).promise();
 };
 
+/**
+ * Fetch the body of an S3 object, given an S3 path such as s3://BUCKET/KEY
+ */
+module.exports.fetchPayloadFromS3 = async(s3Path) => {
+    console.log('Fetch payload from S3', s3Path);
+
+    if (typeof s3Path !== 'string' || s3Path.indexOf('s3://') === -1) {
+        throw new Error('Invalid S3 path, not a string in the format s3://BUCKET/KEY');
+    }
+
+    const URI = url.parse(s3Path);
+    URI.pathname = decodeURIComponent(URI.pathname || '');
+
+    const bucket = URI.hostname;
+    const key = URI.pathname.slice(1);
+
+    if (!bucket || !key) {
+        throw new Error(`Invalid S3 path: "${s3Path}" (bucket: ${bucket}, key: ${key})`);
+    }
+
+    const data = await utils._fetchS3Object(bucket, key);
+
+    try {
+        // try to parse into JSON object
+        return JSON.parse(data);
+    } catch (_) {
+        // otherwise return as is
+        return data;
+    }
+
+
+};
+
+module.exports._fetchS3Object = async(bucket, key) => {
+    const s3 = new AWS.S3();
+    try {
+        const response = await s3.getObject({
+            Bucket: bucket,
+            Key: key,
+        }).promise();
+        return response.Body.toString('utf-8');
+    } catch (err) {
+        if (err.statusCode === 403) {
+            throw new Error(
+                `Permission denied when trying to read s3://${bucket}/${key}. ` +
+                'You might need to re-deploy the app with the correct payloadS3Bucket parameter.',
+            );
+        } else if (err.statusCode === 404) {
+            throw new Error(
+                `The object s3://${bucket}/${key} does not exist. ` +
+                'Make sure you are trying to access an existing object in the correct bucket.',
+            );
+        } else {
+            throw new Error(`Unknown error when trying to read s3://${bucket}/${key}. ${err.message}`);
+        }
+    }
+};
 
 /**
  * Generate a list of `num` payloads (repeated or weighted)
@@ -403,7 +462,7 @@ module.exports.computeAverageDuration = (durations) => {
 
     // compute trimmed mean (discard 20% of low/high values)
     const averageDuration = durations
-        .sort(function (a, b) {  return a - b;  }) // sort numerically
+        .sort(function(a, b) { return a - b; }) // sort numerically
         .slice(toBeDiscarded, -toBeDiscarded) // discard first/last values
         .reduce((a, b) => a + b, 0) // sum all together
         / newN

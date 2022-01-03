@@ -25,7 +25,7 @@ module.exports.handler = async(event, context) => {
         dryRun,
         preProcessorARN,
         postProcessorARN,
-    } = extractDataFromInput(event);
+    } = await extractDataFromInput(event);
 
     validateInput(lambdaARN, value, num); // may throw
 
@@ -69,14 +69,24 @@ const validateInput = (lambdaARN, value, num) => {
     }
 };
 
-const extractDataFromInput = (event) => {
+const extractPayloadValue = async(input) => {
+    if (input.payloadS3) {
+        return await utils.fetchPayloadFromS3(input.payloadS3); // might throw if access denied or 404
+    } else if (input.payload) {
+        return input.payload;
+    }
+    return null;
+};
+
+const extractDataFromInput = async(event) => {
     const input = event.input; // original state machine input
+    const payload = await extractPayloadValue(input);
     return {
         value: parseInt(event.value, 10),
         lambdaARN: input.lambdaARN,
         num: parseInt(input.num, 10),
         enableParallel: !!input.parallelInvocation,
-        payload: input.payload,
+        payload: payload,
         dryRun: input.dryRun === true,
         preProcessorARN: input.preProcessorARN,
         postProcessorARN: input.postProcessorARN,
