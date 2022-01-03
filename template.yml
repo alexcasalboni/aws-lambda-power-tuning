@@ -19,8 +19,6 @@ Parameters:
   PowerValues: 
     Type: List<Number>
     Default: 128,256,512,1024,1536,3008
-    # Default: 128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024,1088,1152,1216,1280,1344,1408,1472,1536,3008
-    # AllowedValues: ['128','192','256','320','384','448','512','576','640','704','768','832','896','960','1024','1088','1152','1216','1280','1344','1408','1472','1536','3008']
     Description: Default RAM values, used only if not provided as execution input (comma-separated).
   visualizationURL:
     Type: String
@@ -40,9 +38,18 @@ Parameters:
     Type: String
     Default: ''
     Description: The ARN of a permissions boundary to use for all functions' execution role.
+  payloadS3Bucket:
+    Type: String
+    Default: ''
+    Description: S3 bucket name used for large payloads (optional), included in IAM policy if not an empty string
+  payloadS3Key:
+    Type: String
+    Default: '*'
+    Description: S3 object key used for large payloads (optional), included in IAM policy if bucket is not an empty string (all objects are readable by default)
 
 Conditions:
   UsePermissionsBoundary: !Not [!Equals [!Ref permissionsBoundary, '']]
+  S3BucketProvided: !Not [!Equals [!Ref payloadS3Bucket, '']]
 
 Globals:
   Function:
@@ -81,8 +88,8 @@ Resources:
       Layers:
         - !Ref SDKlayer
       Policies:
-        - AWSLambdaExecute # Managed Policy
-        - Version: '2012-10-17' # Policy Document
+        - AWSLambdaBasicExecutionRole # Only logs
+        - Version: '2012-10-17' # allow Lambda actions
           Statement:
             - Effect: Allow
               Action:
@@ -102,14 +109,35 @@ Resources:
       Layers:
         - !Ref SDKlayer
       Policies:
-        - AWSLambdaExecute # Managed Policy
-        - Version: '2012-10-17' # Policy Document
+        - AWSLambdaBasicExecutionRole # only logs
+        - Version: '2012-10-17' # allow Lambda actions
           Statement:
             - Effect: Allow
               Action:
                 - lambda:InvokeFunction
                 - lambda:GetFunctionConfiguration
               Resource: !Ref lambdaResource
+        - !If
+          - S3BucketProvided # if S3 bucket is provided
+          - !Ref payloadS3Policy # allow read-only access to S3
+          - !Ref AWS::NoValue
+
+  payloadS3Policy:
+    Condition: S3BucketProvided
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Lambda Power Tunning - S3 Read Only for large payloads
+      Path: /
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:ListBucket # this is needed only to detect 404 errors correctly
+              - s3:GetObject
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${payloadS3Bucket}
+              - !Sub arn:${AWS::Partition}:s3:::${payloadS3Bucket}/${payloadS3Key} # payloadS3Key is * by default
 
   cleaner:
     Type: AWS::Serverless::Function
@@ -119,8 +147,8 @@ Resources:
       Layers:
         - !Ref SDKlayer
       Policies:
-        - AWSLambdaExecute # Managed Policy
-        - Version: '2012-10-17' # Policy Document
+        - AWSLambdaBasicExecutionRole # only logs
+        - Version: '2012-10-17' # allow Lambda actions
           Statement:
             - Effect: Allow
               Action:
@@ -136,7 +164,7 @@ Resources:
       Handler: analyzer.handler
       Timeout: 10
       Policies:
-        - AWSLambdaExecute # Managed Policy
+        - AWSLambdaBasicExecutionRole # only logs
 
   optimizer:
     Type: AWS::Serverless::Function
@@ -146,8 +174,8 @@ Resources:
       Layers:
         - !Ref SDKlayer
       Policies:
-        - AWSLambdaExecute # Managed Policy
-        - Version: '2012-10-17' # Policy Document
+        - AWSLambdaBasicExecutionRole # only logs
+        - Version: '2012-10-17' # allow Lambda actions
           Statement:
             - Effect: Allow
               Action:

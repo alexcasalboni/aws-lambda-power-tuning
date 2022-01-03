@@ -349,7 +349,7 @@ describe('Lambda Functions', async() => {
             invokeLambdaCounter = 0;
             invokeLambdaPayloads = [];
             invokeProcessorCounter = 0;
-            fetchPayloadFromS3Counter = 0,
+            fetchPayloadFromS3Counter = 0;
             getLambdaArchitectureCounter = 0;
 
             invokeLambdaStub && invokeLambdaStub.restore();

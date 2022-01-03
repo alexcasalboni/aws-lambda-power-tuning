@@ -210,7 +210,7 @@ describe('Lambda Utils', () => {
 
     describe('computeAverageDuration', () => {
         const durations = [
-            1, 1, 2, 3, 2000
+            1, 1, 2, 3, 2000,
         ];
 
         it('should return the average duration', () => {
@@ -747,7 +747,49 @@ describe('Lambda Utils', () => {
                     expect(err.message).to.contain('Invalid S3 path');
                 }
             });
+        });
 
+        it('should throw if access denied', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                const err = new Error('Access Denied');
+                err.statusCode = 403;
+                callback(err, null);
+            });
+            try {
+                await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                throw new Error('Did not catch 403');
+            } catch (err) {
+                expect(err.message).to.contain('Permission denied');
+            }
+        });
+
+        it('should throw if object not found', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                const err = new Error('Object not found');
+                err.statusCode = 404;
+                callback(err, null);
+            });
+            try {
+                await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                throw new Error('Did not catch 404');
+            } catch (err) {
+                expect(err.message).to.contain('does not exist');
+            }
+        });
+
+        it('should throw if unknown error', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                const err = new Error('Whatever error');
+                err.statusCode = 500;
+                callback(err, null);
+            });
+            try {
+                await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                throw new Error('Did not catch unknown error');
+            } catch (err) {
+                expect(err.message).to.contain('Unknown error');
+                expect(err.message).to.contain('Whatever error');
+            }
         });
 
     });

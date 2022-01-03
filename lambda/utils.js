@@ -300,12 +300,28 @@ module.exports.fetchPayloadFromS3 = async(s3Path) => {
     }
 
     const s3 = new AWS.S3();
-    const data = await s3.getObject({
-        Bucket: bucket,
-        Key: key,
-    }).promise();
 
-    return data.Body.toString('utf-8');
+    try {
+        const data = await s3.getObject({
+            Bucket: bucket,
+            Key: key,
+        }).promise();
+        return data.Body.toString('utf-8');
+    } catch (err) {
+        if (err.statusCode === 403) {
+            throw new Error(
+                `Permission denied when trying to read ${s3Path}. ` +
+                'You might need to re-deploy the app with the correct payloadS3Bucket parameter.',
+            );
+        } else if (err.statusCode === 404) {
+            throw new Error(
+                `The S3 object ${s3Path} does not exist. ` +
+                'Make sure you are trying to access an existing object in the correct bucket.',
+            );
+        } else {
+            throw new Error(`Unknown error when trying to read ${s3Path}. ${err.message}`);
+        }
+    }
 };
 
 /**
@@ -432,7 +448,7 @@ module.exports.computeAverageDuration = (durations) => {
 
     // compute trimmed mean (discard 20% of low/high values)
     const averageDuration = durations
-        .sort(function (a, b) {  return a - b;  }) // sort numerically
+        .sort(function(a, b) { return a - b; }) // sort numerically
         .slice(toBeDiscarded, -toBeDiscarded) // discard first/last values
         .reduce((a, b) => a + b, 0) // sum all together
         / newN
