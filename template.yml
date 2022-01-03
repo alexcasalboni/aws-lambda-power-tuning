@@ -127,7 +127,6 @@ Resources:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       Description: Lambda Power Tunning - S3 Read Only for large payloads
-      Path: /
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
