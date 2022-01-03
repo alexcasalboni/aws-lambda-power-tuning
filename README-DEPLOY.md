@@ -16,7 +16,7 @@ If you don't want to deal with any Infrastructure as Code tool, you can use one 
 1.  The [Lambda Power Tuner UI](#option5) 
 
 
-Read more about the [deployment parameters here](README-INPUT-OUTPUT.md#state-machine-configuration-at-deployment-time)
+Read more about the [deployment parameters here](README-INPUT-OUTPUT.md#state-machine-configuration-at-deployment-time).
 
 ## Option 1: AWS Serverless Application Repository<a name="option1"></a>
 
@@ -73,7 +73,7 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
     new sam.CfnApplication(this, 'powerTuner', {
       location: {
         applicationId: 'arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning',
-        semanticVersion: '4.1.4'
+        semanticVersion: '4.2.0'
       },
       parameters: {
         "lambdaResource": "*",
@@ -136,7 +136,7 @@ resource "aws_serverlessapplicationrepository_cloudformation_stack" "lambda-powe
   application_id   = "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning"
   capabilities     = ["CAPABILITY_IAM"]
   # Uncomment the next line to deploy a specific version
-  # semantic_version = "4.1.4"
+  # semantic_version = "4.2.0"
 
   parameters = {
     # All of these parameters are optional and are only shown here for demonstration purposes
