@@ -1,6 +1,6 @@
 # AWS Lambda Power Tuning
 
-[![Build Status](https://travis-ci.com/alexcasalboni/aws-lambda-power-tuning.svg?branch=master)](https://travis-ci.org/alexcasalboni/aws-lambda-power-tuning)
+[![Build Status](https://travis-ci.com/alexcasalboni/aws-lambda-power-tuning.svg?branch=master)](https://travis-ci.com/alexcasalboni/aws-lambda-power-tuning)
 [![Coverage Status](https://coveralls.io/repos/github/alexcasalboni/aws-lambda-power-tuning/badge.svg)](https://coveralls.io/github/alexcasalboni/aws-lambda-power-tuning)
 [![GitHub license](https://img.shields.io/github/license/alexcasalboni/aws-lambda-power-tuning.svg)](https://github.com/alexcasalboni/aws-lambda-power-tuning/blob/master/LICENSE)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/alexcasalboni/aws-lambda-power-tuning/graphs/commit-activity)
@@ -12,7 +12,7 @@ AWS Lambda Power Tuning is a state machine powered by AWS Step Functions that he
 
 The state machine is designed to be easy to deploy and fast to execute. Also, it's language agnostic so you can optimize any Lambda functions in your account.
 
-Basically, you can provide a Lambda function ARN as input and the state machine will invoke that function with multiple power configurations (from 128MB to 3GB, you decide which values). Then it will analyze all the execution logs and suggest you the best power configuration to minimize cost and/or maximize performance.
+Basically, you can provide a Lambda function ARN as input and the state machine will invoke that function with multiple power configurations (from 128MB to 10GB, you decide which values). Then it will analyze all the execution logs and suggest you the best power configuration to minimize cost and/or maximize performance.
 
 Please note that the input function will be executed in your AWS account - performing real HTTP requests, SDK calls, cold starts, etc. The state machine also supports cross-region invocations and you can enable parallel execution to generate results in just a few seconds.
 
@@ -96,6 +96,14 @@ Website repository: [matteo-ronchetti/aws-lambda-power-tuning-ui](https://github
 
 Optionally, you could deploy your own custom visualization tool and configure the CloudFormation Parameter named `visualizationURL` with your own URL.
 
+## Power Tuner UI
+
+Lambda Power Tuner UI is a web interface to simplify the deployment and execution of Lambda Power Tuning. It's built and maintained by [Matthew Dorrian](https://twitter.com/DorrianMatthew) and it aims at providing a consistent interface and a uniform developer experience across teams and projects.
+
+![Power Tuner UI](https://github.com/mattymoomoo/aws-power-tuner-ui/blob/master/imgs/website.png?raw=true)
+
+Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/mattymoomoo/aws-power-tuner-ui)
+
 ## Additional features, considerations, and internals
 
 [Here](README-ADVANCED.md) you can find out more about some advanced features of this project, its internals, and some considerations about security and execution cost.
@@ -105,6 +113,14 @@ Optionally, you could deploy your own custom visualization tool and configure th
 
 From most recent to oldest, with major releases in bold:
 
+* *4.1.3* (2021-12-16): support simple strings as event payload
+* *4.1.2* (2021-10-12): add x86_64 fallback when Graviton is not supported yet
+* *4.1.1* (2021-10-12): fixed connection timeout for long-running functions
+* ***4.1.0*** (2021-10-11): support Lambda functions powered by Graviton2
+* ***4.0.0*** (2021-08-16): support AWS Lambda states expansion to all functions
+* *3.4.2* (2020-12-03): permissions boundary bugfix (Step Functions role)
+* *3.4.1* (2020-12-02): permissions boundary support
+* ***3.4.0*** (2020-12-01): 1ms billing
 * *3.3.3* (2020-07-17): payload logging bugfix for pre-processors
 * *3.3.2* (2020-06-17): weighted payloads bugfix (for real)
 * *3.3.1* (2020-06-16): weighted payloads bugfix

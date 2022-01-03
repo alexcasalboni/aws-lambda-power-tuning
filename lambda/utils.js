@@ -16,6 +16,15 @@ module.exports.stepFunctionsBaseCost = () => {
     return this.baseCostForRegion(prices, process.env.AWS_REGION);
 };
 
+module.exports.lambdaBaseCost = (region, architecture) => {
+    const prices = JSON.parse(process.env.baseCosts);
+    const priceMap = prices[architecture];
+    if (!priceMap){
+        throw new Error('Unsupported architecture: ' + architecture);
+    }
+    return this.baseCostForRegion(priceMap, region);
+};
+
 module.exports.allPowerValues = () => {
     const increment = 64;
     const powerValues = [];
@@ -63,6 +72,10 @@ module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
 module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
     try {
         await utils.setLambdaPower(lambdaARN, value);
+
+        // wait for functoin update to complete
+        await utils.waitForFunctionUpdate(lambdaARN);
+
         const {Version} = await utils.publishLambdaVersion(lambdaARN);
         const aliasExists = await utils.verifyAliasExistance(lambdaARN, alias);
         if (aliasExists) {
@@ -82,6 +95,23 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
 };
 
 /**
+ * Wait for the function's LastUpdateStatus to become Successful.
+ * Documentation: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Lambda.html#functionUpdated-waiter
+ * Why is this needed? https://aws.amazon.com/blogs/compute/coming-soon-expansion-of-aws-lambda-states-to-all-functions/
+ */
+module.exports.waitForFunctionUpdate = async(lambdaARN) => {
+    console.log('Waiting for update to complete');
+    const params = {
+        FunctionName: lambdaARN,
+        $waiter: { // override delay (5s by default)
+            delay: 0.5,
+        },
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    return lambda.waitFor('functionUpdated', params).promise();
+};
+
+/**
  * Retrieve a given Lambda Function's memory size (always $LATEST version)
  */
 module.exports.getLambdaPower = async(lambdaARN) => {
@@ -93,6 +123,23 @@ module.exports.getLambdaPower = async(lambdaARN) => {
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     const config = await lambda.getFunctionConfiguration(params).promise();
     return config.MemorySize;
+};
+
+/**
+ * Retrieve a given Lambda Function's architecture (always $LATEST version)
+ */
+module.exports.getLambdaArchitecture = async(lambdaARN) => {
+    console.log('Getting current architecture');
+    const params = {
+        FunctionName: lambdaARN,
+        Qualifier: '$LATEST',
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    const config = await lambda.getFunctionConfiguration(params).promise();
+    if (typeof config.Architectures !== 'undefined') {
+        return config.Architectures[0];
+    };
+    return 'x86_64';
 };
 
 /**
@@ -315,22 +362,37 @@ module.exports.generatePayloads = (num, payloadInput) => {
  * Convert payload to string, if it's not a string already
  */
 module.exports.convertPayload = (payload) => {
+    /**
+     * Return true only if the input is a JSON-encoded string.
+     * For example, '"test"' or '{"key": "value"}'.
+     */
+    const isJsonString = (s) => {
+        if (typeof s !== 'string')
+            return false;
+
+        try {
+            JSON.parse(s);
+        } catch (e) {
+            return false;
+        }
+        return true;
+    };
+
     // optionally convert everything into string
-    if (typeof payload !== 'string' && typeof payload !== 'undefined') {
-        console.log('Converting payload to string from ', typeof payload);
+    if (typeof payload !== 'undefined' && !isJsonString(payload)) {
+        // note: 'just a string' becomes '"just a string"'
+        console.log('Converting payload to JSON string from ', typeof payload);
         payload = JSON.stringify(payload);
     }
     return payload;
 };
 
 /**
- * Compute average price and returns with average duration.
+ * Compute average price, given average duration.
  */
 module.exports.computePrice = (minCost, minRAM, value, duration) => {
-    // compute official price per 100ms
-    const pricePer100ms = value * minCost / minRAM;
-    // quantize price to upper 100ms (billed duration) and compute avg price
-    return Math.ceil(duration / 100) * pricePer100ms;
+    // it's just proportional to ms (ceiled) and memory value
+    return Math.ceil(duration) * minCost * (value / minRAM);
 };
 
 module.exports.parseLogAndExtractDurations = (data) => {
@@ -341,7 +403,7 @@ module.exports.parseLogAndExtractDurations = (data) => {
 };
 
 /**
- * Copute average duration
+ * Compute total cost
  */
 module.exports.computeTotalCost = (minCost, minRAM, value, durations) => {
     if (!durations || !durations.length) {
@@ -370,7 +432,7 @@ module.exports.computeAverageDuration = (durations) => {
 
     // compute trimmed mean (discard 20% of low/high values)
     const averageDuration = durations
-        .sort() // sort numerically
+        .sort(function (a, b) {  return a - b;  }) // sort numerically
         .slice(toBeDiscarded, -toBeDiscarded) // discard first/last values
         .reduce((a, b) => a + b, 0) // sum all together
         / newN
@@ -454,7 +516,7 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
 /**
  * Using the prices supplied,
  * to figure what the base price is for the
- * supplied lambda's region
+ * supplied region.
  */
 module.exports.baseCostForRegion = (priceMap, region) => {
     if (priceMap[region]) {
