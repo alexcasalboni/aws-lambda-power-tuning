@@ -721,9 +721,8 @@ describe('Lambda Utils', () => {
 
         it('should fetch the object from S3 if valid URI', async() => {
             const payload = await utils.fetchPayloadFromS3('s3://my-bucket/my-key.json');
-            expect(payload).to.be.a('string');
-            expect(payload).to.contain('OK');
-            expect(JSON.parse(payload).Value).to.be('OK');
+            expect(payload).to.be.an('object');
+            expect(payload.Value).to.be('OK');
         });
 
         const invalidURIs = [
@@ -790,6 +789,33 @@ describe('Lambda Utils', () => {
                 expect(err.message).to.contain('Unknown error');
                 expect(err.message).to.contain('Whatever error');
             }
+        });
+
+        const validJson = [
+            '{"value": "ok"}',
+            '[1, 2, 3]',
+            '[{"value": "ok"}, {"value2": "ok2"}]',
+        ];
+
+        validJson.forEach(async(str) => {
+            it('should parse string if valid json - ' + str, async() => {
+                AWS.remock('S3', 'getObject', (params, callback) => {
+                    callback(null, {Body: str});
+                });
+
+                const payload = await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                expect(payload).to.be.an('object');
+            });
+        });
+
+        it('should return string if invalid json', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                callback(null, {Body: 'just a string'});
+            });
+
+            const payload = await utils.fetchPayloadFromS3('s3://bucket/key.json');
+            expect(payload).to.be.a('string');
+            expect(payload).to.equal('just a string');
         });
 
     });

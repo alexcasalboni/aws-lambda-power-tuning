@@ -71,7 +71,8 @@ var getLambdaAliasStub,
     invokeLambdaProcessorStub,
     deleteLambdaAliasStub,
     waitForFunctionUpdateStub,
-    getLambdaArchitectureStub;
+    getLambdaArchitectureStub,
+    fetchPayloadFromS3Stub;
 
 /** unit tests below **/
 
@@ -382,10 +383,11 @@ describe('Lambda Functions', async() => {
                     return Math.floor(Math.random() * 2) === 0 ? 'x86_64' : 'arm64';
                 });
 
-            sandBox.stub(utils, 'fetchPayloadFromS3')
+            fetchPayloadFromS3Stub && fetchPayloadFromS3Stub.restore();
+            fetchPayloadFromS3Stub = sandBox.stub(utils, 'fetchPayloadFromS3')
                 .callsFake(async(_arn, _alias, payload) => {
                     fetchPayloadFromS3Counter++;
-                    return '{"ValueFromS3": "OK"}';
+                    return {ValueFromS3: 'OK'};
                 });
         });
 
@@ -1018,11 +1020,11 @@ describe('Lambda Functions', async() => {
             });
             expect(fetchPayloadFromS3Counter).to.be(1);
             for (let payload of invokeLambdaPayloads){
-                expect(payload).to.be('{"ValueFromS3": "OK"}');
+                expect(payload).to.be('{"ValueFromS3":"OK"}');
             }
         });
 
-        it('should fetch payload from S3 if boty payload and payloadS3 are given', async() => {
+        it('should fetch payload from S3 if both payload and payloadS3 are given', async() => {
 
             await invokeForSuccess(handler, {
                 value: '128',
@@ -1035,8 +1037,42 @@ describe('Lambda Functions', async() => {
             });
             expect(fetchPayloadFromS3Counter).to.be(1);
             for (let payload of invokeLambdaPayloads){
-                expect(payload).to.be('{"ValueFromS3": "OK"}');
+                expect(payload).to.be('{"ValueFromS3":"OK"}');
             }
+        });
+
+        it('should generate weighted payload from S3', async() => {
+            fetchPayloadFromS3Stub && fetchPayloadFromS3Stub.restore();
+            fetchPayloadFromS3Stub = sandBox.stub(utils, 'fetchPayloadFromS3')
+                .callsFake(async(_arn, _alias, payload) => {
+                    fetchPayloadFromS3Counter++;
+                    return [
+                        { payload: {test: 'A'}, weight: 10 },
+                        { payload: {test: 'B'}, weight: 30 },
+                        { payload: {test: 'C'}, weight: 60 },
+                    ];
+                });
+
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    payloadS3: 's3://my-bucket/my-key.json',
+                },
+            });
+
+            expect(fetchPayloadFromS3Counter).to.be(1);
+            expect(invokeLambdaPayloads.length).to.be(10);
+            const counters = {
+                A: 0, B: 0, C: 0,
+            };
+            invokeLambdaPayloads.forEach(payload => {
+                counters[JSON.parse(payload).test] += 1;
+            });
+            expect(counters.A).to.be(1);
+            expect(counters.B).to.be(3);
+            expect(counters.C).to.be(6);
         });
 
     });
