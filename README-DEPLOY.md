@@ -16,6 +16,8 @@ If you don't want to deal with any Infrastructure as Code tool, you can use one 
 1.  The [Lambda Power Tuner UI](#option5) 
 
 
+Read more about the [deployment parameters here](README-INPUT-OUTPUT.md#state-machine-configuration-at-deployment-time)
+
 ## Option 1: AWS Serverless Application Repository<a name="option1"></a>
 
 You can find this app in the [Serverless Application Repository](https://serverlessrepo.aws.amazon.com/applications/arn:aws:serverlessrepo:us-east-1:451282441545:applications~aws-lambda-power-tuning) and deploy it with just a few clicks in the AWS Management Console.
