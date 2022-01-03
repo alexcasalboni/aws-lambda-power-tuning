@@ -403,7 +403,7 @@ module.exports.computeAverageDuration = (durations) => {
 
     // compute trimmed mean (discard 20% of low/high values)
     const averageDuration = durations
-        .sort() // sort numerically
+        .sort(function (a, b) {  return a - b;  }) // sort numerically
         .slice(toBeDiscarded, -toBeDiscarded) // discard first/last values
         .reduce((a, b) => a + b, 0) // sum all together
         / newN
