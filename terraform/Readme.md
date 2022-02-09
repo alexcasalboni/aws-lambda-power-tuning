@@ -5,9 +5,13 @@ This was created for those that may not be in a position to use Cloudformation. 
 
 ## Before you start
 
-In variables.tf modify the following with your AWS account ID.
+Modify the variables to your desired region, and to target the correct AWS Account
 
 ```
+variable "aws_region" {
+  default = "eu-west-1"
+}
+
 variable "account_id" {
   default = "123456789101"
 }
@@ -19,6 +23,25 @@ terraform init
 terraform plan
 terraform apply
 ```
+
+## Deploy multiple to multiple accounts/regions
+Copy the module in main.tf, and give it a new module name e.g.
+
+```
+module "power_tuning" {
+  source = "./module"
+  aws_region = var.aws_region
+  account_id = var.account_id
+}
+
+module "power_tuning_2" {
+  source = "./module"
+  aws_region = var.aws_region_2
+  account_id = var.account_id_2
+}
+```
+
+If you're planning on deploying many, I'd suggest keeping your statefile lightweight, and plans/applies faster by using a folder strategy by either account or region.
 
 ## Versions tested
 - 0.13.3
