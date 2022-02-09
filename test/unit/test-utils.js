@@ -13,6 +13,8 @@ process.env.sfCosts = `{"us-gov-west-1": 0.00003,"eu-north-1": 0.000025,
 "us-east-2": 0.000025,"ap-south-1": 0.0000285,"ap-southeast-1": 0.000025,
 "us-gov-east-1": 0.00003,"ca-central-1": 0.000025,"eu-west-1": 0.000025,
 "us-west-2": 0.000025,"sa-east-1": 0.0000375}`;
+process.env.baseCosts = '{"x86_64": {"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-south-1":2.6e-9,"eu-south-1":2.4e-9,"default":2.1e-9}, "arm64": {"default":1.7e-9}}';
+
 
 process.env.AWS_REGION = 'af-south-1';
 
@@ -22,17 +24,18 @@ const sandBox = sinon.createSandbox();
 
 // AWS SDK mocks
 AWS.mock('Lambda', 'getAlias', {});
-AWS.mock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful'});
+AWS.mock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ['x86_64']});
 AWS.mock('Lambda', 'updateFunctionConfiguration', {});
 AWS.mock('Lambda', 'publishVersion', {});
 AWS.mock('Lambda', 'deleteFunction', {});
 AWS.mock('Lambda', 'createAlias', {});
 AWS.mock('Lambda', 'deleteAlias', {});
 AWS.mock('Lambda', 'invoke', {});
+AWS.mock('S3', 'getObject', {Body: Buffer.from('{"Value": "OK"}')});
 
 // note: waiters aren't correctly mocked by aws-sdk-mock (for now)
 // https://github.com/dwyl/aws-sdk-mock/issues/173
-AWS.mock('Lambda', 'waitFor', {}); 
+AWS.mock('Lambda', 'waitFor', {});
 
 describe('Lambda Utils', () => {
 
@@ -207,7 +210,7 @@ describe('Lambda Utils', () => {
 
     describe('computeAverageDuration', () => {
         const durations = [
-            1, 1, 2, 3, 3,
+            1, 1, 2, 3, 2000,
         ];
 
         it('should return the average duration', () => {
@@ -341,6 +344,43 @@ describe('Lambda Utils', () => {
         });
     });
 
+    describe('lambdaBaseCost', () => {
+        it('should return x86 base prices', () => {
+            expect(utils.lambdaBaseCost('eu-west-1', 'x86_64')).to.be(2.1e-9);
+        });
+
+        it('should return default base price', () => {
+            expect(utils.lambdaBaseCost('eu-west-1', 'arm64')).to.be(1.7e-9);
+        });
+
+        it('should explode if invalid architecture', () => {
+            expect(() => utils.lambdaBaseCost('eu-west-1', 'invalid_arch')).to.throwError();
+        });
+    });
+
+    describe('getLambdaArchitecture', () => {
+
+        it('should return a string representing the arch type', async() => {
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const data = await utils.getLambdaArchitecture(ARN);
+            expect(data).to.be('x86_64');
+        });
+
+        it('should return arm64 when Graviton is supported', async() => {
+            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ['arm64']});
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const data = await utils.getLambdaArchitecture(ARN);
+            expect(data).to.be('arm64');
+        });
+
+        it('should always return x86_64 when Graviton is not supported', async() => {
+            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful'});
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const data = await utils.getLambdaArchitecture(ARN);
+            expect(data).to.be('x86_64');
+        });
+    });
+
     describe('invokeLambdaProcessor', () => {
 
         var invokeLambdaCounter;
@@ -387,21 +427,39 @@ describe('Lambda Utils', () => {
         });
     });
 
+    const isJsonString = (str) => {
+        try {
+            JSON.parse(str);
+        } catch (e) {
+            return false;
+        }
+        return true;
+    };
+
     describe('convertPayload', () => {
 
-        it('should return the same string when a string is given', async() => {
+        it('should JSON-encode strings, if not JSON strings already', async() => {
             const strings = [
                 'test',
-                '{"test": true}',
-                '[]',
-                'undefined',
-                'true',
-                'null',
                 '',
                 ' ',
             ];
             strings.forEach(s => {
+                expect(utils.convertPayload(s)).to.be('"' + s + '"');
+                expect(isJsonString(utils.convertPayload(s))).to.be(true);
+            });
+        });
+
+        it('should return already a JSON-encoded string as is', async() => {
+            const strings = [
+                '{"test": true}',
+                '[]',
+                'true',
+                'null',
+            ];
+            strings.forEach(s => {
                 expect(utils.convertPayload(s)).to.be(s);
+                expect(isJsonString(utils.convertPayload(s))).to.be(true);
             });
         });
 
@@ -411,6 +469,7 @@ describe('Lambda Utils', () => {
         });
 
         it('should convert everything else to string', async() => {
+            expect(utils.convertPayload(null)).to.be('null');
             expect(utils.convertPayload({})).to.be('{}');
             expect(utils.convertPayload({test: true})).to.be('{"test":true}');
             expect(utils.convertPayload([])).to.be('[]');
@@ -428,6 +487,18 @@ describe('Lambda Utils', () => {
             expect(output.length).to.be(10);
             output.forEach(p => {
                 expect(p).to.be('{"test":true}');
+                expect(isJsonString(p)).to.be(true);
+            });
+        });
+
+        it('should generate a list of encoded JSON strings, if not weighted', async() => {
+            const payload = 'just a string';
+
+            const output = utils.generatePayloads(10, payload);
+            expect(output.length).to.be(10);
+            output.forEach(p => {
+                expect(p).to.be('"just a string"');
+                expect(isJsonString(p)).to.be(true);
             });
         });
 
@@ -642,6 +713,109 @@ describe('Lambda Utils', () => {
                 expect(counters[i]).to.be(1);
             }
             expect(counters[26]).to.be(1 + 4);
+        });
+
+    });
+
+    describe('fetchPayloadFromS3', () => {
+
+        it('should fetch the object from S3 if valid URI', async() => {
+            const payload = await utils.fetchPayloadFromS3('s3://my-bucket/my-key.json');
+            expect(payload).to.be.an('object');
+            expect(payload.Value).to.be('OK');
+        });
+
+        const invalidURIs = [
+            '',
+            '/',
+            'bucket/key.json',
+            '/bucket/key.json',
+            '/key.json',
+            'key.json',
+            's3://bucket/',
+            's3://key.json',
+            's3://',
+        ];
+
+        invalidURIs.forEach(async(uri) => {
+            it(`should explode if invalid URI - ${uri}`, async() => {
+                try {
+                    await utils.fetchPayloadFromS3(uri);
+                    throw new Error(`${uri} did not throw`);
+                } catch (err) {
+                    expect(err.message).to.contain('Invalid S3 path');
+                }
+            });
+        });
+
+        it('should throw if access denied', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                const err = new Error('Access Denied');
+                err.statusCode = 403;
+                callback(err, null);
+            });
+            try {
+                await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                throw new Error('Did not catch 403');
+            } catch (err) {
+                expect(err.message).to.contain('Permission denied');
+            }
+        });
+
+        it('should throw if object not found', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                const err = new Error('Object not found');
+                err.statusCode = 404;
+                callback(err, null);
+            });
+            try {
+                await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                throw new Error('Did not catch 404');
+            } catch (err) {
+                expect(err.message).to.contain('does not exist');
+            }
+        });
+
+        it('should throw if unknown error', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                const err = new Error('Whatever error');
+                err.statusCode = 500;
+                callback(err, null);
+            });
+            try {
+                await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                throw new Error('Did not catch unknown error');
+            } catch (err) {
+                expect(err.message).to.contain('Unknown error');
+                expect(err.message).to.contain('Whatever error');
+            }
+        });
+
+        const validJson = [
+            '{"value": "ok"}',
+            '[1, 2, 3]',
+            '[{"value": "ok"}, {"value2": "ok2"}]',
+        ];
+
+        validJson.forEach(async(str) => {
+            it('should parse string if valid json - ' + str, async() => {
+                AWS.remock('S3', 'getObject', (params, callback) => {
+                    callback(null, {Body: str});
+                });
+
+                const payload = await utils.fetchPayloadFromS3('s3://bucket/key.json');
+                expect(payload).to.be.an('object');
+            });
+        });
+
+        it('should return string if invalid json', async() => {
+            AWS.remock('S3', 'getObject', (params, callback) => {
+                callback(null, {Body: 'just a string'});
+            });
+
+            const payload = await utils.fetchPayloadFromS3('s3://bucket/key.json');
+            expect(payload).to.be.a('string');
+            expect(payload).to.equal('just a string');
         });
 
     });

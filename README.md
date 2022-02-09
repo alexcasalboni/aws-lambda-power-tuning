@@ -1,6 +1,6 @@
 # AWS Lambda Power Tuning
 
-[![Build Status](https://travis-ci.com/alexcasalboni/aws-lambda-power-tuning.svg?branch=master)](https://travis-ci.org/alexcasalboni/aws-lambda-power-tuning)
+[![Build Status](https://travis-ci.com/alexcasalboni/aws-lambda-power-tuning.svg?branch=master)](https://travis-ci.com/alexcasalboni/aws-lambda-power-tuning)
 [![Coverage Status](https://coveralls.io/repos/github/alexcasalboni/aws-lambda-power-tuning/badge.svg)](https://coveralls.io/github/alexcasalboni/aws-lambda-power-tuning)
 [![GitHub license](https://img.shields.io/github/license/alexcasalboni/aws-lambda-power-tuning.svg)](https://github.com/alexcasalboni/aws-lambda-power-tuning/blob/master/LICENSE)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/alexcasalboni/aws-lambda-power-tuning/graphs/commit-activity)
@@ -113,6 +113,12 @@ Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/m
 
 From most recent to oldest, with major releases in bold:
 
+* *4.2.0* (2022-01-03): support S3 payloads
+* *4.1.4* (2022-01-03): sorting bugfix and updated dependencies
+* *4.1.3* (2021-12-16): support simple strings as event payload
+* *4.1.2* (2021-10-12): add x86_64 fallback when Graviton is not supported yet
+* *4.1.1* (2021-10-12): fixed connection timeout for long-running functions
+* ***4.1.0*** (2021-10-11): support Lambda functions powered by Graviton2
 * ***4.0.0*** (2021-08-16): support AWS Lambda states expansion to all functions
 * *3.4.2* (2020-12-03): permissions boundary bugfix (Step Functions role)
 * *3.4.1* (2020-12-02): permissions boundary support
