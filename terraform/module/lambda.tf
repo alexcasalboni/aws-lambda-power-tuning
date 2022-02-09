@@ -149,7 +149,7 @@ resource "aws_lambda_layer_version" "lambda_layer" {
   filename    = "../src/layer.zip"
   layer_name  = "AWS-SDK-v2_989_0"
   description = "AWS SDK 2.989.0"
-
+  compatible_architectures = ["x86_64"]
   compatible_runtimes = ["nodejs14.x"]
 
   depends_on = [data.archive_file.layer]

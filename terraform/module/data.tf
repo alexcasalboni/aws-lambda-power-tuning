@@ -1,6 +1,6 @@
 resource "null_resource" "build_layer" {
   provisioner "local-exec" {
-    command     = "../scripts/build-layer.sh"
+    command     = "${path.module}/scripts/build-layer.sh"
     interpreter = ["bash"]
   }
   triggers = {

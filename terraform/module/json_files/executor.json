@@ -4,7 +4,8 @@
         {
             "Effect": "Allow",
             "Action": [
-                "lambda:InvokeFunction"
+                "lambda:InvokeFunction",
+                "lambda:GetFunctionConfiguration"
             ],
             "Resource": "arn:aws:lambda:*:${account_id}:function:*"
         }
