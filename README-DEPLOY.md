@@ -11,7 +11,7 @@ The following three options utilize [AWS CloudFormation](https://aws.amazon.com/
 
 You can also [deploy manually with Terraform](#option6) by Hashicorp.
 
-If you want to use Terraform natively (which circumvents Cloudformation), see [Option 7](#)
+If you want to use Terraform natively (which circumvents Cloudformation), see [Option 7](#option7)
 
 If you don't want to deal with any Infrastructure as Code tool, you can use one of the following:
 1. The [Lumigo CLI](#option4) (which will take care of both deployment and execution)
@@ -154,7 +154,7 @@ See the [Terraform documentation](https://registry.terraform.io/providers/hashic
 
 If you don't yet have a Terraform project, check out the [Terraform introduction](https://www.terraform.io/intro/index.html).
 
-## Option 7: deploy the natively with Terraform
+## Option 7: deploy natively with Terraform<a name="option7"></a>
 
 Please see the documentation [here](terraform/Readme.md)
 
