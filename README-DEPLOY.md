@@ -156,7 +156,7 @@ If you don't yet have a Terraform project, check out the [Terraform introduction
 
 ## Option 7: deploy natively with Terraform<a name="option7"></a>
 
-Please see the documentation [here](terraform/Readme.md)
+Please see the documentation [here](terraform/Readme.md).
 
 
 ## How to execute the state machine once deployed?
