@@ -1,0 +1,16 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:GetAlias",
+                "lambda:PublishVersion",
+                "lambda:UpdateFunctionConfiguration",
+                "lambda:CreateAlias",
+                "lambda:UpdateAlias"
+            ],
+            "Resource": "arn:aws:lambda:*:${account_id}:function:*"
+        }
+    ]
+}

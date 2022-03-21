@@ -1,0 +1,80 @@
+{
+    "Comment": "AWS Lambda Power Tuning state machine",
+    "StartAt": "Initializer",
+    "States": {
+        "Initializer": {
+            "Type": "Task",
+            "Resource": "${initializerArn}",
+            "Next": "Branching",
+            "ResultPath": "$.powerValues",
+            "TimeoutSeconds": 600,
+            "Catch": [{
+              "ErrorEquals": [ "States.ALL" ],
+              "Next": "CleanUpOnError",
+              "ResultPath": "$.error"
+            }]
+        },
+        "Branching": {
+            "Type": "Map",
+            "Next": "Cleaner",
+            "ItemsPath": "$.powerValues",
+            "ResultPath": "$.stats",
+            "Parameters": {
+              "input.$": "$",
+              "value.$": "$$.Map.Item.Value"
+            },
+            "MaxConcurrency": 0,
+            "Catch": [{
+              "ErrorEquals": ["States.ALL"],
+              "Next": "CleanUpOnError",
+              "ResultPath": "$.error"
+            }],
+            "Iterator": {
+                "StartAt": "Executor",
+                "States": {
+                    "Executor": {
+                        "Type": "Task",
+                        "Resource": "${executorArn}",
+                        "End": true,
+                        "TimeoutSeconds": 30,
+                        "Retry": [{
+                            "ErrorEquals": ["States.ALL"],
+                            "IntervalSeconds": 3,
+                            "MaxAttempts": 2
+                        }]
+                    }
+                }
+            }
+        },
+        "Cleaner": {
+            "Type": "Task",
+            "Next": "Analyzer",
+            "ResultPath": null,
+            "TimeoutSeconds": 30,
+            "Resource": "${cleanerArn}"
+        },
+        "Analyzer": {
+            "Type": "Task",
+            "Resource": "${analyzerArn}",
+            "ResultPath": "$.analysis",
+            "TimeoutSeconds": 10,
+            "Next": "Optimizer"
+        },
+        "Optimizer": {
+            "Type": "Task",
+            "Resource": "${optimizerArn}",
+            "ResultPath": null,
+            "OutputPath": "$.analysis",
+            "TimeoutSeconds": 30,
+            "End": true
+        },
+        "CleanUpOnError": {
+            "Type": "Task",
+            "ResultPath": null,
+            "OutputPath": null,
+            "Resource": "${cleanerArn}",
+            "TimeoutSeconds": 30,
+            "End": true
+        }
+    }
+}

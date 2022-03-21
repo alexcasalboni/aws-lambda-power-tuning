@@ -1,0 +1,14 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:GetAlias",
+                "lambda:DeleteAlias",
+                "lambda:DeleteFunction"
+            ],
+            "Resource": "arn:aws:lambda:*:${account_id}:function:*"
+        }
+    ]
+}
