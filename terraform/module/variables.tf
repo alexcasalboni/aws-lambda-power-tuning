@@ -1,6 +1,6 @@
-
-variable "aws_region" {}
-variable "account_id" {}
+variable "account_id" {
+  description = "Your AWS account id."
+}
 
 variable "lambda_function_prefix" {
   default = "lambda_power_tuning"
