@@ -30,13 +30,11 @@ Copy the module in `main.tf` and give it a new module name. For example:
 ```
 module "power_tuning" {
   source = "./module"
-  aws_region = var.aws_region
   account_id = var.account_id
 }
 
 module "power_tuning_2" {
   source = "./module"
-  aws_region = var.aws_region_2
   account_id = var.account_id_2
 }
 ```
