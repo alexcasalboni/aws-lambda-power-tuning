@@ -5,13 +5,9 @@ This deployment option is intended for those who may not be in a position to use
 
 ## Before you start
 
-Modify the variables to your desired region, and to target the correct AWS Account.
+Modify the variables to target the correct AWS Account.
 
 ```
-variable "aws_region" {
-  default = "eu-west-1"
-}
-
 variable "account_id" {
   default = "123456789101"
 }
