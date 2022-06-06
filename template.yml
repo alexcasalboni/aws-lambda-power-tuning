@@ -46,10 +46,21 @@ Parameters:
     Type: String
     Default: '*'
     Description: S3 object key used for large payloads (optional), included in IAM policy if bucket is not an empty string (all objects are readable by default)
+  securityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+    Default: ''
+    Description: List of Security Groups to use in every Lambda function's VPC Configuration (optional).
+  subnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Default: ''
+    Description: List of Subnets to use in every Lambda function's VPC Configuration (optional).
 
 Conditions:
   UsePermissionsBoundary: !Not [!Equals [!Ref permissionsBoundary, '']]
   S3BucketProvided: !Not [!Equals [!Ref payloadS3Bucket, '']]
+  UseSecurityGroupIds: !Not [!Equals [!Join ['', !Ref securityGroupIds], '']]
+  UseSubnetIds: !Not [!Equals [!Join ['', !Ref subnetIds], '']]
+  UseVPCConfig: !Or [Condition: UseSecurityGroupIds, Condition: UseSubnetIds]
 
 Globals:
   Function:
@@ -57,6 +68,10 @@ Globals:
     MemorySize: 128
     Timeout: !Ref totalExecutionTimeout
     PermissionsBoundary: !If [UsePermissionsBoundary, !Ref permissionsBoundary, !Ref AWS::NoValue]
+    VpcConfig: !If [UseVPCConfig, {
+      SecurityGroupIds: !If [UseSecurityGroupIds, !Ref securityGroupIds, !Ref AWS::NoValue],
+      SubnetIds: !If [UseSubnetIds, !Ref subnetIds, !Ref AWS::NoValue]
+    }, !Ref AWS::NoValue]
     Environment:
       Variables:
         defaultPowerValues: !Join [ ",", !Ref PowerValues ]
