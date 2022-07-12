@@ -6,8 +6,8 @@ variable "lambda_function_prefix" {
   default = "lambda_power_tuning"
 }
 
-variable "role_path_prefix" {
-  default     = null
+variable "role_path_override" {
+  default     = ""
   type        = string
   description = "If you want to have a role path different from the lambda_function_prefix, use this variable."
 }
