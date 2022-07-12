@@ -46,10 +46,15 @@ Parameters:
     Type: String
     Default: '*'
     Description: S3 object key used for large payloads (optional), included in IAM policy if bucket is not an empty string (all objects are readable by default)
+  layerSdkName:
+    Type: String
+    Default: ''
+    Description: Name of the SDK layer, if customization is needed (optional)
 
 Conditions:
   UsePermissionsBoundary: !Not [!Equals [!Ref permissionsBoundary, '']]
   S3BucketProvided: !Not [!Equals [!Ref payloadS3Bucket, '']]
+  UseLayerSdkName: !Not [!Equals [!Ref layerSdkName, '']]
 
 Globals:
   Function:
@@ -70,7 +75,7 @@ Resources:
   SDKlayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: AWS-SDK-v2_989_0
+      LayerName: !If [UseLayerSdkName, !Ref layerSdkName, AWS-SDK-v2_989_0]
       Description: AWS SDK 2.989.0
       ContentUri: ./layer-sdk
       CompatibleRuntimes:
