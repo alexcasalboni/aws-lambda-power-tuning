@@ -5,6 +5,8 @@ locals {
   sfCosts            = jsonencode({ "default" : 0.000025, "us-gov-west-1" : 0.00003, "ap-northeast-2" : 0.0000271, "eu-south-1" : 0.00002625, "af-south-1" : 0.00002975, "us-west-1" : 0.0000279, "eu-west-3" : 0.0000297, "ap-east-1" : 0.0000275, "me-south-1" : 0.0000275, "ap-south-1" : 0.0000285, "us-gov-east-1" : 0.00003, "sa-east-1" : 0.0000375 })
   visualizationURL   = "https://lambda-power-tuning.show/"
 
+  role_path = var.role_path_override != "" ? var.role_path_override : "/${var.lambda_function_prefix}/"
+
   state_machine = templatefile(
     "${path.module}/json_files/state_machine.json",
     {
