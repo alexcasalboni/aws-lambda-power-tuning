@@ -440,7 +440,7 @@ module.exports.computeTotalCost = (minCost, minRAM, value, durations) => {
         return 0;
     }
 
-    // compute corresponding cost for each durationo
+    // compute corresponding cost for each duration
     const costs = durations.map(duration => utils.computePrice(minCost, minRAM, value, duration));
 
     // sum all together
@@ -448,7 +448,7 @@ module.exports.computeTotalCost = (minCost, minRAM, value, durations) => {
 };
 
 /**
- * Copute average duration
+ * Compute average duration
  */
 module.exports.computeAverageDuration = (durations, discardTopBottom) => {
     if (!durations || !durations.length) {

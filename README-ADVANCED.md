@@ -5,7 +5,7 @@ This section describes some advanced features of this project, as well as some c
 
 ## Error handling
 
-If something goes wrong during the initialization or execution states, the `CleanUpOnError` step will be executed. All temporary versions and alises will be deleted as expected (the same happens in the `Cleaner` step).
+If something goes wrong during the initialization or execution states, the `CleanUpOnError` step will be executed. All temporary versions and aliases will be deleted as expected (the same happens in the `Cleaner` step).
 
 You can customize the `totalExecutionTimeout` parameter at deploy time (up to 15min). This parameter will be used both for Lambda function timeouts and Step Function tasks timeouts. In case the `Executor` raises a timeout error, you will see a `States.Timeout` error. Keep in mind that the timeout you configure will vary whether you're setting `parallelInvocation` to `true` or `false`. When you enable parallel invocation, all the function executions will run concurrently (rather than in series) so that you can keep that timeout lower and your overall state machine execution faster.
 

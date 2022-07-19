@@ -12,7 +12,7 @@ const minRAM = parseInt(process.env.minRAM, 10);
 
 /**
  * Execute the given function N times in series or in parallel.
- * Then compute execution statistics (averate cost and duration).
+ * Then compute execution statistics (average cost and duration).
  */
 module.exports.handler = async(event, context) => {
     // read input from event
