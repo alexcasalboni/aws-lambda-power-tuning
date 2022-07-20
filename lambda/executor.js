@@ -145,6 +145,11 @@ const computeStatistics = (baseCost, results, value, discardTopBottom) => {
     const averageDuration = utils.computeAverageDuration(durations, discardTopBottom);
     console.log('Average duration: ', averageDuration);
 
+    const initDurations = utils.parseLogAndExtractInitDurations(results);
+
+    const [initDuration] = initDurations;
+    console.log('Init duration: ', initDuration);
+
     // ... and overall statistics
     const averagePrice = utils.computePrice(baseCost, minRAM, value, averageDuration);
 
@@ -154,6 +159,7 @@ const computeStatistics = (baseCost, results, value, discardTopBottom) => {
     const stats = {
         averagePrice,
         averageDuration,
+        initDuration,
         totalCost,
         value,
     };

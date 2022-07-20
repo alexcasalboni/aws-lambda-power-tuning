@@ -74,6 +74,7 @@ const extractStatistics = (event) => {
             power: stat.value,
             cost: stat.averagePrice,
             duration: stat.averageDuration,
+            initDuration: stat.initDuration,
             totalCost: stat.totalCost,
         }));
 };

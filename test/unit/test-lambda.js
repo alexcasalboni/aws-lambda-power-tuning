@@ -357,6 +357,15 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn, _alias, payload) => {
                     invokeLambdaCounter++;
                     invokeLambdaPayloads.push(payload);
+                    if (invokeLambdaCounter === 1){
+                        // first invocation log contains init duration
+                        return {
+                            StatusCode: 200,
+                            LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMTAwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJSW5pdCBEdXJhdGlvbjogMzQ1LjgxIG1zCQo=',
+                            ExecutedVersion: '$LATEST',
+                            Payload: '{}',
+                        };
+                    }
                     // logs will always return 1ms duration with 128MB
                     return {
                         StatusCode: 200,
@@ -454,6 +463,7 @@ describe('Lambda Functions', async() => {
             expect(response).to.be.an('object');
             expect(response.averagePrice).to.be.a('number');
             expect(response.averageDuration).to.be.a('number');
+            expect(response.initDuration).to.be.a('number');
             expect(response.totalCost).to.be.a('number');
             expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.1e-8); // 10ms in total
             expect(getLambdaArchitectureCounter).to.be(1);
@@ -471,6 +481,7 @@ describe('Lambda Functions', async() => {
             expect(response).to.be.an('object');
             expect(response.averagePrice).to.be.a('number');
             expect(response.averageDuration).to.be.a('number');
+            expect(response.initDuration).to.be.a('number');
             expect(response.totalCost).to.be.a('number');
             expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.8e-8); // 10ms in total
             expect(getLambdaArchitectureCounter).to.be(1);
@@ -835,6 +846,7 @@ describe('Lambda Functions', async() => {
             });
             expect(stats.averagePrice).to.be.a('number');
             expect(stats.averageDuration).to.be.a('number');
+            expect(stats.initDuration).to.be.a('number');
 
             expect(getLambdaArchitectureCounter).to.be(1);
         });
@@ -1253,9 +1265,9 @@ describe('Lambda Functions', async() => {
         it('should also return the total cost of execution', async() => {
             const event = {
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
-                    { value: '256', averagePrice: 200, averageDuration: 300, totalCost: 2 },
-                    { value: '512', averagePrice: 30, averageDuration: 200, totalCost: 3 },
+                    { value: '128', averagePrice: 100, averageDuration: 100, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 300, initDuration: 450, totalCost: 2 },
+                    { value: '512', averagePrice: 30, averageDuration: 200, initDuration: 500, totalCost: 3 },
                 ],
             };
 
@@ -1264,6 +1276,7 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(30);
             expect(result.duration).to.be(200);
+            expect(result.initDuration).to.be(500);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
             expect(result.stateMachine.lambdaCost).to.be(6);
@@ -1272,9 +1285,9 @@ describe('Lambda Functions', async() => {
         it('should also return visualization URL', async() => {
             const event = {
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
-                    { value: '256', averagePrice: 200, averageDuration: 300, totalCost: 2 },
-                    { value: '512', averagePrice: 30, averageDuration: 200, totalCost: 3 },
+                    { value: '128', averagePrice: 100, averageDuration: 100, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 300, initDuration: 450, totalCost: 2 },
+                    { value: '512', averagePrice: 30, averageDuration: 200, initDuration: 500, totalCost: 3 },
                 ],
             };
 
@@ -1287,9 +1300,9 @@ describe('Lambda Functions', async() => {
         it('should return the cheapest power configuration if no strategy', async() => {
             const event = {
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
-                    { value: '256', averagePrice: 200, averageDuration: 300, totalCost: 3 },
-                    { value: '512', averagePrice: 30, averageDuration: 200, totalCost: 5 },
+                    { value: '128', averagePrice: 100, averageDuration: 100, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 300, initDuration: 450, totalCost: 3 },
+                    { value: '512', averagePrice: 30, averageDuration: 200, initDuration: 500, totalCost: 5 },
                 ],
             };
 
@@ -1298,6 +1311,7 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(30);
             expect(result.duration).to.be(200);
+            expect(result.initDuration).to.be(500);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
             expect(result.stateMachine.lambdaCost).to.be(9);
@@ -1307,9 +1321,9 @@ describe('Lambda Functions', async() => {
             const event = {
                 strategy: 'cost',
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
-                    { value: '256', averagePrice: 200, averageDuration: 300, totalCost: 6 },
-                    { value: '512', averagePrice: 30, averageDuration: 200, totalCost: 9 },
+                    { value: '128', averagePrice: 100, averageDuration: 100, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 300, initDuration: 450, totalCost: 6 },
+                    { value: '512', averagePrice: 30, averageDuration: 200, initDuration: 500, totalCost: 9 },
                 ],
             };
 
@@ -1318,6 +1332,7 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(30);
             expect(result.duration).to.be(200);
+            expect(result.initDuration).to.be(500);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
             expect(result.stateMachine.lambdaCost).to.be(16);
@@ -1327,9 +1342,9 @@ describe('Lambda Functions', async() => {
             const event = {
                 strategy: 'cost',
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
-                    { value: '256', averagePrice: 100, averageDuration: 90, totalCost: 1 },
-                    { value: '512', averagePrice: 300, averageDuration: 200, totalCost: 9 },
+                    { value: '128', averagePrice: 100, averageDuration: 100, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 100, averageDuration: 90, initDuration: 450, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 200, initDuration: 500, totalCost: 9 },
                 ],
             };
 
@@ -1338,6 +1353,7 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('256');
             expect(result.cost).to.be(100);
             expect(result.duration).to.be(90);
+            expect(result.initDuration).to.be(450);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
             expect(result.stateMachine.lambdaCost).to.be(11);
@@ -1347,9 +1363,9 @@ describe('Lambda Functions', async() => {
             const event = {
                 strategy: 'speed',
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
-                    { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
-                    { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
+                    { value: '128', averagePrice: 100, averageDuration: 300, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 200, initDuration: 450, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 100, initDuration: 500, totalCost: 1 },
                 ],
             };
 
@@ -1358,6 +1374,7 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(300);
             expect(result.duration).to.be(100);
+            expect(result.initDuration).to.be(500);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
             expect(result.stateMachine.lambdaCost).to.be(3);
@@ -1367,9 +1384,9 @@ describe('Lambda Functions', async() => {
             const event = {
                 strategy: 'speed',
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 200, totalCost: 1 },
-                    { value: '256', averagePrice: 90, averageDuration: 200, totalCost: 1 },
-                    { value: '512', averagePrice: 300, averageDuration: 400, totalCost: 1 },
+                    { value: '128', averagePrice: 100, averageDuration: 200, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 90, averageDuration: 200, initDuration: 450, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 400, initDuration: 500, totalCost: 1 },
                 ],
             };
 
@@ -1378,6 +1395,7 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('256');
             expect(result.cost).to.be(90);
             expect(result.duration).to.be(200);
+            expect(result.initDuration).to.be(450);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
             expect(result.stateMachine.lambdaCost).to.be(3);
@@ -1388,9 +1406,9 @@ describe('Lambda Functions', async() => {
                 strategy: 'balanced',
                 balancedWeight: 1,
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
-                    { value: '256', averagePrice: 200, averageDuration: 300, totalCost: 6 },
-                    { value: '512', averagePrice: 30, averageDuration: 200, totalCost: 9 },
+                    { value: '128', averagePrice: 100, averageDuration: 100, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 300, initDuration: 450, totalCost: 6 },
+                    { value: '512', averagePrice: 30, averageDuration: 200, initDuration: 500, totalCost: 9 },
                 ],
             };
 
@@ -1399,6 +1417,7 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(30);
             expect(result.duration).to.be(200);
+            expect(result.initDuration).to.be(500);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
             expect(result.stateMachine.lambdaCost).to.be(16);
@@ -1409,9 +1428,9 @@ describe('Lambda Functions', async() => {
                 strategy: 'balanced',
                 balancedWeight: 0,
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
-                    { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
-                    { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
+                    { value: '128', averagePrice: 100, averageDuration: 300, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 200, initDuration: 450, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 100, initDuration: 500, totalCost: 1 },
                 ],
             };
 
@@ -1420,6 +1439,7 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(300);
             expect(result.duration).to.be(100);
+            expect(result.initDuration).to.be(500);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
             expect(result.stateMachine.lambdaCost).to.be(3);
@@ -1429,9 +1449,9 @@ describe('Lambda Functions', async() => {
             const event = {
                 strategy: 'balanced',
                 stats: [
-                    { value: '128', averagePrice: 101, averageDuration: 300, totalCost: 1 },
-                    { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
-                    { value: '512', averagePrice: 300, averageDuration: 101, totalCost: 1 },
+                    { value: '128', averagePrice: 101, averageDuration: 300, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 200, initDuration: 450, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 101, initDuration: 500, totalCost: 1 },
                 ],
             };
 
@@ -1440,6 +1460,7 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('256');
             expect(result.cost).to.be(200);
             expect(result.duration).to.be(200);
+            expect(result.initDuration).to.be(450);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(3));
             expect(result.stateMachine.lambdaCost).to.be(3);
@@ -1450,10 +1471,10 @@ describe('Lambda Functions', async() => {
                 strategy: 'balanced',
                 balancedWeight: 0.3,
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
-                    { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
-                    { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
-                    { value: '1024', averagePrice: 1000, averageDuration: 50, totalCost: 1 },
+                    { value: '128', averagePrice: 100, averageDuration: 300, initDuration: 600, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 200, initDuration: 450, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 100, initDuration: 500, totalCost: 1 },
+                    { value: '1024', averagePrice: 1000, averageDuration: 50, initDuration: 300, totalCost: 1 },
                 ],
             };
 
@@ -1462,6 +1483,7 @@ describe('Lambda Functions', async() => {
             expect(result.power).to.be('512');
             expect(result.cost).to.be(300);
             expect(result.duration).to.be(100);
+            expect(result.initDuration).to.be(500);
             expect(result.stateMachine).to.be.an('object');
             expect(result.stateMachine.executionCost).to.be(utils.stepFunctionsCost(4));
             expect(result.stateMachine.lambdaCost).to.be(4);
@@ -1471,7 +1493,7 @@ describe('Lambda Functions', async() => {
             const event = {
                 strategy: 'cost',
                 stats: [
-                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
+                    { value: '128', averagePrice: 100, averageDuration: 300, initDuration: 450, totalCost: 1 },
                 ],
                 dryRun: true,
             };
@@ -1494,9 +1516,9 @@ describe('Lambda Functions', async() => {
                 const event = {
                     strategy: strategy,
                     stats: [
-                        { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
-                        { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
-                        { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
+                        { value: '128', averagePrice: 100, averageDuration: 300, initDuration: 600, totalCost: 1 },
+                        { value: '256', averagePrice: 200, averageDuration: 200, initDuration: 450, totalCost: 1 },
+                        { value: '512', averagePrice: 300, averageDuration: 100, initDuration: 500, totalCost: 1 },
                     ],
                 };
 
