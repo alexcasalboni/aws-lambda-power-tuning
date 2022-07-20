@@ -210,16 +210,21 @@ describe('Lambda Utils', () => {
 
     describe('computeAverageDuration', () => {
         const durations = [
-            1, 1, 2, 3, 2000,
+            1, 1, 2, 3, 6, 2000,
         ];
 
         it('should return the average duration', () => {
             const duration = utils.computeAverageDuration(durations, 0.2);
-            expect(duration).to.be(2);
+            expect(duration).to.be(3);
+        });
+
+        it('should return the average duration custom trimming', () => {
+            const duration = utils.computeAverageDuration(durations, 0.4);
+            expect(duration).to.be(2.5);
         });
         it('should return the average duration with no trimmed value', () => {
             const duration = utils.computeAverageDuration(durations, 0);
-            expect(duration).to.be(401.4);
+            expect(duration).to.be(335.5);
         });
         it('should return 0 if empty results', () => {
             const duration = utils.computeAverageDuration([]);
