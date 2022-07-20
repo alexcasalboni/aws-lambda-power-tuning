@@ -322,7 +322,7 @@ describe('Lambda Functions', async() => {
             await invokeForSuccess(handler, eventOK);
         });
 
-        it('should fail is something goes wrong with the cleaup API calls', async() => {
+        it('should fail is something goes wrong with the cleanup API calls', async() => {
             deleteLambdaVersionStub && deleteLambdaVersionStub.restore();
             deleteLambdaVersionStub = sandBox.stub(utils, 'deleteLambdaVersion')
                 .callsFake(async() => {
@@ -924,7 +924,7 @@ describe('Lambda Functions', async() => {
             expect(getLambdaArchitectureCounter).to.be(1);
         });
 
-        it('should invoke function with original payload if pre-precessor does not return a new payload', async() => {
+        it('should invoke function with original payload if pre-processor does not return a new payload', async() => {
 
             invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
             invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')

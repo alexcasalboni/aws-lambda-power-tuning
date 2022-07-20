@@ -73,7 +73,7 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
     try {
         await utils.setLambdaPower(lambdaARN, value);
 
-        // wait for functoin update to complete
+        // wait for function update to complete
         await utils.waitForFunctionUpdate(lambdaARN);
 
         const {Version} = await utils.publishLambdaVersion(lambdaARN);
