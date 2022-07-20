@@ -82,7 +82,7 @@ const extractPayloadValue = async(input) => {
 
 const extractDiscardTopBottomValue = (event) => {
     // extract discardTopBottom used to trim values from average duration
-    let discardTopBottom = event.extractDiscardTopBottom;
+    let discardTopBottom = event.discardTopBottom;
     if (typeof discardTopBottom === 'undefined') {
         discardTopBottom = 0.2;
     }
