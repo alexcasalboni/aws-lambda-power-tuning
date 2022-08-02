@@ -255,6 +255,7 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 From most recent to oldest, with major releases in bold:
 
+* *4.2.1* (2022-08-02): customizable SDK layer name and logs retention value
 * *4.2.0* (2022-01-03): support S3 payloads
 * *4.1.4* (2022-01-03): sorting bugfix and updated dependencies
 * *4.1.3* (2021-12-16): support simple strings as event payload
