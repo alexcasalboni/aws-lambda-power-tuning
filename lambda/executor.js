@@ -12,7 +12,7 @@ const minRAM = parseInt(process.env.minRAM, 10);
 
 /**
  * Execute the given function N times in series or in parallel.
- * Then compute execution statistics (averate cost and duration).
+ * Then compute execution statistics (average cost and duration).
  */
 module.exports.handler = async(event, context) => {
     // read input from event
@@ -25,6 +25,7 @@ module.exports.handler = async(event, context) => {
         dryRun,
         preProcessorARN,
         postProcessorARN,
+        discardTopBottom,
     } = await extractDataFromInput(event);
 
     validateInput(lambdaARN, value, num); // may throw
@@ -54,7 +55,7 @@ module.exports.handler = async(event, context) => {
     // get base cost for Lambda
     const baseCost = utils.lambdaBaseCost(utils.regionFromARN(lambdaARN), architecture);
 
-    return computeStatistics(baseCost, results, value);
+    return computeStatistics(baseCost, results, value, discardTopBottom);
 };
 
 const validateInput = (lambdaARN, value, num) => {
@@ -78,9 +79,21 @@ const extractPayloadValue = async(input) => {
     return null;
 };
 
+
+const extractDiscardTopBottomValue = (event) => {
+    // extract discardTopBottom used to trim values from average duration
+    let discardTopBottom = event.discardTopBottom;
+    if (typeof discardTopBottom === 'undefined') {
+        discardTopBottom = 0.2;
+    }
+    // discardTopBottom must be between 0 and 0.4
+    return Math.min(Math.max(discardTopBottom, 0.0), 0.4);
+};
+
 const extractDataFromInput = async(event) => {
     const input = event.input; // original state machine input
     const payload = await extractPayloadValue(input);
+    const discardTopBottom = extractDiscardTopBottomValue(input);
     return {
         value: parseInt(event.value, 10),
         lambdaARN: input.lambdaARN,
@@ -90,6 +103,7 @@ const extractDataFromInput = async(event) => {
         dryRun: input.dryRun === true,
         preProcessorARN: input.preProcessorARN,
         postProcessorARN: input.postProcessorARN,
+        discardTopBottom: discardTopBottom,
     };
 };
 
@@ -123,12 +137,12 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payloads, preARN, postARN
     return results;
 };
 
-const computeStatistics = (baseCost, results, value) => {
+const computeStatistics = (baseCost, results, value, discardTopBottom) => {
     // use results (which include logs) to compute average duration ...
 
     const durations = utils.parseLogAndExtractDurations(results);
 
-    const averageDuration = utils.computeAverageDuration(durations);
+    const averageDuration = utils.computeAverageDuration(durations, discardTopBottom);
     console.log('Average duration: ', averageDuration);
 
     // ... and overall statistics

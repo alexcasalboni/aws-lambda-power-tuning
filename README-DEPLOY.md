@@ -2,9 +2,9 @@
 
 There are multiple options to deploy the tool.
 
-If you are familiar with Infrastructure as Code, there are 4 ways for you to create all of the resources neccesary for Lambda Power Tuning.
+If you are familiar with Infrastructure as Code, there are 4 ways for you to create all of the resources necessary for Lambda Power Tuning.
 
-The following three options utilize [AWS CloudFormation](https://aws.amazon.com/cloudformation/) on your behalf to create the neccessary resources. Each will create a new CloudFormation stack in your AWS account containing all the resources for the Lambda Power Tuning tool.
+The following three options utilize [AWS CloudFormation](https://aws.amazon.com/cloudformation/) on your behalf to create the necessary resources. Each will create a new CloudFormation stack in your AWS account containing all the resources for the Lambda Power Tuning tool.
 1. The easiest way is to [deploy the app via the AWS Serverless Application Repository (SAR)](#option1)
 1. Manually [using the AWS SAM CLI](#option2)
 1. Manually [using the AWS CDK](#option3)
@@ -46,15 +46,15 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
     [`sam build -u`](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-build.html) will run SAM build using a Docker container image that provides an environment similar to that which your function would run in. SAM build in-turn looks at your AWS SAM template file for information about Lambda functions and layers in this project.
     
     Once the build has completed you should see output that states `Build Succeeded`. If not there will be error messages providing guidance on what went wrong.
-1.  Deploy the applicaiton using the SAM deploy "guided" mode:
+1.  Deploy the application using the SAM deploy "guided" mode:
     ```bash
     $ sam deploy -g
     ```
-    [`sam deploy -g`](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-deploy.html) will provide simple prompts to walk you through the process of deploying the tool. Provide a unique name for the 'Stack Name' and supply the [AWS Region](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions) you want to run the tool in and then you can select the defaults for testing of this tool. After accepting the promted questions with a "Y" you can optionally save your application configuration. 
+    [`sam deploy -g`](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-deploy.html) will provide simple prompts to walk you through the process of deploying the tool. Provide a unique name for the 'Stack Name' and supply the [AWS Region](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions) you want to run the tool in and then you can select the defaults for testing of this tool. After accepting the prompted questions with a "Y" you can optionally save your application configuration. 
 
     After that the SAM CLI will run the required commands to create the resources for the Lambda Power Tuning tool. The CloudFormation outputs shown will highlight any issues or failures.
     
-    If there are no issues, once complete you will see the stack ouputs and a `Successfully created/updated stack` message.
+    If there are no issues, once complete you will see the stack outputs and a `Successfully created/updated stack` message.
   
 
 ## Option 3: Deploy the AWS SAR app with AWS CDK<a name="option3"></a>
