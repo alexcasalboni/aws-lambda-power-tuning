@@ -458,6 +458,13 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
     // a percentage of durations will be discarded (trimmed mean)
     const toBeDiscarded = parseInt(durations.length * discardTopBottom, 10);
 
+    if (discardTopBottom > 0 && toBeDiscarded === 0) {
+        // not an error, but worth logging
+        // this happens when you have less than 5 invocations
+        // (only happens if dryrun or in tests)
+        console.log("not enough results to discard");
+    }
+
     const newN = durations.length - 2 * toBeDiscarded;
 
     // compute trimmed mean (discard a percentage of low/high values)
