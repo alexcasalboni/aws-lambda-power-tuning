@@ -440,7 +440,7 @@ module.exports.computeTotalCost = (minCost, minRAM, value, durations) => {
         return 0;
     }
 
-    // compute corresponding cost for each durationo
+    // compute corresponding cost for each duration
     const costs = durations.map(duration => utils.computePrice(minCost, minRAM, value, duration));
 
     // sum all together
@@ -448,22 +448,29 @@ module.exports.computeTotalCost = (minCost, minRAM, value, durations) => {
 };
 
 /**
- * Copute average duration
+ * Compute average duration
  */
-module.exports.computeAverageDuration = (durations) => {
+module.exports.computeAverageDuration = (durations, discardTopBottom) => {
     if (!durations || !durations.length) {
         return 0;
     }
 
-    // 20% of durations will be discarted (trimmed mean)
-    const toBeDiscarded = parseInt(durations.length * 20 / 100, 10);
+    // a percentage of durations will be discarded (trimmed mean)
+    const toBeDiscarded = parseInt(durations.length * discardTopBottom, 10);
+
+    if (discardTopBottom > 0 && toBeDiscarded === 0) {
+        // not an error, but worth logging
+        // this happens when you have less than 5 invocations
+        // (only happens if dryrun or in tests)
+        console.log("not enough results to discard");
+    }
 
     const newN = durations.length - 2 * toBeDiscarded;
 
-    // compute trimmed mean (discard 20% of low/high values)
+    // compute trimmed mean (discard a percentage of low/high values)
     const averageDuration = durations
         .sort(function(a, b) { return a - b; }) // sort numerically
-        .slice(toBeDiscarded, -toBeDiscarded) // discard first/last values
+        .slice(toBeDiscarded, toBeDiscarded > 0 ? -toBeDiscarded : durations.length) // discard first/last values
         .reduce((a, b) => a + b, 0) // sum all together
         / newN
     ;

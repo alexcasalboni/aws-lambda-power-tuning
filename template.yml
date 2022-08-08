@@ -12,7 +12,7 @@ Metadata:
     ReadmeUrl: README-SAR.md
     Labels: ['lambda', 'power', 'state-machine', 'step-functions', 'optimization']
     HomePageUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
-    SemanticVersion: 4.2.0
+    SemanticVersion: 4.2.1
     SourceCodeUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
 
 Parameters: 
@@ -46,6 +46,14 @@ Parameters:
     Type: String
     Default: '*'
     Description: S3 object key used for large payloads (optional), included in IAM policy if bucket is not an empty string (all objects are readable by default)
+  layerSdkName:
+    Type: String
+    Default: ''
+    Description: Name of the SDK layer, if customization is needed (optional)
+  logGroupRetentionInDays:
+    Type: Number
+    Default: 7
+    Description: The number of days to retain the log events in the Lambda log groups.
   securityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
     Default: ''
@@ -58,6 +66,7 @@ Parameters:
 Conditions:
   UsePermissionsBoundary: !Not [!Equals [!Ref permissionsBoundary, '']]
   S3BucketProvided: !Not [!Equals [!Ref payloadS3Bucket, '']]
+  UseLayerSdkName: !Not [!Equals [!Ref layerSdkName, '']]
   UseSecurityGroupIds: !Not [!Equals [!Join ['', !Ref securityGroupIds], '']]
   UseSubnetIds: !Not [!Equals [!Join ['', !Ref subnetIds], '']]
   UseVPCConfig: !Or [Condition: UseSecurityGroupIds, Condition: UseSubnetIds]
@@ -85,7 +94,7 @@ Resources:
   SDKlayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: AWS-SDK-v2_989_0
+      LayerName: !If [UseLayerSdkName, !Ref layerSdkName, AWS-SDK-v2_989_0]
       Description: AWS SDK 2.989.0
       ContentUri: ./layer-sdk
       CompatibleRuntimes:
@@ -94,6 +103,13 @@ Resources:
       RetentionPolicy: Retain
     Metadata:
       BuildMethod: nodejs14.x
+
+  initializerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: initializer
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${initializer}'
+      RetentionInDays: !Ref logGroupRetentionInDays
 
   initializer:
     Type: AWS::Serverless::Function
@@ -115,6 +131,13 @@ Resources:
                 - lambda:CreateAlias
                 - lambda:UpdateAlias
               Resource: !Ref lambdaResource
+
+  executorLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: executor
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${executor}'
+      RetentionInDays: !Ref logGroupRetentionInDays
 
   executor:
     Type: AWS::Serverless::Function
@@ -153,6 +176,13 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${payloadS3Bucket}
               - !Sub arn:${AWS::Partition}:s3:::${payloadS3Bucket}/${payloadS3Key} # payloadS3Key is * by default
 
+  cleanerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: cleaner
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${cleaner}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
   cleaner:
     Type: AWS::Serverless::Function
     Properties:
@@ -171,6 +201,13 @@ Resources:
                 - lambda:DeleteFunction  # only by version/qualifier
               Resource: !Ref lambdaResource
 
+  analyzerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: analyzer
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${analyzer}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
   analyzer:
     Type: AWS::Serverless::Function
     Properties:
@@ -179,6 +216,13 @@ Resources:
       Timeout: 10
       Policies:
         - AWSLambdaBasicExecutionRole # only logs
+
+  optimizerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: optimizer
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${optimizer}'
+      RetentionInDays: !Ref logGroupRetentionInDays
 
   optimizer:
     Type: AWS::Serverless::Function

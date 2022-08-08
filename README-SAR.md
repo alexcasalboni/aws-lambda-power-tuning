@@ -37,12 +37,12 @@ Once the execution has completed, you will find the execution results in the "**
 
 ## State machine input (at execution time)
 
-The state machine accepts the following intput parameters:
+The state machine accepts the following input parameters:
 
 * **lambdaARN** (required, string): unique identifier of the Lambda function you want to optimize
 * **powerValues** (optional, string or list of integers): the list of power values to be tested; if not provided, the default values configured at deploy-time are used (by default: 128MB, 256MB, 512MB, 1024MB, 1536MB, and 3008MB); you can provide any power values between 128MB and 10,240MB
 * **num** (required, integer): the # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)
-* **payload** (string, object, or list): the static payload that will be used for every invocation (object or string); when using a list, a weighted payload is expected in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not perentages); more details below in the Weighted Payloads section
+* **payload** (string, object, or list): the static payload that will be used for every invocation (object or string); when using a list, a weighted payload is expected in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not percentages); more details below in the Weighted Payloads section
 * **payloadS3** (string): a reference to Amazon S3 for large payloads (>256KB), formatted as `s3://bucket/key`; it requires read-only IAM permissions, see `payloadS3Bucket` and `payloadS3Key` below and find more details in the S3 payloads section
 * **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
 * **strategy** (string): it can be `"cost"` or `"speed"` or `"balanced"` (the default value is `"cost"`); if you use `"cost"` the state machine will suggest the cheapest option (disregarding its performance), while if you use `"speed"` the state machine will suggest the fastest option (disregarding its cost). When using `"balanced"` the state machine will choose a compromise between `"cost"` and `"speed"` according to the parameter `"balancedWeight"`
@@ -52,6 +52,7 @@ The state machine accepts the following intput parameters:
 * **dryRun** (false by default): if true, the state machine will execute the input function only once and it will disable every functionality related to logs analysis, auto-tuning, and visualization; the dry-run mode is intended for testing purposes, for example to verify that IAM permissions are set up correctly
 * **preProcessorARN** (string): it must be the ARN of a Lambda function; if provided, the function will be invoked before every invocation of `lambdaARN`; more details below in the Pre/Post-processing functions section
 * **postProcessorARN** (string): it must be the ARN of a Lambda function; if provided, the function will be invoked after every invocation of `lambdaARN`; more details below in the Pre/Post-processing functions section
+* **discardTopBottom** (number between 0.0 and 0.4, by default is 0.2): By default, the state machine will discard the top/bottom 20% of "outliers" (the fastest and slowest), to filter out the effects of cold starts that would bias the overall averages. You can customize this parameter by providing a value between 0 and 0.4, with 0 meaning no results are discarded and 0.4 meaning that 40% of the top/bottom results are discarded (i.e. only 20% of the results are considered).
 
 
 ## State machine configuration (at deployment time)
@@ -66,7 +67,7 @@ The CloudFormation template accepts the following parameters:
 * **payloadS3Bucket** (string): the S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the [S3 payloads section](#user-content-s3-payloads)
 * **payloadS3Key** (string, default=`*`): they S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](#user-content-s3-payloads)
 
-Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can easily estimate the total execution timout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min.
+Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can easily estimate the total execution timeout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min.
 
 ### Usage in CI/CD pipelines
 
@@ -223,7 +224,7 @@ There are three main costs associated with AWS Lambda Power Tuning:
 
 ## Error handling
 
-If something goes wrong during the initialization or execution states, the `CleanUpOnError` step will be executed. All temporary versions and alises will be deleted as expected (the same happens in the `Cleaner` step).
+If something goes wrong during the initialization or execution states, the `CleanUpOnError` step will be executed. All temporary versions and aliases will be deleted as expected (the same happens in the `Cleaner` step).
 
 You can customize the `totalExecutionTimeout` parameter at deploy time (up to 15min). This parameter will be used both for Lambda function timeouts and Step Function tasks timeouts. In case the `Executor` raises a timeout error, you will see a `States.Timeout` error. Keep in mind that the timeout you configure will vary whether you're setting `parallelInvocation` to `true` or `false`. When you enable parallel invocation, all the function executions will run concurrently (rather than in series) so that you can keep that timeout lower and your overall state machine execution faster.
 
@@ -255,6 +256,7 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 From most recent to oldest, with major releases in bold:
 
+* *4.2.1* (2022-08-02): customizable SDK layer name and logs retention value
 * *4.2.0* (2022-01-03): support S3 payloads
 * *4.1.4* (2022-01-03): sorting bugfix and updated dependencies
 * *4.1.3* (2021-12-16): support simple strings as event payload
