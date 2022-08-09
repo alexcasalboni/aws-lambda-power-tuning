@@ -8,24 +8,49 @@ const defaultPowerValues = process.env.defaultPowerValues.split(',');
  */
 module.exports.handler = async(event, context) => {
 
-    const {lambdaARN, num} = event;
-    const powerValues = extractPowerValues(event);
+    const {
+        lambdaARN,
+        num,
+        powerValues,
+        onlyColdStarts,
+    } = extractDataFromInput(event);
 
     validateInput(lambdaARN, num); // may throw
 
     // fetch initial $LATEST value so we can reset it later
-    const initialPower = await utils.getLambdaPower(lambdaARN);
+    const {power, envVars} = await utils.getLambdaPower(lambdaARN);
 
     // reminder: configuration updates must run sequentially
     // (otherwise you get a ResourceConflictException)
     for (let value of powerValues){
-        const alias = 'RAM' + value;
-        await utils.createPowerConfiguration(lambdaARN, value, alias);
+        let baseAlias = 'RAM' + value;
+        if (onlyColdStarts) {
+            for (let n of utils.range(num)){
+                let alias = utils.buildAliasString(baseAlias, onlyColdStarts, n);
+                // here we inject a custom env variable to force the creation of a new version
+                // even if the power is the same, which will force a cold start
+                envVars.LambdaPowerTuningForceColdStart = alias;
+                await utils.createPowerConfiguration(lambdaARN, value, alias, envVars);
+            }
+        } else {
+            await utils.createPowerConfiguration(lambdaARN, value, baseAlias, envVars);
+        }
     }
 
-    await utils.setLambdaPower(lambdaARN, initialPower);
+    delete envVars.LambdaPowerTuningForceColdStart;
+    // restore power and env variables to initial state
+    await utils.setLambdaPower(lambdaARN, power, envVars);
 
     return powerValues;
+};
+
+const extractDataFromInput = (event) => {
+    return {
+        lambdaARN: event.lambdaARN,
+        num: parseInt(event.num, 10),
+        powerValues: extractPowerValues(event),
+        onlyColdStarts: !!event.onlyColdStarts,
+    };
 };
 
 const extractPowerValues = (event) => {
