@@ -112,10 +112,26 @@ describe('Lambda Utils', () => {
     });
 
     describe('getLambdaPower', () => {
-        it('should return the memory value', async() => {
+        it('should return the power value and env vars', async() => {
             const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
             expect(value.power).to.be(1024);
+            expect(value.envVars).to.be.an('object');
             expect(value.envVars.TEST).to.be('OK');
+        });
+
+        it('should return the power value and env vars even when empty env', async() => {
+            AWS.remock('Lambda', 'getFunctionConfiguration', {
+                MemorySize: 1024,
+                State: 'Active',
+                LastUpdateStatus: 'Successful',
+                Architectures: ['x86_64'],
+                Environment: null, // this is null if no vars are set
+            });
+
+            const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
+            expect(value.power).to.be(1024);
+            expect(value.envVars).to.be.an('object');
+            expect(value.envVars.TEST).to.be(undefined);
         });
     });
 

@@ -25,7 +25,7 @@ module.exports.lambdaBaseCost = (region, architecture) => {
     return this.baseCostForRegion(priceMap, region);
 };
 
-module.exports.buildAliasString = (baseAlias, onlyColdStarts = false, index = 0) => {
+module.exports.buildAliasString = (baseAlias, onlyColdStarts, index) => {
     let alias = baseAlias;
     if (onlyColdStarts) {
         alias += `-${index}`;
