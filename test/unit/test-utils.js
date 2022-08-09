@@ -24,7 +24,13 @@ const sandBox = sinon.createSandbox();
 
 // AWS SDK mocks
 AWS.mock('Lambda', 'getAlias', {});
-AWS.mock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ['x86_64']});
+AWS.mock('Lambda', 'getFunctionConfiguration', {
+    MemorySize: 1024,
+    State: 'Active',
+    LastUpdateStatus: 'Successful',
+    Architectures: ['x86_64'],
+    Environment: {Variables: {TEST: 'OK'}},
+});
 AWS.mock('Lambda', 'updateFunctionConfiguration', {});
 AWS.mock('Lambda', 'publishVersion', {});
 AWS.mock('Lambda', 'deleteFunction', {});
@@ -108,7 +114,8 @@ describe('Lambda Utils', () => {
     describe('getLambdaPower', () => {
         it('should return the memory value', async() => {
             const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
-            expect(value).to.be(1024);
+            expect(value.power).to.be(1024);
+            expect(value.envVars.TEST).to.be('OK');
         });
     });
 
