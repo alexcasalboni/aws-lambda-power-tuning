@@ -25,6 +25,14 @@ module.exports.lambdaBaseCost = (region, architecture) => {
     return this.baseCostForRegion(priceMap, region);
 };
 
+module.exports.buildAliasString = (baseAlias, onlyColdStarts = false, index = 0) => {
+    let alias = baseAlias;
+    if (onlyColdStarts) {
+        alias += `-${index}`;
+    }
+    return alias;
+};
+
 module.exports.allPowerValues = () => {
     const increment = 64;
     const powerValues = [];
@@ -69,9 +77,9 @@ module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
 /**
  * Update power, publish new version, and create/update alias.
  */
-module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
+module.exports.createPowerConfiguration = async(lambdaARN, value, alias, envVars) => {
     try {
-        await utils.setLambdaPower(lambdaARN, value);
+        await utils.setLambdaPower(lambdaARN, value, envVars);
 
         // wait for functoin update to complete
         await utils.waitForFunctionUpdate(lambdaARN);
@@ -122,7 +130,11 @@ module.exports.getLambdaPower = async(lambdaARN) => {
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     const config = await lambda.getFunctionConfiguration(params).promise();
-    return config.MemorySize;
+    return {
+        power: config.MemorySize,
+        // we need to fetch env vars only to add a new one and force a cold start
+        envVars: (config.Environment || {}).Variables || {},
+    };
 };
 
 /**
@@ -145,11 +157,12 @@ module.exports.getLambdaArchitecture = async(lambdaARN) => {
 /**
  * Update a given Lambda Function's memory size (always $LATEST version).
  */
-module.exports.setLambdaPower = (lambdaARN, value) => {
+module.exports.setLambdaPower = (lambdaARN, value, envVars) => {
     console.log('Setting power to ', value);
     const params = {
         FunctionName: lambdaARN,
         MemorySize: parseInt(value, 10),
+        Environment: {Variables: envVars},
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.updateFunctionConfiguration(params).promise();
@@ -462,7 +475,7 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
         // not an error, but worth logging
         // this happens when you have less than 5 invocations
         // (only happens if dryrun or in tests)
-        console.log("not enough results to discard");
+        console.log('not enough results to discard');
     }
 
     const newN = durations.length - 2 * toBeDiscarded;
