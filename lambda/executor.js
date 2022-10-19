@@ -48,13 +48,13 @@ module.exports.handler = async(event, context) => {
     const payloads = utils.generatePayloads(num, payload);
 
     const runInput = {
-        num,
-        lambdaARN,
-        lambdaAlias,
-        payloads,
+        num: num,
+        lambdaARN: lambdaARN,
+        lambdaAlias: lambdaAlias,
+        payloads: payloads,
         preARN: preProcessorARN,
         postARN: postProcessorARN,
-        sleepBetweenRunsMs
+        sleepBetweenRunsMs: sleepBetweenRunsMs
     };
 
     if (enableParallel) {
