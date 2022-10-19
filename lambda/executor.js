@@ -47,7 +47,7 @@ module.exports.handler = async(event, context) => {
     // pre-generate an array of N payloads
     const payloads = utils.generatePayloads(num, payload);
 
-    const tuningInput = {
+    const runInput = {
         num,
         lambdaARN,
         lambdaAlias,
@@ -58,9 +58,9 @@ module.exports.handler = async(event, context) => {
     };
 
     if (enableParallel) {
-        results = await runInParallel(tuningInput);
+        results = await runInParallel(runInput);
     } else {
-        results = await runInSeries(tuningInput);
+        results = await runInSeries(runInput);
     }
 
     // get base cost for Lambda
@@ -101,10 +101,21 @@ const extractDiscardTopBottomValue = (event) => {
     return Math.min(Math.max(discardTopBottom, 0.0), 0.4);
 };
 
+const extractSleepTime = (event) => {
+    let sleepBetweenRunsMs = event.sleepBetweenRunsMs;
+    if(isNaN(sleepBetweenRunsMs)) {
+        sleepBetweenRunsMs = 0;
+    } else {
+        sleepBetweenRunsMs = parseInt(sleepBetweenRunsMs);
+    }
+    return sleepBetweenRunsMs;
+}
+
 const extractDataFromInput = async(event) => {
     const input = event.input; // original state machine input
     const payload = await extractPayloadValue(input);
     const discardTopBottom = extractDiscardTopBottomValue(input);
+    const sleepBetweenRunsMs = extractSleepTime(input);
     return {
         value: parseInt(event.value, 10),
         lambdaARN: input.lambdaARN,
@@ -115,6 +126,7 @@ const extractDataFromInput = async(event) => {
         preProcessorARN: input.preProcessorARN,
         postProcessorARN: input.postProcessorARN,
         discardTopBottom: discardTopBottom,
+        sleepBetweenRunsMs: sleepBetweenRunsMs
     };
 };
 
@@ -127,7 +139,7 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
         if (invocationResults.FunctionError) {
             throw new Error(`Invocation error (running in parallel): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
         }
-        if(!isNan(sleepBetweenRunsMs) && sleepBetweenRunsMs > 0) {
+        if(sleepBetweenRunsMs > 0) {
             await sleep(sleepBetweenRunsMs);
         }        
         results.push(invocationResults);
@@ -146,7 +158,7 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
         if (invocationResults.FunctionError) {
             throw new Error(`Invocation error (running in series): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
         }
-        if(!isNan(sleepBetweenRunsMs) && sleepBetweenRunsMs > 0) {
+        if(sleepBetweenRunsMs > 0) {
             await sleep(sleepBetweenRunsMs);
         }   
         results.push(invocationResults);
