@@ -411,6 +411,7 @@ describe('Lambda Functions', async() => {
             { input: {lambdaARN: 'arnOK', num: null}, value: 128 },
             { input: {lambdaARN: 'arnOK', num: 0}, value: 128 },
             { input: {lambdaARN: 'arnOK', num: 'invalid'}, value: 128 },
+            { input: {lambdaARN: 'arnOK', num: 'invalid', sleepBetweenRunsMs: 'Nan'}, value: 128 },
         ];
 
         invalidEvents.forEach(async(event) => {
@@ -437,6 +438,18 @@ describe('Lambda Functions', async() => {
                     lambdaARN: 'arnOK',
                     num: 10,
                     parallelInvocation: true,
+                },
+            });
+            expect(getLambdaArchitectureCounter).to.be(1);
+        });
+
+        it('should invoke the given cb, when done with between function sleep', async() => {
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    sleepBetweenRunsMs: 50,
                 },
             });
             expect(getLambdaArchitectureCounter).to.be(1);
