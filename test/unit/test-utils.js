@@ -845,8 +845,8 @@ describe('Lambda Utils', () => {
             // without await (time is "locked" with fake timers)
             utils.sleep(10000);
 
-            // fast-forward so we don't have to actually wait
-            clock.tick(10000);
+            // release all timers so we don't have to actually wait
+            await clock.runAllAsync();
             clock.restore();
 
         });
