@@ -26,7 +26,7 @@ module.exports.handler = async(event, context) => {
         preProcessorARN,
         postProcessorARN,
         discardTopBottom,
-        sleepBetweenRunsMs
+        sleepBetweenRunsMs,
     } = await extractDataFromInput(event);
 
     validateInput(lambdaARN, value, num); // may throw
@@ -54,7 +54,7 @@ module.exports.handler = async(event, context) => {
         payloads: payloads,
         preARN: preProcessorARN,
         postARN: postProcessorARN,
-        sleepBetweenRunsMs: sleepBetweenRunsMs
+        sleepBetweenRunsMs: sleepBetweenRunsMs,
     };
 
     if (enableParallel) {
@@ -103,13 +103,13 @@ const extractDiscardTopBottomValue = (event) => {
 
 const extractSleepTime = (event) => {
     let sleepBetweenRunsMs = event.sleepBetweenRunsMs;
-    if(isNaN(sleepBetweenRunsMs)) {
+    if (isNaN(sleepBetweenRunsMs)) {
         sleepBetweenRunsMs = 0;
     } else {
-        sleepBetweenRunsMs = parseInt(sleepBetweenRunsMs);
+        sleepBetweenRunsMs = parseInt(sleepBetweenRunsMs, 10);
     }
     return sleepBetweenRunsMs;
-}
+};
 
 const extractDataFromInput = async(event) => {
     const input = event.input; // original state machine input
@@ -126,7 +126,7 @@ const extractDataFromInput = async(event) => {
         preProcessorARN: input.preProcessorARN,
         postProcessorARN: input.postProcessorARN,
         discardTopBottom: discardTopBottom,
-        sleepBetweenRunsMs: sleepBetweenRunsMs
+        sleepBetweenRunsMs: sleepBetweenRunsMs,
     };
 };
 
@@ -139,9 +139,9 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
         if (invocationResults.FunctionError) {
             throw new Error(`Invocation error (running in parallel): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
         }
-        if(sleepBetweenRunsMs > 0) {
+        if (sleepBetweenRunsMs > 0) {
             await utils.sleep(sleepBetweenRunsMs);
-        }        
+        }
         results.push(invocationResults);
     });
     // ... and wait for results
@@ -158,9 +158,9 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
         if (invocationResults.FunctionError) {
             throw new Error(`Invocation error (running in series): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
         }
-        if(sleepBetweenRunsMs > 0) {
+        if (sleepBetweenRunsMs > 0) {
             await utils.sleep(sleepBetweenRunsMs);
-        }   
+        }
         results.push(invocationResults);
     }
     return results;
