@@ -1,6 +1,5 @@
 'use strict';
 
-require('debug').enable('*');
 const sinon = require('sinon');
 const expect = require('expect.js');
 
