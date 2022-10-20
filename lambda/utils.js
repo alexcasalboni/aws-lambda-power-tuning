@@ -562,3 +562,8 @@ module.exports.baseCostForRegion = (priceMap, region) => {
     console.log(region + ' not found in base price map, using default: ' + priceMap['default']);
     return priceMap['default'];
 };
+
+
+module.exports.sleep = async (sleepBetweenRunsMs) => {
+    await new Promise(resolve => setTimeout(resolve, sleepBetweenRunsMs));
+}

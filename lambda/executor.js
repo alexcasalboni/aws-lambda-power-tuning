@@ -140,7 +140,7 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
             throw new Error(`Invocation error (running in parallel): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
         }
         if(sleepBetweenRunsMs > 0) {
-            await sleep(sleepBetweenRunsMs);
+            await utils.sleep(sleepBetweenRunsMs);
         }        
         results.push(invocationResults);
     });
@@ -159,7 +159,7 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
             throw new Error(`Invocation error (running in series): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
         }
         if(sleepBetweenRunsMs > 0) {
-            await sleep(sleepBetweenRunsMs);
+            await utils.sleep(sleepBetweenRunsMs);
         }   
         results.push(invocationResults);
     }
@@ -190,7 +190,3 @@ const computeStatistics = (baseCost, results, value, discardTopBottom) => {
     console.log('Stats: ', stats);
     return stats;
 };
-
-const sleep = async (sleepBetweenRunsMs) => {
-  return new Promise((resolve) => setTimeout(resolve, sleepBetweenRunsMs));
-}
