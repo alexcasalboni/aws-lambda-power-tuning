@@ -62,7 +62,7 @@ Conditions:
 
 Globals:
   Function:
-    Runtime: nodejs14.x
+    Runtime: nodejs16.x
     MemorySize: 128
     Timeout: !Ref totalExecutionTimeout
     PermissionsBoundary: !If [UsePermissionsBoundary, !Ref permissionsBoundary, !Ref AWS::NoValue]
