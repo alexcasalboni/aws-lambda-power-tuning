@@ -74,7 +74,7 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
     new sam.CfnApplication(this, 'powerTuner', {
       location: {
         applicationId: 'arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning',
-        semanticVersion: '4.2.1'
+        semanticVersion: '4.2.2'
       },
       parameters: {
         "lambdaResource": "*",
@@ -137,7 +137,7 @@ resource "aws_serverlessapplicationrepository_cloudformation_stack" "lambda-powe
   application_id   = "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning"
   capabilities     = ["CAPABILITY_IAM"]
   # Uncomment the next line to deploy a specific version
-  # semantic_version = "4.2.1"
+  # semantic_version = "4.2.2"
 
   parameters = {
     # All of these parameters are optional and are only shown here for demonstration purposes

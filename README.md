@@ -111,6 +111,7 @@ Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/m
 
 From most recent to oldest, with major releases in bold:
 
+* *4.2.2* (2023-02-15): configurable sleep parameter, bump runtime to nodejs16.x, docs updates, GH Actions, and minor bug fixes
 * *4.2.1* (2022-08-02): customizable SDK layer name and logs retention value
 * *4.2.0* (2022-01-03): support S3 payloads
 * *4.1.4* (2022-01-03): sorting bugfix and updated dependencies
