@@ -465,7 +465,7 @@ describe('Lambda Functions', async() => {
 
         });
 
-        it('should invoke the given cb, when done (parallelInvocation) function sleep', async() => {
+        it('should invoke the given cb, when done (parallelInvocation) and ignore function sleep', async() => {
             await invokeForSuccess(handler, {
                 value: '128',
                 input: {
@@ -476,7 +476,7 @@ describe('Lambda Functions', async() => {
                 },
             });
             expect(getLambdaArchitectureCounter).to.be(1);
-            expect(sleepCounter).to.be(20);
+            expect(sleepCounter).to.be(0);
         });
 
         it('should invoke the given cb, when done with invalid function sleep', async() => {
