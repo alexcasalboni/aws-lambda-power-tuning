@@ -462,7 +462,7 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
         // not an error, but worth logging
         // this happens when you have less than 5 invocations
         // (only happens if dryrun or in tests)
-        console.log("not enough results to discard");
+        console.log('not enough results to discard');
     }
 
     const newN = durations.length - 2 * toBeDiscarded;
@@ -561,4 +561,9 @@ module.exports.baseCostForRegion = (priceMap, region) => {
     }
     console.log(region + ' not found in base price map, using default: ' + priceMap['default']);
     return priceMap['default'];
+};
+
+
+module.exports.sleep = async(sleepBetweenRunsMs) => {
+    await new Promise(resolve => setTimeout(resolve, sleepBetweenRunsMs));
 };

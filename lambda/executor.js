@@ -26,6 +26,7 @@ module.exports.handler = async(event, context) => {
         preProcessorARN,
         postProcessorARN,
         discardTopBottom,
+        sleepBetweenRunsMs,
     } = await extractDataFromInput(event);
 
     validateInput(lambdaARN, value, num); // may throw
@@ -46,10 +47,20 @@ module.exports.handler = async(event, context) => {
     // pre-generate an array of N payloads
     const payloads = utils.generatePayloads(num, payload);
 
+    const runInput = {
+        num: num,
+        lambdaARN: lambdaARN,
+        lambdaAlias: lambdaAlias,
+        payloads: payloads,
+        preARN: preProcessorARN,
+        postARN: postProcessorARN,
+        sleepBetweenRunsMs: sleepBetweenRunsMs,
+    };
+
     if (enableParallel) {
-        results = await runInParallel(num, lambdaARN, lambdaAlias, payloads, preProcessorARN, postProcessorARN);
+        results = await runInParallel(runInput);
     } else {
-        results = await runInSeries(num, lambdaARN, lambdaAlias, payloads, preProcessorARN, postProcessorARN);
+        results = await runInSeries(runInput);
     }
 
     // get base cost for Lambda
@@ -90,10 +101,21 @@ const extractDiscardTopBottomValue = (event) => {
     return Math.min(Math.max(discardTopBottom, 0.0), 0.4);
 };
 
+const extractSleepTime = (event) => {
+    let sleepBetweenRunsMs = event.sleepBetweenRunsMs;
+    if (isNaN(sleepBetweenRunsMs)) {
+        sleepBetweenRunsMs = 0;
+    } else {
+        sleepBetweenRunsMs = parseInt(sleepBetweenRunsMs, 10);
+    }
+    return sleepBetweenRunsMs;
+};
+
 const extractDataFromInput = async(event) => {
     const input = event.input; // original state machine input
     const payload = await extractPayloadValue(input);
     const discardTopBottom = extractDiscardTopBottomValue(input);
+    const sleepBetweenRunsMs = extractSleepTime(input);
     return {
         value: parseInt(event.value, 10),
         lambdaARN: input.lambdaARN,
@@ -104,10 +126,11 @@ const extractDataFromInput = async(event) => {
         preProcessorARN: input.preProcessorARN,
         postProcessorARN: input.postProcessorARN,
         discardTopBottom: discardTopBottom,
+        sleepBetweenRunsMs: sleepBetweenRunsMs,
     };
 };
 
-const runInParallel = async(num, lambdaARN, lambdaAlias, payloads, preARN, postARN) => {
+const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN}) => {
     const results = [];
     // run all invocations in parallel ...
     const invocations = utils.range(num).map(async(_, i) => {
@@ -123,7 +146,7 @@ const runInParallel = async(num, lambdaARN, lambdaAlias, payloads, preARN, postA
     return results;
 };
 
-const runInSeries = async(num, lambdaARN, lambdaAlias, payloads, preARN, postARN) => {
+const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs}) => {
     const results = [];
     for (let i = 0; i < num; i++) {
         // run invocations in series
@@ -131,6 +154,9 @@ const runInSeries = async(num, lambdaARN, lambdaAlias, payloads, preARN, postARN
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
             throw new Error(`Invocation error (running in series): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
+        }
+        if (sleepBetweenRunsMs > 0) {
+            await utils.sleep(sleepBetweenRunsMs);
         }
         results.push(invocationResults);
     }

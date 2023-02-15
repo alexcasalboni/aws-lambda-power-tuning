@@ -835,4 +835,23 @@ describe('Lambda Utils', () => {
 
     });
 
+    describe('sleep', () => {
+
+        it('should wait X milliseconds', async() => {
+
+            const clock = sinon.useFakeTimers();
+
+            // sleep 10 seconds
+            // without await (time is "locked" with fake timers)
+            utils.sleep(10000);
+
+            // release all timers so we don't have to actually wait
+            await clock.runAllAsync();
+            clock.restore();
+
+        });
+
+
+    });
+
 });

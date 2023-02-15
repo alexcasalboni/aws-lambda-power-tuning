@@ -29,7 +29,8 @@ var setLambdaPowerCounter,
     publishLambdaVersionCounter,
     createLambdaAliasCounter,
     updateLambdaAliasCounter,
-    waitForFunctionUpdateCounter;
+    waitForFunctionUpdateCounter,
+    sleepCounter;
 
 // utility to invoke handler (success case)
 const invokeForSuccess = async(handler, event) => {
@@ -84,6 +85,7 @@ describe('Lambda Functions', async() => {
         createLambdaAliasCounter = 0;
         updateLambdaAliasCounter = 0;
         waitForFunctionUpdateCounter = 0;
+        sleepCounter = 0;
 
         sandBox.stub(utils, 'regionFromARN')
             .callsFake((arn) => {
@@ -128,6 +130,11 @@ describe('Lambda Functions', async() => {
             .callsFake(async() => {
                 waitForFunctionUpdateCounter++;
                 return 'OK';
+            });
+        sandBox.stub(utils, 'sleep')
+            .callsFake(async(_) => {
+                sleepCounter++;
+                return 'OK, no need to wait =)';
             });
     });
 
@@ -440,6 +447,49 @@ describe('Lambda Functions', async() => {
                 },
             });
             expect(getLambdaArchitectureCounter).to.be(1);
+        });
+
+        it('should invoke the given cb, when done with between function sleep', async() => {
+
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    sleepBetweenRunsMs: 50,
+                },
+            });
+
+            expect(getLambdaArchitectureCounter).to.be(1);
+            expect(sleepCounter).to.be(10);
+
+        });
+
+        it('should invoke the given cb, when done (parallelInvocation) and ignore function sleep', async() => {
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 20,
+                    sleepBetweenRunsMs: 50,
+                    parallelInvocation: true,
+                },
+            });
+            expect(getLambdaArchitectureCounter).to.be(1);
+            expect(sleepCounter).to.be(0);
+        });
+
+        it('should invoke the given cb, when done with invalid function sleep', async() => {
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 100,
+                    sleepBetweenRunsMs: 'Not a number',
+                },
+            });
+            expect(getLambdaArchitectureCounter).to.be(1);
+            expect(sleepCounter).to.be(0);
         });
 
         it('should return statistics (default)', async() => {
