@@ -38,7 +38,7 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
     ```bash
     $ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
     ```
-1. Build the Lambda layer and any other dependencies:
+1. Build the Lambda layer and any other dependencies (Docker is required):
     ```bash
     $ cd ./aws-lambda-power-tuning
     $ sam build -u
