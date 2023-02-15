@@ -139,9 +139,6 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
         if (invocationResults.FunctionError) {
             throw new Error(`Invocation error (running in parallel): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
         }
-        if (sleepBetweenRunsMs > 0) {
-            await utils.sleep(sleepBetweenRunsMs);
-        }
         results.push(invocationResults);
     });
     // ... and wait for results
