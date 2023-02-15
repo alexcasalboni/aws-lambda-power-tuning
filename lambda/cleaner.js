@@ -7,19 +7,40 @@ const utils = require('./utils');
  */
 module.exports.handler = async(event, context) => {
 
-    const {lambdaARN, powerValues} = event;
+    const {
+        lambdaARN,
+        num,
+        powerValues,
+        onlyColdStarts,
+    } = extractDataFromInput(event);
 
     validateInput(lambdaARN, powerValues); // may throw
 
     const ops = powerValues.map(async(value) => {
-        const alias = 'RAM' + value;
-        await cleanup(lambdaARN, alias); // may throw
+        let baseAlias = 'RAM' + value;
+        if (onlyColdStarts) {
+            for (let n of utils.range(num)){
+                let alias = utils.buildAliasString(baseAlias, onlyColdStarts, n);
+                await cleanup(lambdaARN, alias); // may throw
+            }
+        } else {
+            await cleanup(lambdaARN, baseAlias); // may throw
+        }
     });
 
     // run everything in parallel and wait until completed
     await Promise.all(ops);
 
     return 'OK';
+};
+
+const extractDataFromInput = (event) => {
+    return {
+        lambdaARN: event.lambdaARN,
+        num: parseInt(event.num, 10),
+        powerValues: event.powerValues,
+        onlyColdStarts: !!event.onlyColdStarts,
+    };
 };
 
 const validateInput = (lambdaARN, powerValues) => {
