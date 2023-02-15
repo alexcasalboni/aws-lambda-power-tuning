@@ -130,7 +130,7 @@ const extractDataFromInput = async(event) => {
     };
 };
 
-const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs}) => {
+const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN}) => {
     const results = [];
     // run all invocations in parallel ...
     const invocations = utils.range(num).map(async(_, i) => {
