@@ -117,8 +117,10 @@ module.exports.waitForAliasActive = async(lambdaARN, alias) => {
         FunctionName: lambdaARN,
         Qualifier: alias,
         $waiter: {
-            // override attempts to override max wait (30s by default)
-            // multiply by 5s delay to achieve desired wait time
+            // https://aws.amazon.com/blogs/developer/waiters-in-modular-aws-sdk-for-javascript/
+            // "In v2, there is no direct way to provide maximum wait time for a waiter. 
+            // You need to configure delay and maxAttempts to indirectly suggest the maximum time you want the waiter to run for."
+            // 24 is ~2 minutes
             maxAttempts: 24,
         },
     };
