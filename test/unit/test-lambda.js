@@ -30,6 +30,7 @@ var setLambdaPowerCounter,
     createLambdaAliasCounter,
     updateLambdaAliasCounter,
     waitForFunctionUpdateCounter,
+    waitForAliasActiveCounter,
     sleepCounter;
 
 // utility to invoke handler (success case)
@@ -85,6 +86,7 @@ describe('Lambda Functions', async() => {
         createLambdaAliasCounter = 0;
         updateLambdaAliasCounter = 0;
         waitForFunctionUpdateCounter = 0;
+        waitForAliasActiveCounter = 0;
         sleepCounter = 0;
 
         sandBox.stub(utils, 'regionFromARN')
@@ -129,6 +131,11 @@ describe('Lambda Functions', async() => {
         sandBox.stub(utils, 'waitForFunctionUpdate')
             .callsFake(async() => {
                 waitForFunctionUpdateCounter++;
+                return 'OK';
+            });
+        sandBox.stub(utils, 'waitForAliasActive')
+            .callsFake(async() => {
+                waitForAliasActiveCounter++;
                 return 'OK';
             });
         sandBox.stub(utils, 'sleep')
@@ -435,6 +442,7 @@ describe('Lambda Functions', async() => {
                 },
             });
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke the given cb, when done (parallelInvocation)', async() => {
@@ -447,6 +455,7 @@ describe('Lambda Functions', async() => {
                 },
             });
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke the given cb, when done with between function sleep', async() => {
@@ -461,6 +470,7 @@ describe('Lambda Functions', async() => {
             });
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
             expect(sleepCounter).to.be(10);
 
         });
@@ -476,6 +486,7 @@ describe('Lambda Functions', async() => {
                 },
             });
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
             expect(sleepCounter).to.be(0);
         });
 
@@ -489,6 +500,7 @@ describe('Lambda Functions', async() => {
                 },
             });
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
             expect(sleepCounter).to.be(0);
         });
 
@@ -507,6 +519,7 @@ describe('Lambda Functions', async() => {
             expect(response.totalCost).to.be.a('number');
             expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.1e-8); // 10ms in total
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should return statistics (af-south-1)', async() => {
@@ -524,6 +537,7 @@ describe('Lambda Functions', async() => {
             expect(response.totalCost).to.be.a('number');
             expect(parseFloat(response.totalCost.toPrecision(10))).to.be(2.8e-8); // 10ms in total
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke the given cb, when done (custom payload)', async() => {
@@ -542,6 +556,7 @@ describe('Lambda Functions', async() => {
                 expect(payload).to.be(JSON.stringify(expectedPayload));
             });
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke the given cb, when done (weighted payload)', async() => {
@@ -571,6 +586,7 @@ describe('Lambda Functions', async() => {
             expect(counters.C).to.be(6);
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke the given cb, when done (weighted payload 2)', async() => {
@@ -600,6 +616,7 @@ describe('Lambda Functions', async() => {
             expect(counters.C).to.be(60);
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke the given cb, when done (weighted payload 3)', async() => {
@@ -623,7 +640,7 @@ describe('Lambda Functions', async() => {
             });
 
             expect(getLambdaArchitectureCounter).to.be(1);
-
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should explode if count(payloads) < num', async() => {
@@ -652,7 +669,7 @@ describe('Lambda Functions', async() => {
             });
 
             expect(getLambdaArchitectureCounter).to.be(1);
-
+            expect(waitForAliasActiveCounter).to.be(0);
         });
 
         it('should invoke the given cb, when done (not enough weight)', async() => {
@@ -672,6 +689,7 @@ describe('Lambda Functions', async() => {
             });
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(0);
         });
 
         it('should explode if invalid weighted payloads', async() => {
@@ -701,6 +719,7 @@ describe('Lambda Functions', async() => {
             });
 
             expect(getLambdaArchitectureCounter).to.be(0);
+            expect(waitForAliasActiveCounter).to.be(0);
         });
 
         [1, 10, 100].forEach(num => {
@@ -714,6 +733,7 @@ describe('Lambda Functions', async() => {
                 });
                 expect(invokeLambdaCounter).to.be(num);
                 expect(getLambdaArchitectureCounter).to.be(1);
+                expect(waitForAliasActiveCounter).to.be(1);
             });
             it('should invoke Lambda ' + num + ' time(s) in parallel', async() => {
                 await invokeForSuccess(handler, {
@@ -726,6 +746,7 @@ describe('Lambda Functions', async() => {
                 });
                 expect(invokeLambdaCounter).to.be(num);
                 expect(getLambdaArchitectureCounter).to.be(1);
+                expect(waitForAliasActiveCounter).to.be(1);
             });
         });
 
@@ -747,6 +768,7 @@ describe('Lambda Functions', async() => {
             });
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should include payload in exception message if invocation fails (series)', async() => {
@@ -771,6 +793,7 @@ describe('Lambda Functions', async() => {
             expect(error.message).to.contain('in series');
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should include payload in exception message if invocation fails (parallel)', async() => {
@@ -796,6 +819,7 @@ describe('Lambda Functions', async() => {
             expect(error.message).to.contain('in parallel');
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
 
@@ -824,6 +848,7 @@ describe('Lambda Functions', async() => {
             expect(error.message).to.contain('in series');
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should include weighted payload in exception message if invocation fails (parallel)', async() => {
@@ -852,6 +877,7 @@ describe('Lambda Functions', async() => {
             expect(error.message).to.contain('in parallel');
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should report an error if invocation fails (parallel)', async() => {
@@ -873,6 +899,7 @@ describe('Lambda Functions', async() => {
             });
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should return price as output', async() => {
@@ -887,6 +914,7 @@ describe('Lambda Functions', async() => {
             expect(stats.averageDuration).to.be.a('number');
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should run only once if dryRun', async() => {
@@ -900,6 +928,7 @@ describe('Lambda Functions', async() => {
             });
             expect(invokeLambdaCounter).to.be(1);
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke pre-processor', async() => {
@@ -915,6 +944,7 @@ describe('Lambda Functions', async() => {
             expect(invokeLambdaCounter).to.be(num * 2);
             expect(invokeProcessorCounter).to.be(num);
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke post-processor', async() => {
@@ -930,6 +960,7 @@ describe('Lambda Functions', async() => {
             expect(invokeLambdaCounter).to.be(num * 2);
             expect(invokeProcessorCounter).to.be(num);
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke pre-processor and post-processor', async() => {
@@ -946,6 +977,7 @@ describe('Lambda Functions', async() => {
             expect(invokeLambdaCounter).to.be(num * 3);
             expect(invokeProcessorCounter).to.be(num * 2);
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke function with pre-processor output', async() => {
@@ -960,6 +992,7 @@ describe('Lambda Functions', async() => {
             });
             expect(invokeLambdaPayloads[0].includes('Processed')).to.be(true);
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should invoke function with original payload if pre-precessor does not return a new payload', async() => {
@@ -985,6 +1018,7 @@ describe('Lambda Functions', async() => {
             expect(invokeLambdaPayloads[0].includes('Original')).to.be(true);
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should explode if pre-processor fails', async() => {
@@ -1006,6 +1040,7 @@ describe('Lambda Functions', async() => {
             });
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should explode if post-processor fails', async() => {
@@ -1027,6 +1062,7 @@ describe('Lambda Functions', async() => {
             });
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should explode with processed payload in case of execution error (series)', async() => {
@@ -1062,6 +1098,7 @@ describe('Lambda Functions', async() => {
             expect(error.message).to.contain(JSON.stringify({Processed: true}));
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should explode with processed payload in case of execution error (parallel)', async() => {
@@ -1098,6 +1135,7 @@ describe('Lambda Functions', async() => {
             expect(error.message).to.contain(JSON.stringify({Processed: true}));
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should fetch payload from S3 if payloadS3 is given', async() => {
@@ -1116,6 +1154,7 @@ describe('Lambda Functions', async() => {
             }
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should fetch payload from S3 if both payload and payloadS3 are given', async() => {
@@ -1135,6 +1174,7 @@ describe('Lambda Functions', async() => {
             }
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         it('should generate weighted payload from S3', async() => {
@@ -1171,6 +1211,7 @@ describe('Lambda Functions', async() => {
             expect(counters.C).to.be(6);
 
             expect(getLambdaArchitectureCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(1);
         });
 
         const discardTopBottomValues = [

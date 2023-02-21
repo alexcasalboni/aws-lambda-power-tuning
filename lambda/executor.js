@@ -57,6 +57,9 @@ module.exports.handler = async(event, context) => {
         sleepBetweenRunsMs: sleepBetweenRunsMs,
     };
 
+    await utils.waitForAliasActive(lambdaARN, lambdaAlias);
+    console.log('Alias active');
+
     if (enableParallel) {
         results = await runInParallel(runInput);
     } else {

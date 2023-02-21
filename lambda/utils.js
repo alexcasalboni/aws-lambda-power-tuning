@@ -111,6 +111,21 @@ module.exports.waitForFunctionUpdate = async(lambdaARN) => {
     return lambda.waitFor('functionUpdated', params).promise();
 };
 
+module.exports.waitForAliasActive = async(lambdaARN, alias) => {
+    console.log('Waiting for aliast to be active');
+    const params = {
+        FunctionName: lambdaARN,
+        Qualifier: alias,
+        $waiter: {
+            // override attempts to override max wait (30s by default)
+            // multiply by 5s delay to achieve desired wait time
+            maxAttempts: 24,
+        },
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    return lambda.waitFor('functionActive', params).promise();
+};
+
 /**
  * Retrieve a given Lambda Function's memory size (always $LATEST version)
  */
