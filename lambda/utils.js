@@ -118,7 +118,7 @@ module.exports.waitForAliasActive = async(lambdaARN, alias) => {
         Qualifier: alias,
         $waiter: {
             // https://aws.amazon.com/blogs/developer/waiters-in-modular-aws-sdk-for-javascript/
-            // "In v2, there is no direct way to provide maximum wait time for a waiter. 
+            // "In v2, there is no direct way to provide maximum wait time for a waiter.
             // You need to configure delay and maxAttempts to indirectly suggest the maximum time you want the waiter to run for."
             // 24 is ~2 minutes
             maxAttempts: 24,
