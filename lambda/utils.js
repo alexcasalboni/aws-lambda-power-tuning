@@ -112,7 +112,7 @@ module.exports.waitForFunctionUpdate = async(lambdaARN) => {
 };
 
 module.exports.waitForAliasActive = async(lambdaARN, alias) => {
-    console.log('Waiting for aliast to be active');
+    console.log('Waiting for alias to be active');
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
