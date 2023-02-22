@@ -111,7 +111,7 @@ module.exports.waitForFunctionUpdate = async(lambdaARN) => {
     return lambda.waitFor('functionUpdated', params).promise();
 };
 
-module.exports.waitForAliasActive = async(lambdaARN, alias) => {
+module.exports.waitForAliasActive = async(lambdaARN, alias, callback) => {
     console.log('Waiting for alias to be active');
     const params = {
         FunctionName: lambdaARN,
@@ -120,7 +120,8 @@ module.exports.waitForAliasActive = async(lambdaARN, alias) => {
             // https://aws.amazon.com/blogs/developer/waiters-in-modular-aws-sdk-for-javascript/
             // "In v2, there is no direct way to provide maximum wait time for a waiter.
             // You need to configure delay and maxAttempts to indirectly suggest the maximum time you want the waiter to run for."
-            // 24 is ~2 minutes
+            // 5s * 24 is ~2 minutes
+            delay: 5,
             maxAttempts: 24,
         },
     };
@@ -143,20 +144,28 @@ module.exports.getLambdaPower = async(lambdaARN) => {
 };
 
 /**
- * Retrieve a given Lambda Function's architecture (always $LATEST version)
+ * Retrieve a given Lambda Function's architecture and whether its state is Pending
  */
-module.exports.getLambdaArchitecture = async(lambdaARN) => {
-    console.log('Getting current architecture');
+module.exports.getLambdaConfig = async(lambdaARN, alias) => {
+    console.log('Getting current function config');
     const params = {
         FunctionName: lambdaARN,
-        Qualifier: '$LATEST',
+        Qualifier: alias,
     };
+    let architecture, isPending;
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     const config = await lambda.getFunctionConfiguration(params).promise();
     if (typeof config.Architectures !== 'undefined') {
-        return config.Architectures[0];
-    };
-    return 'x86_64';
+        architecture = config.Architectures[0];
+    } else {
+        architecture = 'x86_64';
+    }
+    if (typeof config.State !== 'undefined') {
+        isPending = config.State === 'Pending';
+    } else {
+        isPending = false;
+    }
+    return {architecture, isPending};
 };
 
 /**
