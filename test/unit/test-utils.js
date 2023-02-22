@@ -407,7 +407,7 @@ describe('Lambda Utils', () => {
             expect(architecture).to.be('x86_64');
         });
 
-        it('should return isActive false when function/alias is not Active', async() => {
+        it('should return isPending true when function/alias state is Pending', async() => {
             AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Pending', LastUpdateStatus: 'Successful'});
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
             const alias = 'aliasName';
@@ -415,7 +415,7 @@ describe('Lambda Utils', () => {
             expect(isPending).to.be(true);
         });
 
-        it('should return isActive true when function/alias is Active', async() => {
+        it('should return isPending false when function/alias state is not Pending', async() => {
             AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful'});
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
             const alias = 'aliasName';
