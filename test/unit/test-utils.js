@@ -422,6 +422,14 @@ describe('Lambda Utils', () => {
             const {isPending} = await utils.getLambdaConfig(ARN, alias);
             expect(isPending).to.be(false);
         });
+
+        it('should return isPending false when function/alias state is missing', async() => {
+            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, LastUpdateStatus: 'Successful'});
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const alias = 'aliasName';
+            const {isPending} = await utils.getLambdaConfig(ARN, alias);
+            expect(isPending).to.be(false);
+        });
     });
 
     describe('invokeLambdaProcessor', () => {
