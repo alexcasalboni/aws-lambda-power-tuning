@@ -111,8 +111,8 @@ module.exports.waitForFunctionUpdate = async(lambdaARN) => {
     return lambda.waitFor('functionUpdated', params).promise();
 };
 
-module.exports.waitForAliasActive = async(lambdaARN, alias, callback) => {
-    console.log('Waiting for alias to be active');
+module.exports.waitForAliasActive = async(lambdaARN, alias) => {
+    console.log(`Waiting for alias ${alias} to be active`);
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
@@ -120,8 +120,8 @@ module.exports.waitForAliasActive = async(lambdaARN, alias, callback) => {
             // https://aws.amazon.com/blogs/developer/waiters-in-modular-aws-sdk-for-javascript/
             // "In v2, there is no direct way to provide maximum wait time for a waiter.
             // You need to configure delay and maxAttempts to indirectly suggest the maximum time you want the waiter to run for."
-            // 5s * 24 is ~2 minutes
-            delay: 5,
+            // 10s * 24 is ~4 minutes
+            delay: 10,
             maxAttempts: 24,
         },
     };
@@ -147,7 +147,7 @@ module.exports.getLambdaPower = async(lambdaARN) => {
  * Retrieve a given Lambda Function's architecture and whether its state is Pending
  */
 module.exports.getLambdaConfig = async(lambdaARN, alias) => {
-    console.log('Getting current function config');
+    console.log(`Getting current function config for alias ${alias}`);
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
@@ -161,6 +161,10 @@ module.exports.getLambdaConfig = async(lambdaARN, alias) => {
         architecture = 'x86_64';
     }
     if (typeof config.State !== 'undefined') {
+        // see https://docs.aws.amazon.com/lambda/latest/dg/functions-states.html
+        // the most likely state here is Pending, but it could also be 
+        // - Failed: it means the version creation failed (can't do much about it, the invocation will fail anyway)
+        // - Inactive: it means the version hasn't been invoked for 14 days (can't happen because we always create new versions)
         isPending = config.State === 'Pending';
     } else {
         isPending = false;
