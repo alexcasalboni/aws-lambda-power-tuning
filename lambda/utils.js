@@ -120,9 +120,9 @@ module.exports.waitForAliasActive = async(lambdaARN, alias) => {
             // https://aws.amazon.com/blogs/developer/waiters-in-modular-aws-sdk-for-javascript/
             // "In v2, there is no direct way to provide maximum wait time for a waiter.
             // You need to configure delay and maxAttempts to indirectly suggest the maximum time you want the waiter to run for."
-            // 10s * 24 is ~4 minutes
+            // 10s * 90 is ~15 minutes (max invocation time)
             delay: 10,
-            maxAttempts: 24,
+            maxAttempts: 90,
         },
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
