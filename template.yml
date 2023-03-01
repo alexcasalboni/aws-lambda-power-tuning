@@ -79,15 +79,15 @@ Resources:
   SDKlayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: !If [UseLayerSdkName, !Ref layerSdkName, AWS-SDK-v2_989_0]
-      Description: AWS SDK 2.989.0
+      LayerName: !If [UseLayerSdkName, !Ref layerSdkName, AWS-SDK-v2_1134_0]
+      Description: AWS SDK 2.1134.0
       ContentUri: ./layer-sdk
       CompatibleRuntimes:
-        - nodejs14.x
+        - nodejs16.x
       LicenseInfo: 'Available under the MIT-0 license.'
       RetentionPolicy: Retain
     Metadata:
-      BuildMethod: nodejs14.x
+      BuildMethod: nodejs16.x
 
   initializerLogGroup:
     Type: AWS::Logs::LogGroup
