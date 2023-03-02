@@ -9,13 +9,13 @@ The following three options utilize [AWS CloudFormation](https://aws.amazon.com/
 1. Manually [using the AWS SAM CLI](#option2)
 1. Manually [using the AWS CDK](#option3)
 
-You can also [deploy manually with Terraform](#option6) by Hashicorp.
+You can also [deploy manually with Terraform](#option5) by Hashicorp.
 
-If you want to use Terraform natively (which circumvents Cloudformation), see [Option 7](#option7)
+If you want to use Terraform natively (which circumvents Cloudformation), see [Option 6](#option6)
 
 If you don't want to deal with any Infrastructure as Code tool, you can use one of the following:
-1. The [Lumigo CLI](#option4) (which will take care of both deployment and execution)
-1.  The [Lambda Power Tuner UI](#option5) 
+1. The [Lumigo CLI](https://www.npmjs.com/package/lumigo-cli#lumigo-cli-powertune-lambda) (WARNING: deprecated)
+1.  The [Lambda Power Tuner UI](#option4)
 
 Read more about the [deployment parameters here](README-INPUT-OUTPUT.md#state-machine-configuration-at-deployment-time).
 
@@ -102,24 +102,7 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
 
     For Python deployment, see the instructions [here](https://github.com/cdk-patterns/serverless#2-download-pattern-in-python-or-typescript-cdk).
 
-## Option 4: Deploy with the Lumigo CLI<a name="option4"></a>
-
-1. Install the Lumigo CLI:
-    ```bash
-    $ npm install -g lumigo-cli
-    ```
-1. Power-tune your functions as follows:
-    ```bash
-    $ lumigo-cli powertune-lambda <OPTIONS>
-    ```
-
-For the full documentation of the command parameters:
-```bash
-$ lumigo-cli --help powertune-lambda
-```
-(or check it out [here](https://www.npmjs.com/package/lumigo-cli#lumigo-cli-powertune-lambda)).
-
-## Option 5: Deploy via AWS Lambda Power Tuner UI<a name="option5"></a>
+## Option 4: Deploy via AWS Lambda Power Tuner UI<a name="option4"></a>
 
 You can deploy and interact with Lambda Power Tuning with an ad-hoc web interface. This UI will deploy everything you need to power-tune your functions and also simplify the input/output management for Step Functions via API Gateway.
 
@@ -127,7 +110,7 @@ You can find the open-source project and the instructions to deploy it here: [ma
 
 ![Power Tuner UI](https://github.com/mattymoomoo/aws-power-tuner-ui/blob/master/imgs/website.png?raw=true)
 
-## Option 6: Deploy the SAR app with Terraform<a name="option6"></a>
+## Option 5: Deploy the SAR app with Terraform<a name="option5"></a>
 
 Simply add the `aws_serverlessapplicationrepository_cloudformation_stack` resource below to your Terraform code and deploy as usual through `terraform apply`.
 
@@ -154,7 +137,7 @@ See the [Terraform documentation](https://registry.terraform.io/providers/hashic
 
 If you don't yet have a Terraform project, check out the [Terraform introduction](https://www.terraform.io/intro/index.html).
 
-## Option 7: deploy natively with Terraform<a name="option7"></a>
+## Option 6: deploy natively with Terraform<a name="option6"></a>
 
 Please see the documentation [here](terraform/Readme.md).
 
