@@ -25,6 +25,13 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ABC
+          aws-secret-access-key: ABC
+          aws-region: us-east-1
+
       - uses: aws-actions/setup-sam@v2
       - run: sam validate
       - run: sam build --use-container
