@@ -41,8 +41,8 @@ module.exports.handler = async(event, context) => {
     let results;
 
     // fetch architecture from $LATEST
-    const architecture = await utils.getLambdaArchitecture(lambdaARN);
-    console.log(`Detected architecture type: ${architecture}`);
+    const {architecture, isPending} = await utils.getLambdaConfig(lambdaARN, lambdaAlias);
+    console.log(`Detected architecture type: ${architecture}, isPending: ${isPending}`);
 
     // pre-generate an array of N payloads
     const payloads = utils.generatePayloads(num, payload);
@@ -56,6 +56,12 @@ module.exports.handler = async(event, context) => {
         postARN: postProcessorARN,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
     };
+
+    // wait if the function/alias state is Pending
+    if (isPending) {
+        await utils.waitForAliasActive(lambdaARN, lambdaAlias);
+        console.log('Alias active');
+    }
 
     if (enableParallel) {
         results = await runInParallel(runInput);

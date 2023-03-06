@@ -144,6 +144,15 @@ describe('Lambda Utils', () => {
 
     });
 
+    describe('waitForAliasActive', () => {
+
+        it('should return if Status is Active', async() => {
+            // TODO: remove waitFor mock and test this properly
+            await utils.waitForAliasActive('arn:aws:lambda:us-east-1:XXX:function:YYY', 'aliasName');
+        });
+
+    });
+
     describe('extractDuration', () => {
         const log =
             'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n' +
@@ -373,26 +382,53 @@ describe('Lambda Utils', () => {
         });
     });
 
-    describe('getLambdaArchitecture', () => {
+    describe('getLambdaConfig', () => {
 
         it('should return a string representing the arch type', async() => {
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
-            const data = await utils.getLambdaArchitecture(ARN);
-            expect(data).to.be('x86_64');
+            const alias = 'aliasName';
+            const {architecture} = await utils.getLambdaConfig(ARN, alias);
+            expect(architecture).to.be('x86_64');
         });
 
         it('should return arm64 when Graviton is supported', async() => {
             AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ['arm64']});
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
-            const data = await utils.getLambdaArchitecture(ARN);
-            expect(data).to.be('arm64');
+            const alias = 'aliasName';
+            const {architecture} = await utils.getLambdaConfig(ARN, alias);
+            expect(architecture).to.be('arm64');
         });
 
         it('should always return x86_64 when Graviton is not supported', async() => {
             AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful'});
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
-            const data = await utils.getLambdaArchitecture(ARN);
-            expect(data).to.be('x86_64');
+            const alias = 'aliasName';
+            const {architecture} = await utils.getLambdaConfig(ARN, alias);
+            expect(architecture).to.be('x86_64');
+        });
+
+        it('should return isPending true when function/alias state is Pending', async() => {
+            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Pending', LastUpdateStatus: 'Successful'});
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const alias = 'aliasName';
+            const {isPending} = await utils.getLambdaConfig(ARN, alias);
+            expect(isPending).to.be(true);
+        });
+
+        it('should return isPending false when function/alias state is not Pending', async() => {
+            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful'});
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const alias = 'aliasName';
+            const {isPending} = await utils.getLambdaConfig(ARN, alias);
+            expect(isPending).to.be(false);
+        });
+
+        it('should return isPending false when function/alias state is missing', async() => {
+            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, LastUpdateStatus: 'Successful'});
+            const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+            const alias = 'aliasName';
+            const {isPending} = await utils.getLambdaConfig(ARN, alias);
+            expect(isPending).to.be(false);
         });
     });
 
