@@ -23,3 +23,5 @@ jobs:
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: aws-actions/setup-sam@v2
+      - run: sam build --use-container
