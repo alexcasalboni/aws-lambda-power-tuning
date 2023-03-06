@@ -32,7 +32,6 @@
     "ansi-regex": ">=5.0.1",
     "aws-sdk": "^2.1004.0",
     "aws-sdk-mock": "^5.2.1",
-    "coveralls": "^3.0.3",
     "eslint": "^8.0.0",
     "eslint-config-strongloop": "^2.1.0",
     "expect.js": "^0.3.1",
