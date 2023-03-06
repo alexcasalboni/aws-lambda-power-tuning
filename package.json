@@ -25,7 +25,7 @@
     "execute": "bash execute.sh",
     "lint": "eslint --ignore-path .gitignore .",
     "test": "mocha",
-    "coverage": "c8 mocha"
+    "coverage": "c8 --reporter=lcov --reporter=cobertura --reporter=text-summary mocha"
   },
   "devDependencies": {
     "ansi-regex": ">=5.0.1",
