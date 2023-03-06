@@ -111,10 +111,11 @@ Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/m
 
 From most recent to oldest, with major releases in bold:
 
+* ***4.3.0*** (2023-03-06): SnapStart support (alias waiter)
 * *4.2.3* (2023-03-01): fix layer runtime (nodejs16.x)
 * *4.2.2* (2023-02-15): configurable sleep parameter, bump runtime to nodejs16.x, docs updates, GH Actions, and minor bug fixes
 * *4.2.1* (2022-08-02): customizable SDK layer name and logs retention value
-* *4.2.0* (2022-01-03): support S3 payloads
+* ***4.2.0*** (2022-01-03): support S3 payloads
 * *4.1.4* (2022-01-03): sorting bugfix and updated dependencies
 * *4.1.3* (2021-12-16): support simple strings as event payload
 * *4.1.2* (2021-10-12): add x86_64 fallback when Graviton is not supported yet
