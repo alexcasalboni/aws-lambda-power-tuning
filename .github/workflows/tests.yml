@@ -17,11 +17,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
+
       - run: npm ci
       - run: npm run coverage
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: aws-actions/setup-sam@v2
+      - run: sam validate
       - run: sam build --use-container
