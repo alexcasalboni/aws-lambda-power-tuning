@@ -162,7 +162,7 @@ module.exports.getLambdaConfig = async(lambdaARN, alias) => {
     }
     if (typeof config.State !== 'undefined') {
         // see https://docs.aws.amazon.com/lambda/latest/dg/functions-states.html
-        // the most likely state here is Pending, but it could also be 
+        // the most likely state here is Pending, but it could also be
         // - Failed: it means the version creation failed (can't do much about it, the invocation will fail anyway)
         // - Inactive: it means the version hasn't been invoked for 14 days (can't happen because we always create new versions)
         isPending = config.State === 'Pending';
