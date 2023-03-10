@@ -55,11 +55,11 @@ Parameters:
     Default: 7
     Description: The number of days to retain the log events in the Lambda log groups.
   securityGroupIds:
-    Type: List<AWS::EC2::SecurityGroup::Id>
+    Type: CommaDelimitedList
     Default: ''
     Description: List of Security Groups to use in every Lambda function's VPC Configuration (optional).
   subnetIds:
-    Type: List<AWS::EC2::Subnet::Id>
+    Type: CommaDelimitedList
     Default: ''
     Description: List of Subnets to use in every Lambda function's VPC Configuration (optional).
 
