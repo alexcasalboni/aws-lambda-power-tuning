@@ -111,6 +111,24 @@ module.exports.waitForFunctionUpdate = async(lambdaARN) => {
     return lambda.waitFor('functionUpdated', params).promise();
 };
 
+module.exports.waitForAliasActive = async(lambdaARN, alias) => {
+    console.log(`Waiting for alias ${alias} to be active`);
+    const params = {
+        FunctionName: lambdaARN,
+        Qualifier: alias,
+        $waiter: {
+            // https://aws.amazon.com/blogs/developer/waiters-in-modular-aws-sdk-for-javascript/
+            // "In v2, there is no direct way to provide maximum wait time for a waiter.
+            // You need to configure delay and maxAttempts to indirectly suggest the maximum time you want the waiter to run for."
+            // 10s * 90 is ~15 minutes (max invocation time)
+            delay: 10,
+            maxAttempts: 90,
+        },
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    return lambda.waitFor('functionActive', params).promise();
+};
+
 /**
  * Retrieve a given Lambda Function's memory size (always $LATEST version)
  */
@@ -126,20 +144,32 @@ module.exports.getLambdaPower = async(lambdaARN) => {
 };
 
 /**
- * Retrieve a given Lambda Function's architecture (always $LATEST version)
+ * Retrieve a given Lambda Function's architecture and whether its state is Pending
  */
-module.exports.getLambdaArchitecture = async(lambdaARN) => {
-    console.log('Getting current architecture');
+module.exports.getLambdaConfig = async(lambdaARN, alias) => {
+    console.log(`Getting current function config for alias ${alias}`);
     const params = {
         FunctionName: lambdaARN,
-        Qualifier: '$LATEST',
+        Qualifier: alias,
     };
+    let architecture, isPending;
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     const config = await lambda.getFunctionConfiguration(params).promise();
     if (typeof config.Architectures !== 'undefined') {
-        return config.Architectures[0];
-    };
-    return 'x86_64';
+        architecture = config.Architectures[0];
+    } else {
+        architecture = 'x86_64';
+    }
+    if (typeof config.State !== 'undefined') {
+        // see https://docs.aws.amazon.com/lambda/latest/dg/functions-states.html
+        // the most likely state here is Pending, but it could also be
+        // - Failed: it means the version creation failed (can't do much about it, the invocation will fail anyway)
+        // - Inactive: it means the version hasn't been invoked for 14 days (can't happen because we always create new versions)
+        isPending = config.State === 'Pending';
+    } else {
+        isPending = false;
+    }
+    return {architecture, isPending};
 };
 
 /**
@@ -462,7 +492,7 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
         // not an error, but worth logging
         // this happens when you have less than 5 invocations
         // (only happens if dryrun or in tests)
-        console.log("not enough results to discard");
+        console.log('not enough results to discard');
     }
 
     const newN = durations.length - 2 * toBeDiscarded;
@@ -561,4 +591,9 @@ module.exports.baseCostForRegion = (priceMap, region) => {
     }
     console.log(region + ' not found in base price map, using default: ' + priceMap['default']);
     return priceMap['default'];
+};
+
+
+module.exports.sleep = async(sleepBetweenRunsMs) => {
+    await new Promise(resolve => setTimeout(resolve, sleepBetweenRunsMs));
 };

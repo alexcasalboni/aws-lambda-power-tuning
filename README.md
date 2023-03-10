@@ -1,12 +1,10 @@
 # AWS Lambda Power Tuning
 
-[![Build Status](https://travis-ci.com/alexcasalboni/aws-lambda-power-tuning.svg?branch=master)](https://travis-ci.com/alexcasalboni/aws-lambda-power-tuning)
+[![Build Status](https://travis-ci.com/alexcasalboni/aws-lambda-power-tuning.svg?branch=master)](https://app.travis-ci.com/github/alexcasalboni/aws-lambda-power-tuning)
 [![Coverage Status](https://coveralls.io/repos/github/alexcasalboni/aws-lambda-power-tuning/badge.svg)](https://coveralls.io/github/alexcasalboni/aws-lambda-power-tuning)
-[![GitHub license](https://img.shields.io/github/license/alexcasalboni/aws-lambda-power-tuning.svg)](https://github.com/alexcasalboni/aws-lambda-power-tuning/blob/master/LICENSE)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/alexcasalboni/aws-lambda-power-tuning/graphs/commit-activity)
 [![GitHub issues](https://img.shields.io/github/issues/alexcasalboni/aws-lambda-power-tuning.svg)](https://github.com/alexcasalboni/aws-lambda-power-tuning/issues)
 [![Open Source Love svg2](https://badges.frapsoft.com/os/v2/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
-[![GitHub stars](https://img.shields.io/github/stars/alexcasalboni/aws-lambda-power-tuning.svg)](https://github.com/alexcasalboni/aws-lambda-power-tuning/stargazers)
 
 AWS Lambda Power Tuning is a state machine powered by AWS Step Functions that helps you optimize your Lambda functions for cost and/or performance in a data-driven way.
 
@@ -113,8 +111,11 @@ Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/m
 
 From most recent to oldest, with major releases in bold:
 
+* ***4.3.0*** (2023-03-06): SnapStart support (alias waiter)
+* *4.2.3* (2023-03-01): fix layer runtime (nodejs16.x)
+* *4.2.2* (2023-02-15): configurable sleep parameter, bump runtime to nodejs16.x, docs updates, GH Actions, and minor bug fixes
 * *4.2.1* (2022-08-02): customizable SDK layer name and logs retention value
-* *4.2.0* (2022-01-03): support S3 payloads
+* ***4.2.0*** (2022-01-03): support S3 payloads
 * *4.1.4* (2022-01-03): sorting bugfix and updated dependencies
 * *4.1.3* (2021-12-16): support simple strings as event payload
 * *4.1.2* (2021-10-12): add x86_64 fallback when Graviton is not supported yet

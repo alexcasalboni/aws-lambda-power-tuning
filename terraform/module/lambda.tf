@@ -13,7 +13,7 @@ resource "aws_lambda_function" "analyzer" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs14.x"
+  runtime = "nodejs16.x"
 
   environment {
     variables = {
@@ -42,7 +42,7 @@ resource "aws_lambda_function" "cleaner" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs14.x"
+  runtime = "nodejs16.x"
 
   environment {
     variables = {
@@ -71,7 +71,7 @@ resource "aws_lambda_function" "executor" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs14.x"
+  runtime = "nodejs16.x"
 
   environment {
     variables = {
@@ -100,7 +100,7 @@ resource "aws_lambda_function" "initializer" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs14.x"
+  runtime = "nodejs16.x"
 
   environment {
     variables = {
@@ -129,7 +129,7 @@ resource "aws_lambda_function" "optimizer" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs14.x"
+  runtime = "nodejs16.x"
 
   environment {
     variables = {
@@ -147,10 +147,10 @@ resource "aws_lambda_function" "optimizer" {
 
 resource "aws_lambda_layer_version" "lambda_layer" {
   filename    = "../src/layer.zip"
-  layer_name  = "AWS-SDK-v2_989_0"
-  description = "AWS SDK 2.989.0"
+  layer_name  = "AWS-SDK-v2_1134_0"
+  description = "AWS SDK 2.1134.0"
   compatible_architectures = ["x86_64"]
-  compatible_runtimes = ["nodejs14.x"]
+  compatible_runtimes = ["nodejs16.x"]
 
   depends_on = [data.archive_file.layer]
 }

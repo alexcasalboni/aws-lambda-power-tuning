@@ -40,7 +40,7 @@ Once the execution has completed, you will find the execution results in the "**
 The state machine accepts the following input parameters:
 
 * **lambdaARN** (required, string): unique identifier of the Lambda function you want to optimize
-* **powerValues** (optional, string or list of integers): the list of power values to be tested; if not provided, the default values configured at deploy-time are used (by default: 128MB, 256MB, 512MB, 1024MB, 1536MB, and 3008MB); you can provide any power values between 128MB and 10,240MB
+* **powerValues** (optional, string or list of integers): the list of power values to be tested; if not provided, the default values configured at deploy-time are used (by default: 128MB, 256MB, 512MB, 1024MB, 1536MB, and 3008MB); you can provide any power values between 128MB and 10,240MB (⚠️ [New AWS accounts have reduced concurrency and memory quotas (3008MB max)](https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html))
 * **num** (required, integer): the # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)
 * **payload** (string, object, or list): the static payload that will be used for every invocation (object or string); when using a list, a weighted payload is expected in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not percentages); more details below in the Weighted Payloads section
 * **payloadS3** (string): a reference to Amazon S3 for large payloads (>256KB), formatted as `s3://bucket/key`; it requires read-only IAM permissions, see `payloadS3Bucket` and `payloadS3Key` below and find more details in the S3 payloads section
@@ -260,8 +260,11 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 From most recent to oldest, with major releases in bold:
 
+* ***4.3.0*** (2023-03-06): SnapStart support (alias waiter)
+* *4.2.3* (2023-03-01): fix layer runtime (nodejs16.x)
+* *4.2.2* (2023-02-15): configurable sleep parameter, bump runtime to nodejs16.x, docs updates, GH Actions, and minor bug fixes
 * *4.2.1* (2022-08-02): customizable SDK layer name and logs retention value
-* *4.2.0* (2022-01-03): support S3 payloads
+* ***4.2.0*** (2022-01-03): support S3 payloads
 * *4.1.4* (2022-01-03): sorting bugfix and updated dependencies
 * *4.1.3* (2021-12-16): support simple strings as event payload
 * *4.1.2* (2021-10-12): add x86_64 fallback when Graviton is not supported yet

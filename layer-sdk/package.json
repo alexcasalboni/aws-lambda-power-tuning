@@ -5,7 +5,8 @@
   "author": "Alex Casalboni <alex@alexcasalboni.com>",
   "licence": "MIT-0",
   "scripts": {},
+  "private": true,
   "dependencies": {
-    "aws-sdk": "^2.1004.0"
+    "aws-sdk": "^2.1138.0"
   }
 }
