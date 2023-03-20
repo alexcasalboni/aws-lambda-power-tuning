@@ -1,0 +1,31 @@
+name: aws-lambda-power-tuning-tests
+run-name: ${{ github.actor }} is running integration tests
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          audience: ${{ secrets.AWS_ROLE_AUDIENCE }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - run: npm ci
+      - uses: aws-actions/setup-sam@v2
+
+      - run: sam build --use-container
+      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --stack-name aws-lambda-power-tuning-gh-${GITHUB_REF##*/} --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}
