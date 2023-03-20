@@ -1,5 +1,8 @@
 name: aws-lambda-power-tuning-tests
 run-name: ${{ github.actor }} is running integration tests
+permissions:
+  id-token: write
+  contents: read
 on:
   push:
     branches:
@@ -20,7 +23,6 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v1
         with:
-          audience: ${{ secrets.AWS_ROLE_AUDIENCE }}
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 

@@ -1,8 +1,3 @@
-Parameters:
-  OIDCAudience:
-    Description: Audience supplied to configure-aws-credentials.
-    Type: String
-
 Resources:
   Role:
     Type: AWS::IAM::Role
@@ -15,7 +10,7 @@ Resources:
               Federated: !Ref GithubOidc
             Condition:
               StringEquals:
-                token.actions.githubusercontent.com:aud: !Ref OIDCAudience
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
               StringLike:
                 token.actions.githubusercontent.com:sub: !Sub repo:alexcasalboni/aws-lambda-power-tuning:*
 
