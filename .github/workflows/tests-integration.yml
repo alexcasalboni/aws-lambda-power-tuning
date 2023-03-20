@@ -48,34 +48,39 @@ jobs:
       - run: sam validate
 
       # deploy with default params
-      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}\
+      - run: >
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}
              --stack-name aws-lambda-power-tuning-gh-defaults
 
       # deploy with VPC params
-      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}\
-             --stack-name aws-lambda-power-tuning-gh-vpc\
+      - run: >
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}
+             --stack-name aws-lambda-power-tuning-gh-vpc
              --parameter-overrides subnetIds=$SubnetIDs securityGroupIds=$SecurityGroupIds
 
       # deploy with S3 payload params
-      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}\
-             --stack-name aws-lambda-power-tuning-gh-s3\
+      - run: >
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}
+             --stack-name aws-lambda-power-tuning-gh-s3
              --parameter-overrides payloadS3Bucket=$S3Bucket payloadS3Key=$S3Key
 
       # deploy with regional limitation (via Lambda Resource)
-      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}\
-             --stack-name aws-lambda-power-tuning-gh-lambda-resource\
+      - run: >
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}
+             --stack-name aws-lambda-power-tuning-gh-lambda-resource
              --parameter-overrides lambdaResource=$LambdaResource
 
 
       # deploy with a bunch of custom parameters
-      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}\
-             --stack-name aws-lambda-power-tuning-gh-custom-params\
-             --parameter-overrides \
-              PowerValues=$PowerValues \
-              visualizationURL=$VisualizationURL \
-              totalExecutionTimeout=$TotalExecutionTimeout \
-              layerSdkName=$LayerSdkName \
-              logGroupRetentionInDays=$LogGroupRetentionInDays \
+      - run: >
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}
+             --stack-name aws-lambda-power-tuning-gh-custom-params
+             --parameter-overrides
+              PowerValues=$PowerValues
+              visualizationURL=$VisualizationURL
+              totalExecutionTimeout=$TotalExecutionTimeout
+              layerSdkName=$LayerSdkName
+              logGroupRetentionInDays=$LogGroupRetentionInDays
               permissionsBoundary=$PermissionsBoundary
 
 
