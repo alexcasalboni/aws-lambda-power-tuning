@@ -1,4 +1,4 @@
-name: aws-lambda-power-tuning-integration-tests
+name: aws-lambda-power-tuning-integration-tests-pr
 run-name: ${{ github.actor }} is running integration tests
 on:
   push:
@@ -11,17 +11,28 @@ jobs:
       id-token: write
       contents: read
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [16.x]
+
+    env:
+      PowerValues: 512,1024,1536 # shorter list
+      VisualizationURL: https://my-custom-url.io/
+      LambdaResource: 'arn:aws:lambda:eu-west-1:*:function:*' # specific region
+      TotalExecutionTimeout: '900' #max value
+      PermissionsBoundary: ARN
+      S3Bucket: lpt-payloads # existing bucket
+      S3Key: "payload.json" # only allow this object
+      LayerSdkName: custom-layer-name
+      LogGroupRetentionInDays: 7
+      SecurityGroupIds: sg-06ad5b959d0ce9f57 # existing SG
+      SubnetIDs: subnet-0126a3daed78354c7,subnet-00e2995006f41811e # existing subnets
+
     steps:
       - uses: actions/checkout@v3
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js 16.x
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 16.x
 
-      - uses: aws-actions/configure-aws-credentials@master
+      - uses: aws-actions/configure-aws-credentials@v2
         with:
           audience: sts.amazonaws.com
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
@@ -33,4 +44,39 @@ jobs:
           use-installer: true
 
       - run: sam build --use-container
-      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --stack-name aws-lambda-power-tuning-gh-${GITHUB_REF_NAME/\//-} --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}
+
+      - run: sam validate
+
+      # deploy with default params
+      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}\
+             --stack-name aws-lambda-power-tuning-gh-defaults
+
+      # deploy with VPC params
+      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}\
+             --stack-name aws-lambda-power-tuning-gh-vpc\
+             --parameter-overrides subnetIds=$SubnetIDs securityGroupIds=$SecurityGroupIds
+
+      # deploy with S3 payload params
+      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}\
+             --stack-name aws-lambda-power-tuning-gh-s3\
+             --parameter-overrides payloadS3Bucket=$S3Bucket payloadS3Key=$S3Key
+
+      # deploy with regional limitation (via Lambda Resource)
+      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}\
+             --stack-name aws-lambda-power-tuning-gh-lambda-resource\
+             --parameter-overrides lambdaResource=$LambdaResource
+
+
+      # deploy with a bunch of custom parameters
+      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}\
+             --stack-name aws-lambda-power-tuning-gh-custom-params\
+             --parameter-overrides \
+              PowerValues=$PowerValues \
+              visualizationURL=$VisualizationURL \
+              totalExecutionTimeout=$TotalExecutionTimeout \
+              layerSdkName=$LayerSdkName \
+              logGroupRetentionInDays=$LogGroupRetentionInDays \
+              permissionsBoundary=$PermissionsBoundary
+
+
+# # # #
