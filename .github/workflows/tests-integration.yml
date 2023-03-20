@@ -1,4 +1,4 @@
-name: aws-lambda-power-tuning-tests
+name: aws-lambda-power-tuning-integration-tests
 run-name: ${{ github.actor }} is running integration tests
 on:
   push:
@@ -31,4 +31,4 @@ jobs:
       - uses: aws-actions/setup-sam@v2
 
       - run: sam build --use-container
-      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --stack-name aws-lambda-power-tuning-gh-${GITHUB_REF##*/} --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}
+      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --stack-name aws-lambda-power-tuning-gh-${GITHUB_REF} --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }}
