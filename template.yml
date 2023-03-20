@@ -54,11 +54,22 @@ Parameters:
     Type: Number
     Default: 7
     Description: The number of days to retain the log events in the Lambda log groups.
+  securityGroupIds:
+    Type: CommaDelimitedList
+    Default: ''
+    Description: List of Security Groups to use in every Lambda function's VPC Configuration (optional).
+  subnetIds:
+    Type: CommaDelimitedList
+    Default: ''
+    Description: List of Subnets to use in every Lambda function's VPC Configuration (optional).
 
 Conditions:
   UsePermissionsBoundary: !Not [!Equals [!Ref permissionsBoundary, '']]
   S3BucketProvided: !Not [!Equals [!Ref payloadS3Bucket, '']]
   UseLayerSdkName: !Not [!Equals [!Ref layerSdkName, '']]
+  UseSecurityGroupIds: !Not [!Equals [!Join ['', !Ref securityGroupIds], '']]
+  UseSubnetIds: !Not [!Equals [!Join ['', !Ref subnetIds], '']]
+  UseVPCConfig: !Or [Condition: UseSecurityGroupIds, Condition: UseSubnetIds]
 
 Globals:
   Function:
@@ -66,6 +77,10 @@ Globals:
     MemorySize: 128
     Timeout: !Ref totalExecutionTimeout
     PermissionsBoundary: !If [UsePermissionsBoundary, !Ref permissionsBoundary, !Ref AWS::NoValue]
+    VpcConfig: !If [UseVPCConfig, {
+      SecurityGroupIds: !If [UseSecurityGroupIds, !Ref securityGroupIds, !Ref AWS::NoValue],
+      SubnetIds: !If [UseSubnetIds, !Ref subnetIds, !Ref AWS::NoValue]
+    }, !Ref AWS::NoValue]
     Environment:
       Variables:
         defaultPowerValues: !Join [ ",", !Ref PowerValues ]
