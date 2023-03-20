@@ -1,8 +1,5 @@
 name: aws-lambda-power-tuning-tests
 run-name: ${{ github.actor }} is running integration tests
-permissions:
-  id-token: write
-  contents: read
 on:
   push:
     branches:
@@ -10,6 +7,9 @@ on:
   pull_request:
 jobs:
   build:
+    permissions:
+      id-token: write
+      contents: read
     runs-on: ubuntu-latest
     strategy:
       matrix:
