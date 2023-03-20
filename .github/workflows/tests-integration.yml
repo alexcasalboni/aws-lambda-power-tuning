@@ -17,7 +17,7 @@ jobs:
       VisualizationURL: https://my-custom-url.io/
       LambdaResource: 'arn:aws:lambda:eu-west-1:*:function:*' # specific region
       TotalExecutionTimeout: '900' #max value
-      PermissionsBoundary: ARN
+      PermissionsBoundary: arn:aws:iam::aws:policy/AdministratorAccess
       S3Bucket: lpt-payloads # existing bucket
       S3Key: "payload.json" # only allow this object
       LayerSdkName: custom-layer-name
