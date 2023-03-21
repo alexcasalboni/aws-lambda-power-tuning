@@ -12,11 +12,11 @@ on:
 
 env:
   # stack names are reused across jobs
-  STACK_NAME_DEFAULTS: aws-lpt-gh-defaults-${GITHUB_REF_NAME/\//-}
-  STACK_NAME_S3: aws-lpt-gh-s3-${GITHUB_REF_NAME/\//-}
-  STACK_NAME_VPC: aws-lpt-gh-vpc-${GITHUB_REF_NAME/\//-}
-  STACK_NAME_LAMBDA_RESOURCE: aws-lpt-gh-lambda-resource-${GITHUB_REF_NAME/\//-}
-  STACK_NAME_CUSTOM_PARAMS: aws-lpt-gh-custom-params-${GITHUB_REF_NAME/\//-}
+  STACK_NAME_DEFAULTS: aws-lpt-gh-defaults
+  STACK_NAME_S3: aws-lpt-gh-s3
+  STACK_NAME_VPC: aws-lpt-gh-vpc
+  STACK_NAME_LAMBDA_RESOURCE: aws-lpt-gh-lambda-resource
+  STACK_NAME_CUSTOM_PARAMS: aws-lpt-gh-custom-params
 
   # deployment parameters are reused across jobs
   PowerValues: 512,1024,1536 # shorter list
@@ -63,7 +63,7 @@ jobs:
             if [[ "${{ matrix.stack }}" == "default" ]]
             then
               sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-               --stack-name $STACK_NAME_DEFAULTS
+               --stack-name $STACK_NAME_DEFAULTS-${GITHUB_REF_NAME/\//-}
             fi
 
       # deploy with VPC params
@@ -71,7 +71,7 @@ jobs:
             if [[ "${{ matrix.stack }}" == "vpc" ]]
             then
               sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-               --stack-name $STACK_NAME_VPC \
+               --stack-name $STACK_NAME_VPC-${GITHUB_REF_NAME/\//-} \
                --parameter-overrides subnetIds=$SubnetIDs securityGroupIds=$SecurityGroupIds
             fi
 
@@ -80,7 +80,7 @@ jobs:
             if [[ "${{ matrix.stack }}" == "s3" ]]
             then
               sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-               --stack-name $STACK_NAME_S3 \
+               --stack-name $STACK_NAME_S3-${GITHUB_REF_NAME/\//-} \
                --parameter-overrides payloadS3Bucket=$S3Bucket payloadS3Key=$S3Key
             fi
 
@@ -89,7 +89,7 @@ jobs:
             if [[ "${{ matrix.stack }}" == "resource" ]]
             then
               sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-               --stack-name $STACK_NAME_LAMBDA_RESOURCE \
+               --stack-name $STACK_NAME_LAMBDA_RESOURCE-${GITHUB_REF_NAME/\//-} \
                --parameter-overrides lambdaResource=$LambdaResource
             fi
 
@@ -99,7 +99,7 @@ jobs:
             if [[ "${{ matrix.stack }}" == "custom" ]]
             then
               sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-               --stack-name $STACK_NAME_CUSTOM_PARAMS \
+               --stack-name $STACK_NAME_CUSTOM_PARAMS-${GITHUB_REF_NAME/\//-} \
                --parameter-overrides \
                 PowerValues=$PowerValues \
                 visualizationURL=$VisualizationURL \
