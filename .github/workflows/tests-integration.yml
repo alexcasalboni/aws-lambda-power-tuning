@@ -34,11 +34,11 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: always() # run all stacks even if one fails
     strategy:
       matrix:
         # this will deploy the 5 stacks in parallel,
         # without defining each job individually
-        # (see the conditional trick below)
         stack: ['default', 'vpc', 's3', 'resource', 'custom']
     steps:
       - uses: actions/checkout@v3
@@ -46,77 +46,143 @@ jobs:
         with:
           node-version: 16.x
           cache: 'npm'
+
+      # install dependencies
       - run: npm ci
+
+      # configure AWS CLI and SAM CLI credentials
       - uses: aws-actions/configure-aws-credentials@v2
         with:
           audience: sts.amazonaws.com
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      # install SAM CLI
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
+
+      # validate SAM template (nice to have)
       - run: sam validate
-      - run: sam build --use-container
+
+      # sam build takes about 40 seconds, if not cached
+      - name: Cache SAM Build
+        id: cache-sam-build
+        uses: actions/cache@v3
+          with:
+            path: .aws-sam/**
+            key: aws-sam-build
+
+      # build app and layer, if cache miss
+      - name: SAM Build
+        if: steps.cache-sam-build.outputs.cache-hit != 'true'
+        run: sam build --use-container
 
       # deploy with default params
-      - run: |
-            if [[ "${{ matrix.stack }}" == "default" ]]
-            then
-              sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-               --stack-name $STACK_NAME_DEFAULTS-${GITHUB_REF_NAME/\//-}
-            fi
+      - if: matrix.stack == "default"
+        run: |
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+              --stack-name $STACK_NAME_DEFAULTS-${GITHUB_REF_NAME/\//-}
 
       # deploy with VPC params
-      - run: |
-            if [[ "${{ matrix.stack }}" == "vpc" ]]
-            then
-              sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-               --stack-name $STACK_NAME_VPC-${GITHUB_REF_NAME/\//-} \
-               --parameter-overrides subnetIds=$SubnetIDs securityGroupIds=$SecurityGroupIds
-            fi
+      - if: matrix.stack == "vpc"
+        run: |
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+              --stack-name $STACK_NAME_VPC-${GITHUB_REF_NAME/\//-} \
+              --parameter-overrides subnetIds=$SubnetIDs securityGroupIds=$SecurityGroupIds
 
       # deploy with S3 payload params
-      - run: |
-            if [[ "${{ matrix.stack }}" == "s3" ]]
-            then
-              sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-               --stack-name $STACK_NAME_S3-${GITHUB_REF_NAME/\//-} \
-               --parameter-overrides payloadS3Bucket=$S3Bucket payloadS3Key=$S3Key
-            fi
+      - if: matrix.stack == "s3"
+        run: |
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+              --stack-name $STACK_NAME_S3-${GITHUB_REF_NAME/\//-} \
+              --parameter-overrides payloadS3Bucket=$S3Bucket payloadS3Key=$S3Key
 
       # deploy with regional limitation (via Lambda Resource)
-      - run: |
-            if [[ "${{ matrix.stack }}" == "resource" ]]
-            then
-              sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-               --stack-name $STACK_NAME_LAMBDA_RESOURCE-${GITHUB_REF_NAME/\//-} \
-               --parameter-overrides lambdaResource=$LambdaResource
-            fi
+      - if: matrix.stack == "resource"
+        run: |
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+              --stack-name $STACK_NAME_LAMBDA_RESOURCE-${GITHUB_REF_NAME/\//-} \
+              --parameter-overrides lambdaResource=$LambdaResource
 
 
       # deploy with a bunch of custom parameters
-      - run: |
-            if [[ "${{ matrix.stack }}" == "custom" ]]
-            then
-              sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-               --stack-name $STACK_NAME_CUSTOM_PARAMS-${GITHUB_REF_NAME/\//-} \
-               --parameter-overrides \
-                PowerValues=$PowerValues \
-                visualizationURL=$VisualizationURL \
-                totalExecutionTimeout=$TotalExecutionTimeout \
-                layerSdkName=$LayerSdkName \
-                logGroupRetentionInDays=$LogGroupRetentionInDays \
-                permissionsBoundary=$PermissionsBoundary
-            fi
+      - if: matrix.stack == "custom"
+        run: |
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+              --stack-name $STACK_NAME_CUSTOM_PARAMS-${GITHUB_REF_NAME/\//-} \
+              --parameter-overrides \
+              PowerValues=$PowerValues \
+              visualizationURL=$VisualizationURL \
+              totalExecutionTimeout=$TotalExecutionTimeout \
+              layerSdkName=$LayerSdkName \
+              logGroupRetentionInDays=$LogGroupRetentionInDays \
+              permissionsBoundary=$PermissionsBoundary
 
   test:
     needs: deploy
+    if: always() # run even if something failed (100% sure?)
     runs-on: ubuntu-latest
     strategy:
       matrix:
         # this will test the 5 stacks in parallel,
         # without defining each job individually
-        # (see the conditional trick below)
         stack: ['default', 'vpc', 's3', 'resource', 'custom']
     steps:
-      - run: echo "Running tests for stack ${{ matrix.stack }}"
+      - run: echo "Running tests for stack matrix.stack"
+
+
+  # delete all Cfn stacks created above
+  # (whether tests have succedeed or not)
+  # note: sam delete doesn't fail if the stack doesn't exist
+  cleanup:
+    needs: test
+    if: always() # run even if something failed
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # this will delete the 5 stacks in parallel,
+        # without defining each job individually
+        stack: ['default', 'vpc', 's3', 'resource', 'custom']
+    steps:
+      # configure AWS CLI and SAM CLI credentials
+      - uses: aws-actions/configure-aws-credentials@v2
+        with:
+          audience: sts.amazonaws.com
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # install SAM CLI
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      # delete stack with default params
+      - if: matrix.stack == "default"
+        run: |
+            sam delete --no-prompts --region ${{ secrets.AWS_REGION }} \
+              --stack-name $STACK_NAME_DEFAULTS-${GITHUB_REF_NAME/\//-}
+
+      # delete stack with VPC params
+      - if: matrix.stack == "vpc"
+        run: |
+            sam delete --no-prompts --region ${{ secrets.AWS_REGION }} \
+              --stack-name $STACK_NAME_VPC-${GITHUB_REF_NAME/\//-}
+
+      # delete stack with S3 payload params
+      - if: matrix.stack == "s3"
+        run: |
+            sam delete --no-prompts --region ${{ secrets.AWS_REGION }}
+              --stack-name $STACK_NAME_S3-${GITHUB_REF_NAME/\//-}
+
+      # delete stack with regional limitation (via Lambda Resource)
+      - if: matrix.stack == "resource"
+        run: |
+            sam delete --no-prompts --region ${{ secrets.AWS_REGION }} \
+              --stack-name $STACK_NAME_LAMBDA_RESOURCE-${GITHUB_REF_NAME/\//-}
+
+      # delete stack with a bunch of custom parameters
+      - if: matrix.stack == "custom"
+        run: |
+            sam delete --no-prompts --region ${{ secrets.AWS_REGION }} \
+              --stack-name $STACK_NAME_CUSTOM_PARAMS-${GITHUB_REF_NAME/\//-}
