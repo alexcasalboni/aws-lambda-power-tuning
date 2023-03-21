@@ -79,27 +79,27 @@ jobs:
         run: sam build --use-container
 
       # deploy with default params
-      - if: matrix.stack == "default"
+      - if: matrix.stack == 'default'
         run: |
             sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
               --stack-name $STACK_NAME_DEFAULTS-${GITHUB_REF_NAME/\//-}
 
       # deploy with VPC params
-      - if: matrix.stack == "vpc"
+      - if: matrix.stack == 'vpc'
         run: |
             sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
               --stack-name $STACK_NAME_VPC-${GITHUB_REF_NAME/\//-} \
               --parameter-overrides subnetIds=$SubnetIDs securityGroupIds=$SecurityGroupIds
 
       # deploy with S3 payload params
-      - if: matrix.stack == "s3"
+      - if: matrix.stack == 's3'
         run: |
             sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
               --stack-name $STACK_NAME_S3-${GITHUB_REF_NAME/\//-} \
               --parameter-overrides payloadS3Bucket=$S3Bucket payloadS3Key=$S3Key
 
       # deploy with regional limitation (via Lambda Resource)
-      - if: matrix.stack == "resource"
+      - if: matrix.stack == 'resource'
         run: |
             sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
               --stack-name $STACK_NAME_LAMBDA_RESOURCE-${GITHUB_REF_NAME/\//-} \
@@ -107,7 +107,7 @@ jobs:
 
 
       # deploy with a bunch of custom parameters
-      - if: matrix.stack == "custom"
+      - if: matrix.stack == 'custom'
         run: |
             sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
               --stack-name $STACK_NAME_CUSTOM_PARAMS-${GITHUB_REF_NAME/\//-} \
@@ -158,31 +158,31 @@ jobs:
           use-installer: true
 
       # delete stack with default params
-      - if: matrix.stack == "default"
+      - if: matrix.stack == 'default'
         run: |
             sam delete --no-prompts --region ${{ secrets.AWS_REGION }} \
               --stack-name $STACK_NAME_DEFAULTS-${GITHUB_REF_NAME/\//-}
 
       # delete stack with VPC params
-      - if: matrix.stack == "vpc"
+      - if: matrix.stack == 'vpc'
         run: |
             sam delete --no-prompts --region ${{ secrets.AWS_REGION }} \
               --stack-name $STACK_NAME_VPC-${GITHUB_REF_NAME/\//-}
 
       # delete stack with S3 payload params
-      - if: matrix.stack == "s3"
+      - if: matrix.stack == 's3'
         run: |
             sam delete --no-prompts --region ${{ secrets.AWS_REGION }}
               --stack-name $STACK_NAME_S3-${GITHUB_REF_NAME/\//-}
 
       # delete stack with regional limitation (via Lambda Resource)
-      - if: matrix.stack == "resource"
+      - if: matrix.stack == 'resource'
         run: |
             sam delete --no-prompts --region ${{ secrets.AWS_REGION }} \
               --stack-name $STACK_NAME_LAMBDA_RESOURCE-${GITHUB_REF_NAME/\//-}
 
       # delete stack with a bunch of custom parameters
-      - if: matrix.stack == "custom"
+      - if: matrix.stack == 'custom'
         run: |
             sam delete --no-prompts --region ${{ secrets.AWS_REGION }} \
               --stack-name $STACK_NAME_CUSTOM_PARAMS-${GITHUB_REF_NAME/\//-}
