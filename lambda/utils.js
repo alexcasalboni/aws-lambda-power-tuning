@@ -512,12 +512,11 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
  * Extract duration (in ms) from a given Lambda's CloudWatch log.
  */
 module.exports.extractDuration = (log) => {
-    // extract duration from log (anyone can suggest a regex?)
-    const durationSplit = log.split('\tDuration: ');
-    if (durationSplit.length < 2) return 0;
+    const regex = /\tBilled Duration: (\d+) ms/m;
+    const match = regex.exec(log);
 
-    const durationStr = durationSplit[1].split(' ms')[0];
-    return parseFloat(durationStr);
+    if (match == null) return 0;
+    return parseInt(match[1], 10);
 };
 
 /**
