@@ -32,27 +32,7 @@ env:
   SubnetIDs: subnet-0126a3daed78354c7,subnet-00e2995006f41811e # existing subnets
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-          cache: 'npm'
-      - run: npm ci
-      - uses: aws-actions/setup-sam@v2
-        with:
-          use-installer: true
-      #- run: sam validate
-      - run: sam build --use-container
-      - uses: actions/upload-artifact@v2
-        with:
-          name: sam-build-artifacts
-          path: ${{ github.workspace }}/.aws-sam
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -61,6 +41,12 @@ jobs:
         # (see the conditional trick below)
         stack: ['default', 'vpc', 's3', 'resource', 'custom']
     steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: 'npm'
+      - run: npm ci
       - uses: aws-actions/configure-aws-credentials@v2
         with:
           audience: sts.amazonaws.com
@@ -69,44 +55,59 @@ jobs:
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
-      - uses: actions/download-artifact@v2
-        with:
-          name: sam-build-artifacts
+      - run: sam validate
+      - run: sam build --use-container
+
       # deploy with default params
       - run: |
-            [[ "${{ matrix.stack }}" = "default" ]] && sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-             --stack-name $STACK_NAME_DEFAULTS
+            if [[ "${{ matrix.stack }}" == "default" ]]
+            then
+              sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+               --stack-name $STACK_NAME_DEFAULTS
+            fi
 
       # deploy with VPC params
       - run: |
-            [[ "${{ matrix.stack }}" = "vpc" ]] && sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-             --stack-name $STACK_NAME_VPC \
-             --parameter-overrides subnetIds=$SubnetIDs securityGroupIds=$SecurityGroupIds
+            if [[ "${{ matrix.stack }}" == "vpc" ]]
+            then
+              sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+               --stack-name $STACK_NAME_VPC \
+               --parameter-overrides subnetIds=$SubnetIDs securityGroupIds=$SecurityGroupIds
+            fi
 
       # deploy with S3 payload params
       - run: |
-            [[ "${{ matrix.stack }}" = "s3" ]] && sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-             --stack-name $STACK_NAME_S3 \
-             --parameter-overrides payloadS3Bucket=$S3Bucket payloadS3Key=$S3Key
+            if [[ "${{ matrix.stack }}" == "s3" ]]
+            then
+              sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+               --stack-name $STACK_NAME_S3 \
+               --parameter-overrides payloadS3Bucket=$S3Bucket payloadS3Key=$S3Key
+            fi
 
       # deploy with regional limitation (via Lambda Resource)
       - run: |
-            [[ "${{ matrix.stack }}" = "resource" ]] && sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-             --stack-name $STACK_NAME_LAMBDA_RESOURCE \
-             --parameter-overrides lambdaResource=$LambdaResource
+            if [[ "${{ matrix.stack }}" == "resource" ]]
+            then
+              sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+               --stack-name $STACK_NAME_LAMBDA_RESOURCE \
+               --parameter-overrides lambdaResource=$LambdaResource
+            fi
 
 
       # deploy with a bunch of custom parameters
       - run: |
-            [[ "${{ matrix.stack }}" = "custom" ]] && sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
-             --stack-name $STACK_NAME_CUSTOM_PARAMS \
-             --parameter-overrides \
-              PowerValues=$PowerValues \
-              visualizationURL=$VisualizationURL \
-              totalExecutionTimeout=$TotalExecutionTimeout \
-              layerSdkName=$LayerSdkName \
-              logGroupRetentionInDays=$LogGroupRetentionInDays \
-              permissionsBoundary=$PermissionsBoundary
+            if [[ "${{ matrix.stack }}" == "custom" ]]
+            then
+              sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+               --stack-name $STACK_NAME_CUSTOM_PARAMS \
+               --parameter-overrides \
+                PowerValues=$PowerValues \
+                visualizationURL=$VisualizationURL \
+                totalExecutionTimeout=$TotalExecutionTimeout \
+                layerSdkName=$LayerSdkName \
+                logGroupRetentionInDays=$LogGroupRetentionInDays \
+                permissionsBoundary=$PermissionsBoundary
+            fi
 
   test:
     needs: deploy
