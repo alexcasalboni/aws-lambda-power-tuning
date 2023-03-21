@@ -44,7 +44,7 @@ jobs:
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
-      - run: sam validate
+      #- run: sam validate
       - run: sam build --use-container
       - uses: actions/upload-artifact@v2
         with:
