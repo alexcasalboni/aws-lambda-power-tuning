@@ -69,9 +69,9 @@ jobs:
       - name: Cache SAM Build
         id: cache-sam-build
         uses: actions/cache@v3
-          with:
-            path: .aws-sam/**
-            key: aws-sam-build
+        with:
+          path: .aws-sam/**
+          key: aws-sam-build
 
       # build app and layer, if cache miss
       - name: SAM Build
@@ -129,7 +129,7 @@ jobs:
         # without defining each job individually
         stack: ['default', 'vpc', 's3', 'resource', 'custom']
     steps:
-      - run: echo "Running tests for stack matrix.stack"
+      - run: echo "Running tests for stack ${{ matrix.stack }}"
 
 
   # delete all Cfn stacks created above
