@@ -3,7 +3,7 @@ run-name: ${{ github.actor }} is running integration tests
 permissions:
   id-token: write
   contents: read
-on: pull_request_target
+on: pull_request
 # make sure only one concurrent run per workflow/branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
