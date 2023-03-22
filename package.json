@@ -24,7 +24,8 @@
     "deploy": "bash deploy.sh",
     "execute": "bash execute.sh",
     "lint": "eslint --ignore-path .gitignore .",
-    "test": "mocha",
+    "test": "mocha test/unit/*.js",
+    "test-integration": "mocha -p -j 5 test/integration/*.js",
     "coverage": "c8 --reporter=lcov --reporter=cobertura --reporter=text-summary mocha"
   },
   "devDependencies": {
