@@ -1,13 +1,12 @@
 'use strict';
 
-
 const expect = require('expect.js'),
     utils = require('./utils'),
     payloads = require('./payloads');
 
+payloads.init(process.env.FUNCTION_ARNS_DEFAULTS);
 
-//also required: process.env.AWS_REGION;
-const STACK_NAME = utils.buildStackName(process.env.STACK_NAME_DEFAULTS, process.env.BRANCH_NAME),
+const STACK_NAME = utils.buildStackName(process.env.STACK_NAME_DEFAULTS),
     payloadSample = payloads.get('sample'),
     payloadSample2 = payloads.get('sample2'),
     payloadInvalid = payloads.get('invalid');

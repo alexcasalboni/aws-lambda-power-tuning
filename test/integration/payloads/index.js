@@ -1,5 +1,6 @@
 
-const FUNCTION_ARN = process.env.FUNCTION_ARN;
+var functionArns;
+var incrementalIndex;
 
 const payloads = {
     sample: require('./sample.json'),
@@ -7,16 +8,34 @@ const payloads = {
     invalid: require('./sample-invalid.json'),
 };
 
+module.exports.init = (arns) => {
+    functionArns = arns;
+    incrementalIndex = 0;
+    if (!Array.isArray(functionArns)) {
+        functionArns = functionArns.split(',');
+    }
+    functionArns.forEach((arn, index) => {
+        functionArns[index] = arn.trim(); // remove spaces
+    });
+}
+
 module.exports.get = (name, functionName) => {
     const p = payloads[name];
     if (!p) {
-        throw new Error("Invalid payload name", name);
+        throw new Error("Invalid payload name:", name);
     }    
-    if (functionName === undefined && FUNCTION_ARN) {
-        functionName = FUNCTION_ARN;
+
+    if (functionName === undefined) {
+        // if enough arns left
+        if (incrementalIndex < functionArns.length) {
+            functionName = functionArns[incrementalIndex++];
+        } else {
+            throw new Error("Not enough function arns to run tests");
+        }
     }
-    if (functionName) {
-        p.lambdaARN = functionName;
-    }
+
+    // replace function ARN in payload structure
+    p.lambdaARN = functionName;
+
     return p;
 };

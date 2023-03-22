@@ -10,6 +10,7 @@ concurrency:
   cancel-in-progress: true
 env:
   # stack names are reused across jobs
+  STACK_NAME_FUNCTIONS: aws-lpt-gh-functions
   STACK_NAME_DEFAULTS: aws-lpt-gh-defaults
   STACK_NAME_S3: aws-lpt-gh-s3
   STACK_NAME_VPC: aws-lpt-gh-vpc
@@ -38,7 +39,7 @@ jobs:
       matrix:
         # this will deploy the 5 stacks in parallel,
         # without defining each job individually
-        stack: ['default', 'vpc', 's3', 'resource', 'custom']
+        stack: ['functions', 'default', 'vpc', 's3', 'resource', 'custom']
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -76,6 +77,13 @@ jobs:
       - name: SAM Build
         if: steps.cache-sam-build.outputs.cache-hit != 'true'
         run: sam build --use-container
+
+
+      - if: matrix.stack == 'functions'
+        run: |
+            sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --s3-bucket ${{ secrets.AWS_S3_BUCKET }} --capabilities CAPABILITY_IAM --region ${{ secrets.AWS_REGION }} \
+              --template test/integration/functions.yml \
+              --stack-name $STACK_NAME_FUNCTIONS-${GITHUB_REF_NAME/\//-}
 
       # deploy with default params
       - if: matrix.stack == 'default'
@@ -124,7 +132,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # sample function for testing (more will come)
-      FUNCTION_ARN: ${{ secrets.FUNCTION_ARN }}
       BRANCH_NAME: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v3
@@ -141,6 +148,13 @@ jobs:
           audience: sts.amazonaws.com
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      # define env variable for integration tests (function arns)
+      - run: |
+          FUNCTION_ARNS_DEFAULTS=$(aws cloudformation describe-stacks --stack-name $STACK_NAME_FUNCTIONS-${GITHUB_REF_NAME/\//-} --query 'Stacks[0].Outputs[?OutputKey==`FunctionsDefaults`].OutputValue' --output text)
+          FUNCTION_ARNS_VPC=$(aws cloudformation describe-stacks --stack-name $STACK_NAME_FUNCTIONS-${GITHUB_REF_NAME/\//-} --query 'Stacks[0].Outputs[?OutputKey==`FunctionsVpc`].OutputValue' --output text)
+          echo "FUNCTION_ARNS_DEFAULTS=${FUNCTION_ARNS_DEFAULTS}" >> $GITHUB_ENV
+          echo "FUNCTION_ARNS_VPC=${FUNCTION_ARNS_VPC}" >> $GITHUB_ENV
 
       # run integrations tests (all in parallel)
       - run: npm run test-integration

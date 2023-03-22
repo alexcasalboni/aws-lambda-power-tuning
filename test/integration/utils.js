@@ -5,10 +5,14 @@ const AWS = require('aws-sdk'),
     crypto = require("crypto"),
     utils = module.exports,
     cfn = new AWS.CloudFormation(),
-    stepFunctions = new AWS.StepFunctions();
+    stepFunctions = new AWS.StepFunctions(),
+    BRANCH_NAME = process.env.BRANCH_NAME;
 
 
 module.exports.buildStackName = (prefix, branchRef) =>  {
+    if (!branchRef && BRANCH_NAME) {
+        branchRef = BRANCH_NAME;
+    }
     return `${prefix}-${branchRef.replace('/', '-')}`;
 };
 
