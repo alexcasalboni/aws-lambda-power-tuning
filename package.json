@@ -26,7 +26,7 @@
     "lint": "eslint --ignore-path .gitignore .",
     "test": "mocha test/unit/*.js",
     "test-integration": "mocha -p -j 5 test/integration/*.js",
-    "coverage": "c8 --reporter=lcov --reporter=cobertura --reporter=text-summary mocha"
+    "coverage": "c8 --reporter=lcov --reporter=cobertura --reporter=text-summary npm test"
   },
   "devDependencies": {
     "ansi-regex": ">=5.0.1",
