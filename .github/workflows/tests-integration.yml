@@ -3,13 +3,11 @@ run-name: ${{ github.actor }} is running integration tests
 permissions:
   id-token: write
   contents: read
-
-on:
-  push:
-    branches:
-      - 'master'
-  pull_request:
-
+on: pull_request_target
+# make sure only one concurrent run per workflow/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 env:
   # stack names are reused across jobs
   STACK_NAME_DEFAULTS: aws-lpt-gh-defaults
@@ -36,6 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     if: always() # run all stacks even if one fails
     strategy:
+      fail-fast: false
       matrix:
         # this will deploy the 5 stacks in parallel,
         # without defining each job individually
@@ -70,7 +69,7 @@ jobs:
         id: cache-sam-build
         uses: actions/cache@v3
         with:
-          path: .aws-sam/**
+          path: .aws-sam/
           key: aws-sam-build
 
       # build app and layer, if cache miss
@@ -123,13 +122,28 @@ jobs:
     needs: deploy
     if: always() # run even if something failed (100% sure?)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # this will test the 5 stacks in parallel,
-        # without defining each job individually
-        stack: ['default', 'vpc', 's3', 'resource', 'custom']
+    env:
+      # sample function for testing (more will come)
+      FUNCTION_ARN: ${{ secrets.FUNCTION_ARN }}
+      BRANCH_NAME: ${{ github.ref_name }}
     steps:
-      - run: echo "Running tests for stack ${{ matrix.stack }}"
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: 'npm'
+      # install dependencies (needed for AWS CLI and a few more utils)
+      - run: npm ci
+
+      # configure AWS CLI credentials
+      - uses: aws-actions/configure-aws-credentials@v2
+        with:
+          audience: sts.amazonaws.com
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # run integrations tests (all in parallel)
+      - run: npm run test-integration
 
 
   # delete all Cfn stacks created above
@@ -140,6 +154,7 @@ jobs:
     if: always() # run even if something failed
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         # this will delete the 5 stacks in parallel,
         # without defining each job individually
@@ -172,7 +187,7 @@ jobs:
       # delete stack with S3 payload params
       - if: matrix.stack == 's3'
         run: |
-            sam delete --no-prompts --region ${{ secrets.AWS_REGION }}
+            sam delete --no-prompts --region ${{ secrets.AWS_REGION }} \
               --stack-name $STACK_NAME_S3-${GITHUB_REF_NAME/\//-}
 
       # delete stack with regional limitation (via Lambda Resource)
