@@ -53,6 +53,15 @@ Resources:
        exports.handler = async (event) => {
             return {'message': 'OK'}
         }
+
+  FunctionS3:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      InlineCode: |
+       exports.handler = async (event) => {
+            return {'message': 'OK'}
+        }
     
 
 Outputs:
@@ -66,4 +75,8 @@ Outputs:
     Value: !Join [ ",", [
       !GetAtt FunctionVpc1.Arn,
       !GetAtt FunctionVpc2.Arn
+    ]]
+  FunctionsS3:
+    Value: !Join [ ",", [
+      !GetAtt FunctionS3.Arn
     ]]

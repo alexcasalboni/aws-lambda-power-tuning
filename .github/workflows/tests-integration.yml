@@ -34,6 +34,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: always() # run all stacks even if one fails
+    environment: Deployment # this will require approval before deploying all stacks
     strategy:
       fail-fast: false
       matrix:
@@ -153,8 +154,10 @@ jobs:
       - run: |
           FUNCTION_ARNS_DEFAULTS=$(aws cloudformation describe-stacks --stack-name $STACK_NAME_FUNCTIONS-${GITHUB_REF_NAME/\//-} --query 'Stacks[0].Outputs[?OutputKey==`FunctionsDefaults`].OutputValue' --output text)
           FUNCTION_ARNS_VPC=$(aws cloudformation describe-stacks --stack-name $STACK_NAME_FUNCTIONS-${GITHUB_REF_NAME/\//-} --query 'Stacks[0].Outputs[?OutputKey==`FunctionsVpc`].OutputValue' --output text)
+          FUNCTION_ARNS_S3=$(aws cloudformation describe-stacks --stack-name $STACK_NAME_FUNCTIONS-${GITHUB_REF_NAME/\//-} --query 'Stacks[0].Outputs[?OutputKey==`FunctionsS3`].OutputValue' --output text)
           echo "FUNCTION_ARNS_DEFAULTS=${FUNCTION_ARNS_DEFAULTS}" >> $GITHUB_ENV
           echo "FUNCTION_ARNS_VPC=${FUNCTION_ARNS_VPC}" >> $GITHUB_ENV
+          echo "FUNCTION_ARNS_S3=${FUNCTION_ARNS_S3}" >> $GITHUB_ENV
 
       # run integrations tests (all in parallel)
       - run: npm run test-integration

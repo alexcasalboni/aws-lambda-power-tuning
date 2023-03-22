@@ -6,7 +6,7 @@ const expect = require('expect.js'),
 
 payloads.init(process.env.FUNCTION_ARNS_VPC);
 
-const STACK_NAME = utils.buildStackName(process.env.STACK_NAME_DEFAULTS),
+const STACK_NAME = utils.buildStackName(process.env.STACK_NAME_VPC),
     payloadSample2 = payloads.get('sample2'),
     payloadInvalid = payloads.get('invalid');
 
