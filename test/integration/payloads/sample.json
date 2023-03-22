@@ -1,0 +1,7 @@
+{
+    "lambdaARN": "PLACEHOLDER",
+    "powerValues": [256, 512, 1024],
+    "num": 10,
+    "payload": "{}",
+    "parallelInvocation": true
+}
