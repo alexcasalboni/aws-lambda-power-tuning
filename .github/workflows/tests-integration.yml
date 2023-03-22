@@ -167,6 +167,7 @@ jobs:
     needs: test
     if: always() # run even if something failed
     runs-on: ubuntu-latest
+    environment: Deletion # this will require approval before deleting all stacks
     strategy:
       fail-fast: false
       matrix:
