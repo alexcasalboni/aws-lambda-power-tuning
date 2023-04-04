@@ -15,6 +15,14 @@ resource "aws_lambda_function" "analyzer" {
 
   runtime = "nodejs16.x"
 
+  dynamic "vpc_config" {
+    for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
+    content {
+      security_group_ids = var.vpc_security_group_ids
+      subnet_ids         = var.vpc_subnet_ids
+    }
+  }
+
   environment {
     variables = {
       defaultPowerValues = local.defaultPowerValues,
@@ -43,6 +51,14 @@ resource "aws_lambda_function" "cleaner" {
   source_code_hash = data.archive_file.app.output_base64sha256
 
   runtime = "nodejs16.x"
+
+  dynamic "vpc_config" {
+    for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
+    content {
+      security_group_ids = var.vpc_security_group_ids
+      subnet_ids         = var.vpc_subnet_ids
+    }
+  }
 
   environment {
     variables = {
@@ -73,6 +89,14 @@ resource "aws_lambda_function" "executor" {
 
   runtime = "nodejs16.x"
 
+  dynamic "vpc_config" {
+    for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
+    content {
+      security_group_ids = var.vpc_security_group_ids
+      subnet_ids         = var.vpc_subnet_ids
+    }
+  }
+
   environment {
     variables = {
       defaultPowerValues = local.defaultPowerValues,
@@ -102,6 +126,14 @@ resource "aws_lambda_function" "initializer" {
 
   runtime = "nodejs16.x"
 
+  dynamic "vpc_config" {
+    for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
+    content {
+      security_group_ids = var.vpc_security_group_ids
+      subnet_ids         = var.vpc_subnet_ids
+    }
+  }
+
   environment {
     variables = {
       defaultPowerValues = local.defaultPowerValues,
@@ -130,6 +162,14 @@ resource "aws_lambda_function" "optimizer" {
   source_code_hash = data.archive_file.app.output_base64sha256
 
   runtime = "nodejs16.x"
+
+  dynamic "vpc_config" {
+    for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
+    content {
+      security_group_ids = var.vpc_security_group_ids
+      subnet_ids         = var.vpc_subnet_ids
+    }
+  }
 
   environment {
     variables = {
