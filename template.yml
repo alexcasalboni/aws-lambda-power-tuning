@@ -286,7 +286,7 @@ Resources:
                       "Next": "Cleaner",
                       "ItemsPath": "$.powerValues",
                       "ResultPath": "$.stats",
-                      "Parameters": {
+                      "ItemSelector": {
                         "input.$": "$",
                         "value.$": "$$.Map.Item.Value"
                       },
