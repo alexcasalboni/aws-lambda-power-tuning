@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "ansi-regex": ">=5.0.1",
-    "aws-sdk": "^2.1138.0",
+    "aws-sdk": "^2.1354.0",
     "aws-sdk-mock": "^5.8.0",
     "c8": "^7.13.0",
     "eslint": "^8.35.0",
