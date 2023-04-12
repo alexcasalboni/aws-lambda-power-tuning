@@ -73,7 +73,7 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
     try {
         await utils.setLambdaPower(lambdaARN, value);
 
-        // wait for functoin update to complete
+        // wait for function update to complete
         await utils.waitForFunctionUpdate(lambdaARN);
 
         const {Version} = await utils.publishLambdaVersion(lambdaARN);
@@ -462,6 +462,15 @@ module.exports.parseLogAndExtractDurations = (data) => {
     });
 };
 
+module.exports.parseLogAndExtractInitDurations = (data) => {
+    return data
+        .map((log) => {
+            const logString = utils.base64decode(log.LogResult || '');
+            return utils.extractInitDuration(logString);
+        })
+        // remove logs with no init duration (after cold start)
+        .filter((duration) => duration > 0);
+};
 /**
  * Compute total cost
  */
@@ -517,6 +526,16 @@ module.exports.extractDuration = (log) => {
     if (durationSplit.length < 2) return 0;
 
     const durationStr = durationSplit[1].split(' ms')[0];
+    return parseFloat(durationStr);
+};
+/**
+ * Extract init duration (in ms) from a given Lambda's CloudWatch log.
+ */
+module.exports.extractInitDuration = (log) => {
+    const initDurationMatches = log.match(/\tInit Duration: ([0-9\.]*) ms/);
+    if (initDurationMatches === null) return 0;
+
+    const durationStr = initDurationMatches[1];
     return parseFloat(durationStr);
 };
 
