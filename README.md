@@ -111,6 +111,7 @@ Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/m
 
 From most recent to oldest, with major releases in bold:
 
+* *4.3.1* (2023-05-09): update dependencies, add VPC Configuration support, use Billed Duration instead Duration from logs, update state machine with ItemSelector
 * ***4.3.0*** (2023-03-06): SnapStart support (alias waiter)
 * *4.2.3* (2023-03-01): fix layer runtime (nodejs16.x)
 * *4.2.2* (2023-02-15): configurable sleep parameter, bump runtime to nodejs16.x, docs updates, GH Actions, and minor bug fixes
