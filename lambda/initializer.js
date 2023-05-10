@@ -8,24 +8,83 @@ const defaultPowerValues = process.env.defaultPowerValues.split(',');
  */
 module.exports.handler = async(event, context) => {
 
-    const {lambdaARN, num} = event;
-    const powerValues = extractPowerValues(event);
+    const {
+        lambdaARN,
+        num,
+        powerValues,
+        onlyColdStarts,
+    } = extractDataFromInput(event);
 
     validateInput(lambdaARN, num); // may throw
 
     // fetch initial $LATEST value so we can reset it later
-    const initialPower = await utils.getLambdaPower(lambdaARN);
+    const {power, envVars} = await utils.getLambdaPower(lambdaARN);
+
+    let lambdaFunctionsToSet = [];
 
     // reminder: configuration updates must run sequentially
     // (otherwise you get a ResourceConflictException)
-    for (let value of powerValues){
-        const alias = 'RAM' + value;
-        await utils.createPowerConfiguration(lambdaARN, value, alias);
+    for (let powerValue of powerValues){
+        const baseAlias = 'RAM' + powerValue;
+        if (!onlyColdStarts){
+            lambdaFunctionsToSet.push({lambdaARN: lambdaARN, powerValue: powerValue, envVars: envVars, alias: baseAlias});
+        } else {
+            for (let n of utils.range(num)){
+                let alias = utils.buildAliasString(baseAlias, onlyColdStarts, n);
+                const currentEnvVars = {
+                    LambdaPowerTuningForceColdStart: alias,
+                    ...envVars,
+                };
+                // here we inject a custom env variable to force the creation of a new version
+                // even if the power is the same, which will force a cold start
+                lambdaFunctionsToSet.push({lambdaARN: lambdaARN, powerValue: powerValue, envVars: currentEnvVars, alias: alias});
+            }
+        }
+    }
+    lambdaFunctionsToSet.push({lambdaARN: lambdaARN, powerValue: power, envVars: envVars});
+
+    const returnObj = {
+        initConfigurations: lambdaFunctionsToSet,
+        iterator: {
+            index: 0,
+            count: lambdaFunctionsToSet.length,
+            continue: true,
+        }
+    }
+    return returnObj;
+};
+
+module.exports.handlerTest = async(event, context) => {
+    const iterator = event.powerValues.iterator;
+    const initConfigurations = event.powerValues.initConfigurations;
+    const aliases = event.powerValues.aliases || [];
+    const currIdx = iterator.index;
+    const currConfig = initConfigurations[currIdx];
+
+    // publish version
+    await utils.createPowerConfiguration(currConfig.lambdaARN, currConfig.powerValue, currConfig.alias, currConfig.envVars);
+    if(typeof currConfig.alias !== 'undefined'){
+        aliases.push(currConfig.alias);
     }
 
-    await utils.setLambdaPower(lambdaARN, initialPower);
+    // update iterator
+    iterator.index++;
+    iterator.continue = (iterator.index < iterator.count);
+    if(!iterator.continue){
+        delete event.powerValues.initConfigurations;
+    }
+    event.powerValues.aliases = aliases;
+    return event.powerValues;
+}
 
-    return powerValues;
+
+const extractDataFromInput = (event) => {
+    return {
+        lambdaARN: event.lambdaARN,
+        num: parseInt(event.num, 10),
+        powerValues: extractPowerValues(event),
+        onlyColdStarts: !!event.onlyColdStarts,
+    };
 };
 
 const extractPowerValues = (event) => {

@@ -131,6 +131,26 @@ Resources:
                 - lambda:CreateAlias
                 - lambda:UpdateAlias
               Resource: !Ref lambdaResource
+  initializer2:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: initializer.handlerTest
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole # Only logs
+        - Version: '2012-10-17' # allow Lambda actions
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetAlias
+                - lambda:GetFunctionConfiguration
+                - lambda:PublishVersion
+                - lambda:UpdateFunctionConfiguration
+                - lambda:CreateAlias
+                - lambda:UpdateAlias
+              Resource: !Ref lambdaResource
 
   executorLogGroup:
     Type: AWS::Logs::LogGroup
@@ -273,7 +293,14 @@ Resources:
                   "Initializer": {
                       "Type": "Task",
                       "Resource": "${initializerArn}",
-                      "Next": "Branching",
+                      "Next": "Initializer2",
+                      "ResultPath": "$.powerValues",
+                      "TimeoutSeconds": ${totalExecutionTimeout}
+                  },
+                  "Initializer2": {
+                      "Type": "Task",
+                      "Resource": "${initializer2Arn}",
+                      "Next": "IsCountReached",
                       "ResultPath": "$.powerValues",
                       "TimeoutSeconds": ${totalExecutionTimeout},
                       "Catch": [{
@@ -282,10 +309,21 @@ Resources:
                         "ResultPath": "$.error"
                       }]
                   },
+                  "IsCountReached": {
+                      "Type": "Choice",
+                      "Choices": [
+                          {
+                              "Variable": "$.powerValues.iterator.continue",
+                              "BooleanEquals": true,
+                              "Next": "Initializer2"
+                          }
+                      ],
+                      "Default": "Branching"
+                  },
                   "Branching": {
                       "Type": "Map",
                       "Next": "Cleaner",
-                      "ItemsPath": "$.powerValues",
+                      "ItemsPath": "$.powerValues.aliases",
                       "ResultPath": "$.stats",
                       "ItemSelector": {
                         "input.$": "$",
@@ -347,6 +385,7 @@ Resources:
               }
           }'
           - initializerArn: !GetAtt initializer.Arn
+            initializer2Arn: !GetAtt initializer2.Arn
             executorArn: !GetAtt executor.Arn
             cleanerArn: !GetAtt cleaner.Arn
             analyzerArn: !GetAtt analyzer.Arn
