@@ -19,6 +19,7 @@ module.exports.handler = async(event, context) => {
     let {
         lambdaARN,
         value,
+        alias,
         num,
         enableParallel,
         payload,
@@ -26,6 +27,7 @@ module.exports.handler = async(event, context) => {
         preProcessorARN,
         postProcessorARN,
         discardTopBottom,
+        onlyColdStarts,
         sleepBetweenRunsMs,
     } = await extractDataFromInput(event);
 
@@ -37,7 +39,7 @@ module.exports.handler = async(event, context) => {
         num = 1;
     }
 
-    const lambdaAlias = 'RAM' + value;
+    const lambdaAlias = alias;
     let results;
 
     // fetch architecture from $LATEST
@@ -101,7 +103,11 @@ const extractDiscardTopBottomValue = (event) => {
     // extract discardTopBottom used to trim values from average duration
     let discardTopBottom = event.discardTopBottom;
     if (typeof discardTopBottom === 'undefined') {
-        discardTopBottom = 0.2;
+        if (event.onlyColdStarts){
+            discardTopBottom = 0;
+        } else {
+            discardTopBottom = 0.2;
+        }
     }
     // discardTopBottom must be between 0 and 0.4
     return Math.min(Math.max(discardTopBottom, 0.0), 0.4);
@@ -123,7 +129,8 @@ const extractDataFromInput = async(event) => {
     const discardTopBottom = extractDiscardTopBottomValue(input);
     const sleepBetweenRunsMs = extractSleepTime(input);
     return {
-        value: parseInt(event.value, 10),
+        alias: event.value,
+        value: event.value.match(/\d+/g)[0],
         lambdaARN: input.lambdaARN,
         num: parseInt(input.num, 10),
         enableParallel: !!input.parallelInvocation,
