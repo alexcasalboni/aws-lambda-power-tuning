@@ -7,13 +7,15 @@ const utils = require('./utils');
  */
 module.exports.handler = async(event, context) => {
 
-    const {lambdaARN, powerValues} = event;
+    const {
+        lambdaARN,
+        aliases,
+    } = extractDataFromInput(event);
 
-    validateInput(lambdaARN, powerValues); // may throw
+    validateInput(lambdaARN, aliases); // may throw
 
-    const ops = powerValues.map(async(value) => {
-        const alias = 'RAM' + value;
-        await cleanup(lambdaARN, alias); // may throw
+    const ops = aliases.map(async(alias) => {
+        await cleanup(lambdaARN, alias);
     });
 
     // run everything in parallel and wait until completed
@@ -22,12 +24,19 @@ module.exports.handler = async(event, context) => {
     return 'OK';
 };
 
-const validateInput = (lambdaARN, powerValues) => {
+const extractDataFromInput = (event) => {
+    return {
+        lambdaARN: event.lambdaARN,
+        aliases: event.powerValues.aliases,
+    };
+};
+
+const validateInput = (lambdaARN, aliases) => {
     if (!lambdaARN) {
         throw new Error('Missing or empty lambdaARN');
     }
-    if (!powerValues || !powerValues.length) {
-        throw new Error('Missing or empty power values');
+    if (!aliases || !aliases.length) {
+        throw new Error('Missing or empty alias values');
     }
 };
 

@@ -138,7 +138,7 @@ module.exports.waitForAliasActive = async(lambdaARN, alias) => {
         },
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.waitFor('functionActive', params).promise();
+    return lambda.waitFor('functionActiveV2', params).promise();
 };
 
 /**
@@ -296,8 +296,14 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
         }
     }
 
-    // invoke function to be power-tuned
-    const invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload);
+    let invocationResults;
+    try {
+        // invoke function to be power-tuned
+        invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload);
+    } catch (e){
+        console.log(`Invocation failed, ${alias}`);
+        console.err(e);
+    }
 
     // then invoke post-processor, if provided
     if (postARN) {
@@ -563,7 +569,12 @@ module.exports.regionFromARN = (arn) => {
 let client;
 module.exports.lambdaClientFromARN = (lambdaARN) => {
     const region = this.regionFromARN(lambdaARN);
-    return new AWS.Lambda({region});
+    // create a client only once
+    if (typeof client === 'undefined'){
+        // set Max Retries to 10, increase the retry delay to 300
+        client = new AWS.Lambda({region: region, maxRetries: 10, retryDelayOptions: {base: 300}});
+    }
+    return client;
 };
 
 /**

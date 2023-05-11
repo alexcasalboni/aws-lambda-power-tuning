@@ -32,9 +32,10 @@ module.exports.handler = async(event, context) => {
             for (let n of utils.range(num)){
                 let alias = utils.buildAliasString(baseAlias, onlyColdStarts, n);
                 const currentEnvVars = {
-                    LambdaPowerTuningForceColdStart: alias,
                     ...envVars,
                 };
+                // set Env Var to a unique value to force version publishing
+                currentEnvVars.LambdaPowerTuningForceColdStart = alias;
                 // here we inject a custom env variable to force the creation of a new version
                 // even if the power is the same, which will force a cold start
                 lambdaFunctionsToSet.push({lambdaARN: lambdaARN, powerValue: powerValue, envVars: currentEnvVars, alias: alias});
@@ -49,21 +50,23 @@ module.exports.handler = async(event, context) => {
             index: 0,
             count: lambdaFunctionsToSet.length,
             continue: true,
-        }
+        },
+        powerValues: powerValues
     }
     return returnObj;
 };
 
-module.exports.handlerTest = async(event, context) => {
+module.exports.versionPublisher = async(event, context) => {
     const iterator = event.powerValues.iterator;
     const initConfigurations = event.powerValues.initConfigurations;
     const aliases = event.powerValues.aliases || [];
     const currIdx = iterator.index;
     const currConfig = initConfigurations[currIdx];
 
-    // publish version
+    // publish version & assign alias
     await utils.createPowerConfiguration(currConfig.lambdaARN, currConfig.powerValue, currConfig.alias, currConfig.envVars);
     if(typeof currConfig.alias !== 'undefined'){
+        // keep track of all aliases
         aliases.push(currConfig.alias);
     }
 

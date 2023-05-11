@@ -131,11 +131,11 @@ Resources:
                 - lambda:CreateAlias
                 - lambda:UpdateAlias
               Resource: !Ref lambdaResource
-  initializer2:
+  versionPublisher:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: lambda
-      Handler: initializer.handlerTest
+      Handler: initializer.versionPublisher
       Layers:
         - !Ref SDKlayer
       Policies:
@@ -292,13 +292,13 @@ Resources:
                   "Initializer": {
                       "Type": "Task",
                       "Resource": "${initializerArn}",
-                      "Next": "Initializer2",
+                      "Next": "versionPublisher",
                       "ResultPath": "$.powerValues",
                       "TimeoutSeconds": ${totalExecutionTimeout}
                   },
-                  "Initializer2": {
+                  "versionPublisher": {
                       "Type": "Task",
-                      "Resource": "${initializer2Arn}",
+                      "Resource": "${versionPublisherArn}",
                       "Next": "IsCountReached",
                       "ResultPath": "$.powerValues",
                       "TimeoutSeconds": ${totalExecutionTimeout},
@@ -314,7 +314,7 @@ Resources:
                           {
                               "Variable": "$.powerValues.iterator.continue",
                               "BooleanEquals": true,
-                              "Next": "Initializer2"
+                              "Next": "versionPublisher"
                           }
                       ],
                       "Default": "Branching"
@@ -322,7 +322,7 @@ Resources:
                   "Branching": {
                       "Type": "Map",
                       "Next": "Cleaner",
-                      "ItemsPath": "$.powerValues.aliases",
+                      "ItemsPath": "$.powerValues.powerValues",
                       "ResultPath": "$.stats",
                       "ItemSelector": {
                         "input.$": "$",
@@ -384,7 +384,7 @@ Resources:
               }
           }'
           - initializerArn: !GetAtt initializer.Arn
-            initializer2Arn: !GetAtt initializer2.Arn
+            versionPublisherArn: !GetAtt versionPublisher.Arn
             executorArn: !GetAtt executor.Arn
             cleanerArn: !GetAtt cleaner.Arn
             analyzerArn: !GetAtt analyzer.Arn
