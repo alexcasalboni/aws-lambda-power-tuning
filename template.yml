@@ -126,16 +126,12 @@ Resources:
               Action:
                 - lambda:GetAlias
                 - lambda:GetFunctionConfiguration
-                - lambda:PublishVersion
-                - lambda:UpdateFunctionConfiguration
-                - lambda:CreateAlias
-                - lambda:UpdateAlias
               Resource: !Ref lambdaResource
   versionPublisher:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: lambda
-      Handler: initializer.versionPublisher
+      Handler: publisher.handler
       Layers:
         - !Ref SDKlayer
       Policies:

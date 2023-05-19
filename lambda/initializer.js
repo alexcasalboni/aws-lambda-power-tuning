@@ -18,7 +18,7 @@ module.exports.handler = async(event, context) => {
     validateInput(lambdaARN, num); // may throw
 
     // fetch initial $LATEST value so we can reset it later
-    const {power, envVars} = await utils.getLambdaPower(lambdaARN);
+    const {power} = await utils.getLambdaPower(lambdaARN);
 
     let lambdaFunctionsToSet = [];
 
@@ -27,22 +27,17 @@ module.exports.handler = async(event, context) => {
     for (let powerValue of powerValues){
         const baseAlias = 'RAM' + powerValue;
         if (!onlyColdStarts){
-            lambdaFunctionsToSet.push({lambdaARN: lambdaARN, powerValue: powerValue, envVars: envVars, alias: baseAlias});
+            lambdaFunctionsToSet.push({powerValue: powerValue, alias: baseAlias});
         } else {
             for (let n of utils.range(num)){
                 let alias = utils.buildAliasString(baseAlias, onlyColdStarts, n);
-                const currentEnvVars = {
-                    ...envVars,
-                };
-                // set Env Var to a unique value to force version publishing
-                currentEnvVars.LambdaPowerTuningForceColdStart = alias;
                 // here we inject a custom env variable to force the creation of a new version
                 // even if the power is the same, which will force a cold start
-                lambdaFunctionsToSet.push({lambdaARN: lambdaARN, powerValue: powerValue, envVars: currentEnvVars, alias: alias});
+                lambdaFunctionsToSet.push({powerValue: powerValue, alias: alias});
             }
         }
     }
-    lambdaFunctionsToSet.push({lambdaARN: lambdaARN, powerValue: power, envVars: envVars});
+    lambdaFunctionsToSet.push({powerValue: power});
 
     const returnObj = {
         initConfigurations: lambdaFunctionsToSet,
@@ -51,34 +46,10 @@ module.exports.handler = async(event, context) => {
             count: lambdaFunctionsToSet.length,
             continue: true,
         },
-        powerValues: powerValues
-    }
+        powerValues: powerValues,
+    };
     return returnObj;
 };
-
-module.exports.versionPublisher = async(event, context) => {
-    const iterator = event.powerValues.iterator;
-    const initConfigurations = event.powerValues.initConfigurations;
-    const aliases = event.powerValues.aliases || [];
-    const currIdx = iterator.index;
-    const currConfig = initConfigurations[currIdx];
-
-    // publish version & assign alias
-    await utils.createPowerConfiguration(currConfig.lambdaARN, currConfig.powerValue, currConfig.alias, currConfig.envVars);
-    if(typeof currConfig.alias !== 'undefined'){
-        // keep track of all aliases
-        aliases.push(currConfig.alias);
-    }
-
-    // update iterator
-    iterator.index++;
-    iterator.continue = (iterator.index < iterator.count);
-    if(!iterator.continue){
-        delete event.powerValues.initConfigurations;
-    }
-    event.powerValues.aliases = aliases;
-    return event.powerValues;
-}
 
 
 const extractDataFromInput = (event) => {

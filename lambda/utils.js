@@ -302,7 +302,7 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
         invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload);
     } catch (e){
         console.log(`Invocation failed, ${alias}`);
-        console.err(e);
+        throw new Error(`Unknown error when trying to invoke Alias: ${alias}`);
     }
 
     // then invoke post-processor, if provided
