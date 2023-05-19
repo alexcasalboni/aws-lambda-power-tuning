@@ -7,6 +7,7 @@
                 "lambda:GetAlias",
                 "lambda:PublishVersion",
                 "lambda:UpdateFunctionConfiguration",
+                "lambda:GetFunctionConfiguration",
                 "lambda:CreateAlias",
                 "lambda:UpdateAlias"
             ],
