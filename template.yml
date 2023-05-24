@@ -170,6 +170,7 @@ Resources:
               Action:
                 - lambda:InvokeFunction
                 - lambda:GetFunctionConfiguration
+                - lambda:GetFunction
               Resource: !Ref lambdaResource
         - !If
           - S3BucketProvided # if S3 bucket is provided
