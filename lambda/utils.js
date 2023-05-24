@@ -96,13 +96,8 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias, envVars
             await utils.createLambdaAlias(lambdaARN, alias, Version);
         }
     } catch (error) {
-        if (error.message && error.message.includes('Alias already exists')) {
-            // shouldn't happen, but nothing we can do in that case
-            console.log('OK, even if: ', error);
-        } else {
-            console.log('error during config creation for value ' + value);
-            throw error; // a real error :)
-        }
+        console.log('error during config creation for value ' + value);
+        throw error; // a real error :)
     }
 };
 
