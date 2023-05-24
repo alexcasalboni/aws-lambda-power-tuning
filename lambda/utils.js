@@ -81,7 +81,7 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias, envVars
     try {
         await utils.setLambdaPower(lambdaARN, value, envVars);
 
-        // wait for functoin update to complete
+        // wait for function update to complete
         await utils.waitForFunctionUpdate(lambdaARN);
 
         const {Version} = await utils.publishLambdaVersion(lambdaARN);
@@ -296,14 +296,8 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
         }
     }
 
-    let invocationResults;
-    try {
-        // invoke function to be power-tuned
-        invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload);
-    } catch (e){
-        console.log(`Invocation failed, ${alias}`);
-        throw new Error(`Unknown error when trying to invoke Alias: ${alias}`);
-    }
+    // invoke function to be power-tuned
+    const invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload);
 
     // then invoke post-processor, if provided
     if (postARN) {
@@ -571,8 +565,8 @@ module.exports.lambdaClientFromARN = (lambdaARN) => {
     const region = this.regionFromARN(lambdaARN);
     // create a client only once
     if (typeof client === 'undefined'){
-        // set Max Retries to 10, increase the retry delay to 300
-        client = new AWS.Lambda({region: region, maxRetries: 10, retryDelayOptions: {base: 300}});
+        // set Max Retries to 20, increase the retry delay to 500
+        client = new AWS.Lambda({region: region, maxRetries: 20, retryDelayOptions: {base: 500}});
     }
     return client;
 };

@@ -12,13 +12,14 @@ module.exports.handler = async(event, context) => {
 
 
     const {envVars} = await utils.getLambdaPower(currConfig.lambdaARN);
+    // Alias may not exist when we are reverting the Lambda function to its original configuration
     if (typeof currConfig.alias !== 'undefined'){
         envVars.LambdaPowerTuningForceColdStart = currConfig.alias;
     } else {
         delete envVars.LambdaPowerTuningForceColdStart;
     }
 
-    // publish version & assign alias
+    // publish version & assign alias (if present)
     await utils.createPowerConfiguration(currConfig.lambdaARN, currConfig.powerValue, currConfig.alias, envVars);
     if (typeof currConfig.alias !== 'undefined') {
         // keep track of all aliases

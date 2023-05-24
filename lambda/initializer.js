@@ -37,6 +37,7 @@ module.exports.handler = async(event, context) => {
             }
         }
     }
+    // Publish another version to revert the Lambda Function to its original configuration
     lambdaFunctionsToSet.push({powerValue: power});
 
     const returnObj = {
