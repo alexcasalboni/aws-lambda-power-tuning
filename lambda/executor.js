@@ -150,11 +150,7 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
     const invocations = utils.range(num).map(async(_, i) => {
         let aliasToInvoke = utils.buildAliasString(lambdaAlias, onlyColdStarts, i);
         if (onlyColdStarts){
-            try {
-                await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
-            } catch (e){
-                console.log(e);
-            }
+            await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
             console.log(`${aliasToInvoke} is active`);
         }
         const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN);
