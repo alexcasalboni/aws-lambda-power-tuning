@@ -5,11 +5,7 @@
             "Effect": "Allow",
             "Action": [
                 "lambda:GetAlias",
-                "lambda:GetFunctionConfiguration",
-                "lambda:PublishVersion",
-                "lambda:UpdateFunctionConfiguration",
-                "lambda:CreateAlias",
-                "lambda:UpdateAlias"
+                "lambda:GetFunctionConfiguration"
             ],
             "Resource": "arn:aws:lambda:*:${account_id}:function:*"
         }
