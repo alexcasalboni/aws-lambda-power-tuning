@@ -458,7 +458,8 @@ describe('Lambda Utils', () => {
             expect(data).to.be('{"OK": "OK"}');
         });
 
-        it('should explode if processor fails', async() => {
+        const invokeLambdaProcessorReturningUnhandledError = async({ disablePayloadLogs, isPayloadInErrorMessage }) => {
+            const payload = {keyOne: 'value-one'};
             sandBox.stub(utils, 'invokeLambda')
                 .callsFake(async() => {
                     invokeLambdaCounter++;
@@ -468,14 +469,28 @@ describe('Lambda Utils', () => {
                     };
                 });
             try {
-                const data = await utils.invokeLambdaProcessor('arnOK', {});
+                const data = await utils.invokeLambdaProcessor('arnOK', payload, 'Pre', disablePayloadLogs);
                 expect(data).to.be(null);
             } catch (ex) {
                 expect(ex.message.includes('failed with error')).to.be(true);
+                expect(ex.message.includes('and payload')).to.be(isPayloadInErrorMessage);
             }
 
             expect(invokeLambdaCounter).to.be(1);
-        });
+        };
+
+        it('should explode if processor fails and share payload in error when disablePayloadLogs is undefined', async() => invokeLambdaProcessorReturningUnhandledError({
+            disablePayloadLogs: undefined,
+            isPayloadInErrorMessage: true,
+        }));
+        it('should explode if processor fails and share payload in error when disablePayloadLogs is false', async() => invokeLambdaProcessorReturningUnhandledError({
+            disablePayloadLogs: false,
+            isPayloadInErrorMessage: true,
+        }));
+        it('should explode if processor fails and not share payload in error when disablePayloadLogs is true', async() => invokeLambdaProcessorReturningUnhandledError({
+            disablePayloadLogs: true,
+            isPayloadInErrorMessage: false,
+        }));
     });
 
     const isJsonString = (str) => {
