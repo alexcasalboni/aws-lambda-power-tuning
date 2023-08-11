@@ -254,7 +254,7 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
 /**
  * Invoke a (pre/post-)processor Lambda function and return its output (data.Payload).
  */
-module.exports.invokeLambdaProcessor = async(processorARN, payload, disablePayloadLogs, preOrPost = 'Pre') => {
+module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 'Pre', disablePayloadLogs = false) => {
     const processorData = await utils.invokeLambda(processorARN, null, payload, disablePayloadLogs);
     if (processorData.FunctionError) {
         let errorMessage = `${preOrPost}Processor ${processorARN} failed with error ${processorData.Payload}`;
