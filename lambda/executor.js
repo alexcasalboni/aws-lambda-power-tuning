@@ -27,6 +27,7 @@ module.exports.handler = async(event, context) => {
         postProcessorARN,
         discardTopBottom,
         sleepBetweenRunsMs,
+        disablePayloadLogs,
     } = await extractDataFromInput(event);
 
     validateInput(lambdaARN, value, num); // may throw
@@ -55,6 +56,7 @@ module.exports.handler = async(event, context) => {
         preARN: preProcessorARN,
         postARN: postProcessorARN,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
+        disablePayloadLogs: disablePayloadLogs,
     };
 
     // wait if the function/alias state is Pending
@@ -133,17 +135,22 @@ const extractDataFromInput = async(event) => {
         postProcessorARN: input.postProcessorARN,
         discardTopBottom: discardTopBottom,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
+        disablePayloadLogs: input.disablePayloadLogs,
     };
 };
 
-const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN}) => {
+const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, disablePayloadLogs}) => {
     const results = [];
     // run all invocations in parallel ...
     const invocations = utils.range(num).map(async(_, i) => {
-        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN);
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
-            throw new Error(`Invocation error (running in parallel): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
+            let errorMessage = `Invocation error (running in parallel): ${invocationResults.Payload}`;
+            if (!disablePayloadLogs) {
+                errorMessage += ` with payload ${JSON.stringify(actualPayload)}`;
+            }
+            throw new Error(errorMessage);
         }
         results.push(invocationResults);
     });
@@ -152,14 +159,18 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
     return results;
 };
 
-const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs}) => {
+const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs, disablePayloadLogs}) => {
     const results = [];
     for (let i = 0; i < num; i++) {
         // run invocations in series
-        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN);
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
-            throw new Error(`Invocation error (running in series): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
+            let errorMessage = `Invocation error (running in series): ${invocationResults.Payload}`;
+            if (!disablePayloadLogs) {
+                errorMessage += ` with payload ${JSON.stringify(actualPayload)}`;
+            }
+            throw new Error(errorMessage);
         }
         if (sleepBetweenRunsMs > 0) {
             await utils.sleep(sleepBetweenRunsMs);
