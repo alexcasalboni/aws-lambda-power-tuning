@@ -473,7 +473,7 @@ describe('Lambda Utils', () => {
                 const data = await utils.invokeLambdaProcessor('arnOK', payload, 'Pre', disablePayloadLogs);
                 expect(data).to.be(null);
             } catch (ex) {
-                expect(ex.message.includes('failed with error')).to.be(true);
+                expect(ex.message).to.contain('failed with error');
                 expect(ex.message.includes('and payload')).to.be(isPayloadInErrorMessage);
             }
 
@@ -918,7 +918,7 @@ describe('Lambda Utils', () => {
 
             const consoleLogArg = consoleLogStub.firstCall.args[0];
 
-            expect(consoleLogArg.includes('Invoking function')).to.be(true);
+            expect(consoleLogArg).to.contain('Invoking function');
             expect(consoleLogArg.includes('with payload')).to.be(isPayloadInConsoleLog);
         };
 
