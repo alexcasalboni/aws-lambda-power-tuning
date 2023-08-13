@@ -277,7 +277,7 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
     if (preARN) {
         console.log('Invoking pre-processor');
         // overwrite payload with pre-processor's output (only if not empty)
-        const preProcessorOutput = await utils.invokeLambdaProcessor(preARN, payload, disablePayloadLogs, 'Pre');
+        const preProcessorOutput = await utils.invokeLambdaProcessor(preARN, payload, 'Pre', disablePayloadLogs);
         if (preProcessorOutput) {
             actualPayload = preProcessorOutput;
         }
@@ -290,7 +290,7 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
     if (postARN) {
         console.log('Invoking post-processor');
         // note: invocation may have failed (invocationResults.FunctionError)
-        await utils.invokeLambdaProcessor(postARN, invocationResults.Payload, disablePayloadLogs, 'Post');
+        await utils.invokeLambdaProcessor(postARN, invocationResults.Payload, 'Post', disablePayloadLogs);
     }
 
     return {
