@@ -19,6 +19,7 @@ process.env.baseCosts = '{"x86_64": {"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-
 process.env.AWS_REGION = 'af-south-1';
 
 const utils = require('../../lambda/utils');
+const { consoleLogStub: consoleLogSetupStub } = require('../setup.spec');
 
 const sandBox = sinon.createSandbox();
 
@@ -905,4 +906,51 @@ describe('Lambda Utils', () => {
 
     });
 
+    describe('invokeLambda', () => {
+        const alias = 'aliasName';
+        const arn = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+        const payload = {testKey: 'test-value'};
+
+        let consoleLogStub;
+
+        const invokeLambdaAndAssertOnConsoleLog = async({disablePayloadLogs, isPayloadInConsoleLog}) => {
+            utils.invokeLambda(arn, alias, payload, disablePayloadLogs);
+
+            const consoleLogArg = consoleLogStub.firstCall.args[0];
+
+            expect(consoleLogArg.includes('Invoking function')).to.be(true);
+            expect(consoleLogArg.includes('with payload')).to.be(isPayloadInConsoleLog);
+        };
+
+        before(() => {
+            if (consoleLogSetupStub) {
+                consoleLogStub = consoleLogSetupStub;
+            } else {
+                consoleLogStub = sinon.stub(console, 'log');
+            }
+        });
+
+        beforeEach(() => {
+            consoleLogStub.resetHistory();
+        });
+
+        after(() => {
+            if (!consoleLogSetupStub) {
+                consoleLogStub.restore();
+            }
+        });
+
+        it('should invoke lambda and share payload in console log when disablePayloadLogs is undefined', async() => invokeLambdaAndAssertOnConsoleLog({
+            disablePayloadLogs: undefined,
+            isPayloadInConsoleLog: true,
+        }));
+        it('should invoke lambda and share payload in console log when disablePayloadLogs is false', async() => invokeLambdaAndAssertOnConsoleLog({
+            disablePayloadLogs: false,
+            isPayloadInConsoleLog: true,
+        }));
+        it('should invoke lambda and not share payload in console log when disablePayloadLogs is true', async() => invokeLambdaAndAssertOnConsoleLog({
+            disablePayloadLogs: true,
+            isPayloadInConsoleLog: false,
+        }));
+    });
 });
