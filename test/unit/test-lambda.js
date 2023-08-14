@@ -45,7 +45,7 @@ const invokeForSuccess = async(handler, event) => {
     }
 };
 
-// utility to invoke handler (failure case)
+// utility to invoke handler and assert an exception is caught (success case)
 const invokeForFailure = async(handler, event) => {
 
     let result;
