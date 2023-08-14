@@ -135,7 +135,7 @@ const extractDataFromInput = async(event) => {
         postProcessorARN: input.postProcessorARN,
         discardTopBottom: discardTopBottom,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
-        disablePayloadLogs: input.disablePayloadLogs,
+        disablePayloadLogs: !!input.disablePayloadLogs,
     };
 };
 
