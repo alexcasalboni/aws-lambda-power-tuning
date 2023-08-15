@@ -45,7 +45,7 @@ const invokeForSuccess = async(handler, event) => {
     }
 };
 
-// utility to invoke handler (success case)
+// utility to invoke handler and assert an exception is caught (success case)
 const invokeForFailure = async(handler, event) => {
 
     let result;
@@ -792,7 +792,7 @@ describe('Lambda Functions', async() => {
             expect(waitForAliasActiveCounter).to.be(0);
         });
 
-        it('should include payload in exception message if invocation fails (series)', async() => {
+        const invokeForFailureInSeriesAndAssertOnErrorMessage = async({disablePayloadLogs, isPayloadInErrorMessage}) => {
             invokeLambdaStub && invokeLambdaStub.restore();
             invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
                 .callsFake(async(_arn, _alias, payload) => {
@@ -807,17 +807,33 @@ describe('Lambda Functions', async() => {
                     lambdaARN: 'arnOK',
                     num: 10,
                     payload: 'SENTINEL',
+                    disablePayloadLogs: disablePayloadLogs,
                 },
             });
 
-            expect(error.message).to.contain('SENTINEL');
+            expect(error.message.includes('SENTINEL')).to.be(isPayloadInErrorMessage);
             expect(error.message).to.contain('in series');
 
             expect(getLambdaConfigCounter).to.be(1);
             expect(waitForAliasActiveCounter).to.be(0);
-        });
+        };
 
-        it('should include payload in exception message if invocation fails (parallel)', async() => {
+        it('should include payload in exception message if invocation fails and disablePayloadLogs is undefined (series)', async() => invokeForFailureInSeriesAndAssertOnErrorMessage({
+            disablePayloadLogs: undefined,
+            isPayloadInErrorMessage: true,
+        }));
+
+        it('should include payload in exception message if invocation fails and disablePayloadLogs is false (series)', async() => invokeForFailureInSeriesAndAssertOnErrorMessage({
+            disablePayloadLogs: false,
+            isPayloadInErrorMessage: true,
+        }));
+
+        it('should not include payload in exception message if invocation fails and disablePayloadLogs is true (series)', async() => invokeForFailureInSeriesAndAssertOnErrorMessage({
+            disablePayloadLogs: true,
+            isPayloadInErrorMessage: false,
+        }));
+
+        const invokeForFailureInParallelAndAssertOnErrorMessage = async({disablePayloadLogs, isPayloadInErrorMessage}) => {
             invokeLambdaStub && invokeLambdaStub.restore();
             invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
                 .callsFake(async(_arn, _alias, payload) => {
@@ -833,16 +849,31 @@ describe('Lambda Functions', async() => {
                     num: 10,
                     parallelInvocation: true,
                     payload: 'SENTINEL',
+                    disablePayloadLogs: disablePayloadLogs,
                 },
             });
 
-            expect(error.message).to.contain('SENTINEL');
+            expect(error.message.includes('SENTINEL')).to.be(isPayloadInErrorMessage);
             expect(error.message).to.contain('in parallel');
 
             expect(getLambdaConfigCounter).to.be(1);
             expect(waitForAliasActiveCounter).to.be(0);
-        });
+        };
 
+        it('should include payload in exception message if invocation fails and disablePayloadLogs is undefined (parallel)', async() => invokeForFailureInParallelAndAssertOnErrorMessage({
+            disablePayloadLogs: undefined,
+            isPayloadInErrorMessage: true,
+        }));
+
+        it('should include payload in exception message if invocation fails and disablePayloadLogs is false (parallel)', async() => invokeForFailureInParallelAndAssertOnErrorMessage({
+            disablePayloadLogs: false,
+            isPayloadInErrorMessage: true,
+        }));
+
+        it('should not include payload in exception message if invocation fails and disablePayloadLogs is true (parallel)', async() => invokeForFailureInParallelAndAssertOnErrorMessage({
+            disablePayloadLogs: true,
+            isPayloadInErrorMessage: false,
+        }));
 
         it('should include weighted payload in exception message if invocation fails (series)', async() => {
             invokeLambdaStub && invokeLambdaStub.restore();

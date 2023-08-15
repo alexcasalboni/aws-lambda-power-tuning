@@ -19,6 +19,7 @@ process.env.baseCosts = '{"x86_64": {"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-
 process.env.AWS_REGION = 'af-south-1';
 
 const utils = require('../../lambda/utils');
+const { consoleLogStub: consoleLogSetupStub } = require('../setup.spec');
 
 const sandBox = sinon.createSandbox();
 
@@ -458,7 +459,8 @@ describe('Lambda Utils', () => {
             expect(data).to.be('{"OK": "OK"}');
         });
 
-        it('should explode if processor fails', async() => {
+        const invokeLambdaProcessorReturningUnhandledError = async({ disablePayloadLogs, isPayloadInErrorMessage }) => {
+            const payload = {keyOne: 'value-one'};
             sandBox.stub(utils, 'invokeLambda')
                 .callsFake(async() => {
                     invokeLambdaCounter++;
@@ -468,14 +470,28 @@ describe('Lambda Utils', () => {
                     };
                 });
             try {
-                const data = await utils.invokeLambdaProcessor('arnOK', {});
+                const data = await utils.invokeLambdaProcessor('arnOK', payload, 'Pre', disablePayloadLogs);
                 expect(data).to.be(null);
             } catch (ex) {
-                expect(ex.message.includes('failed with error')).to.be(true);
+                expect(ex.message).to.contain('failed with error');
+                expect(ex.message.includes('and payload')).to.be(isPayloadInErrorMessage);
             }
 
             expect(invokeLambdaCounter).to.be(1);
-        });
+        };
+
+        it('should explode if processor fails and share payload in error when disablePayloadLogs is undefined', async() => invokeLambdaProcessorReturningUnhandledError({
+            disablePayloadLogs: undefined,
+            isPayloadInErrorMessage: true,
+        }));
+        it('should explode if processor fails and share payload in error when disablePayloadLogs is false', async() => invokeLambdaProcessorReturningUnhandledError({
+            disablePayloadLogs: false,
+            isPayloadInErrorMessage: true,
+        }));
+        it('should explode if processor fails and not share payload in error when disablePayloadLogs is true', async() => invokeLambdaProcessorReturningUnhandledError({
+            disablePayloadLogs: true,
+            isPayloadInErrorMessage: false,
+        }));
     });
 
     const isJsonString = (str) => {
@@ -890,4 +906,51 @@ describe('Lambda Utils', () => {
 
     });
 
+    describe('invokeLambda', () => {
+        const alias = 'aliasName';
+        const arn = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+        const payload = {testKey: 'test-value'};
+
+        let consoleLogStub;
+
+        const invokeLambdaAndAssertOnConsoleLog = async({disablePayloadLogs, isPayloadInConsoleLog}) => {
+            utils.invokeLambda(arn, alias, payload, disablePayloadLogs);
+
+            const consoleLogArg = consoleLogStub.firstCall.args[0];
+
+            expect(consoleLogArg).to.contain('Invoking function');
+            expect(consoleLogArg.includes('with payload')).to.be(isPayloadInConsoleLog);
+        };
+
+        before(() => {
+            if (consoleLogSetupStub) {
+                consoleLogStub = consoleLogSetupStub;
+            } else {
+                consoleLogStub = sinon.stub(console, 'log');
+            }
+        });
+
+        beforeEach(() => {
+            consoleLogStub.resetHistory();
+        });
+
+        after(() => {
+            if (!consoleLogSetupStub) {
+                consoleLogStub.restore();
+            }
+        });
+
+        it('should invoke lambda and share payload in console log when disablePayloadLogs is undefined', async() => invokeLambdaAndAssertOnConsoleLog({
+            disablePayloadLogs: undefined,
+            isPayloadInConsoleLog: true,
+        }));
+        it('should invoke lambda and share payload in console log when disablePayloadLogs is false', async() => invokeLambdaAndAssertOnConsoleLog({
+            disablePayloadLogs: false,
+            isPayloadInConsoleLog: true,
+        }));
+        it('should invoke lambda and not share payload in console log when disablePayloadLogs is true', async() => invokeLambdaAndAssertOnConsoleLog({
+            disablePayloadLogs: true,
+            isPayloadInConsoleLog: false,
+        }));
+    });
 });

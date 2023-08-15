@@ -254,10 +254,14 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
 /**
  * Invoke a (pre/post-)processor Lambda function and return its output (data.Payload).
  */
-module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 'Pre') => {
-    const processorData = await utils.invokeLambda(processorARN, null, payload);
+module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 'Pre', disablePayloadLogs = false) => {
+    const processorData = await utils.invokeLambda(processorARN, null, payload, disablePayloadLogs);
     if (processorData.FunctionError) {
-        throw new Error(`${preOrPost}Processor ${processorARN} failed with error ${processorData.Payload} and payload ${JSON.stringify(payload)}`);
+        let errorMessage = `${preOrPost}Processor ${processorARN} failed with error ${processorData.Payload}`;
+        if (!disablePayloadLogs) {
+            errorMessage += ` and payload ${JSON.stringify(payload)}`;
+        }
+        throw new Error(errorMessage);
     }
     return processorData.Payload;
 };
@@ -265,7 +269,7 @@ module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 
 /**
  * Wrapper around Lambda function invocation with pre/post-processor functions.
  */
-module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, preARN, postARN) => {
+module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, preARN, postARN, disablePayloadLogs) => {
 
     var actualPayload = payload; // might change based on pre-processor
 
@@ -273,20 +277,20 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
     if (preARN) {
         console.log('Invoking pre-processor');
         // overwrite payload with pre-processor's output (only if not empty)
-        const preProcessorOutput = await utils.invokeLambdaProcessor(preARN, payload, 'Pre');
+        const preProcessorOutput = await utils.invokeLambdaProcessor(preARN, payload, 'Pre', disablePayloadLogs);
         if (preProcessorOutput) {
             actualPayload = preProcessorOutput;
         }
     }
 
     // invoke function to be power-tuned
-    const invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload);
+    const invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload, disablePayloadLogs);
 
     // then invoke post-processor, if provided
     if (postARN) {
         console.log('Invoking post-processor');
         // note: invocation may have failed (invocationResults.FunctionError)
-        await utils.invokeLambdaProcessor(postARN, invocationResults.Payload, 'Post');
+        await utils.invokeLambdaProcessor(postARN, invocationResults.Payload, 'Post', disablePayloadLogs);
     }
 
     return {
@@ -298,8 +302,12 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
 /**
  * Invoke a given Lambda Function:Alias with payload and return its logs.
  */
-module.exports.invokeLambda = (lambdaARN, alias, payload) => {
-    console.log(`Invoking function ${lambdaARN}:${alias || '$LATEST'} with payload ${JSON.stringify(payload)}`);
+module.exports.invokeLambda = (lambdaARN, alias, payload, disablePayloadLogs) => {
+    let consoleLogMessage = `Invoking function ${lambdaARN}:${alias || '$LATEST'}`;
+    if (!disablePayloadLogs) {
+        consoleLogMessage += ` with payload ${JSON.stringify(payload)}`;
+    }
+    console.log(consoleLogMessage);
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
