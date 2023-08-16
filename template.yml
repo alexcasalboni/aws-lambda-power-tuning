@@ -12,7 +12,7 @@ Metadata:
     ReadmeUrl: README-SAR.md
     Labels: ['lambda', 'power', 'state-machine', 'step-functions', 'optimization']
     HomePageUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
-    SemanticVersion: 4.3.1
+    SemanticVersion: 4.3.2
     SourceCodeUrl: https://github.com/alexcasalboni/aws-lambda-power-tuning
 
 Parameters: 
