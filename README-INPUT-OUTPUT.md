@@ -34,7 +34,7 @@ The CloudFormation template accepts the following parameters:
 * **lambdaResource** (string, default=`*`): the `Resource` used in IAM policies; it's `*` by default but you could restrict it to a prefix or a specific function ARN
 * **permissionsBoundary** (string): the ARN of a permissions boundary (policy), applied to all functions of the state machine
 * **payloadS3Bucket** (string): the S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the [S3 payloads section](#user-content-s3-payloads)
-* **payloadS3Key** (string, default=`*`): they S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](#user-content-s3-payloads)
+* **payloadS3Key** (string, default=`*`): the S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](#user-content-s3-payloads)
 * **layerSdkName** (string): the name of the SDK layer, in case you need to customize it (optional)
 * **logGroupRetentionInDays** (number, default=7): the number of days to retain log events in the Lambda log groups. Before this parameter existed, log events were retained indefinitely
 * **securityGroupIds** (list of SecurityGroup IDs): List of Security Groups to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
