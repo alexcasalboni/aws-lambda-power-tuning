@@ -311,13 +311,14 @@ describe('Lambda Utils', () => {
     });
 
     describe('buildVisualizationURL', () => {
+        const stats = [
+            {power: 1, duration: 2, cost: 3},
+            {power: 2, duration: 2, cost: 2},
+            {power: 3, duration: 1, cost: 2},
+        ];
+        const prefix = 'https://prefix/';
+
         it('should return the visualization URL based on stats', () => {
-            const stats = [
-                {power: 1, duration: 2, cost: 3},
-                {power: 2, duration: 2, cost: 2},
-                {power: 3, duration: 1, cost: 2},
-            ];
-            const prefix = 'https://prefix/';
             const URL = utils.buildVisualizationURL(stats, prefix);
             expect(URL).to.be.a('string');
             expect(URL).to.contain('prefix');
@@ -326,6 +327,16 @@ describe('Lambda Utils', () => {
             expect(URL).to.contain('AQACAAMA'); // powers
             expect(URL).to.contain('AAAAQAAAAEAAAIA'); // times
             expect(URL).to.contain('AABAQAAAAEAAAABA'); // costs
+        });
+        it('should include the CNY currency if region is cn-north-1', () => {
+            process.env.AWS_REGION = 'cn-north-1';
+            const URL = utils.buildVisualizationURL(stats, prefix);
+            expect(URL).to.contain('?currency=CNY');
+        });
+        it('should include the CNY currency if region is cn-north-1', () => {
+            process.env.AWS_REGION = 'cn-northwest-1';
+            const URL = utils.buildVisualizationURL(stats, prefix);
+            expect(URL).to.contain('?currency=CNY');
         });
     });
 

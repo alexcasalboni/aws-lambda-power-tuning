@@ -584,6 +584,10 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
         encode(costs),
     ].join(';');
 
+    if (process.env.AWS_REGION.startsWith('cn-')) {
+        baseURL += "?currency=CNY";
+    }
+
     return baseURL + '#' + hash;
 };
 
