@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Runtime: nodejs16.x
+    MemorySize: 128
+    Timeout: 5
+
+Resources:
+
+  FunctionDefaults1:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      InlineCode: |
+        exports.handler = async (event) => {
+            return "OK"
+        }
+
+  FunctionDefaults2:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      InlineCode: |
+        exports.handler = async (event) => {
+            return {'message': 'OK'}
+        }
+  
+  FunctionDefaults3:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      InlineCode: |
+        exports.handler = async (event) => {
+            return {'statusCode': 200, 'body': JSON.stringify('OK')}
+        }
+
+  FunctionVpc1:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      InlineCode: |
+        exports.handler = async (event) => {
+            return "OK"
+        }
+
+  FunctionVpc2:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      InlineCode: |
+       exports.handler = async (event) => {
+            return {'message': 'OK'}
+        }
+
+  FunctionS3:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      InlineCode: |
+       exports.handler = async (event) => {
+            return {'message': 'OK'}
+        }
+    
+
+Outputs:
+  FunctionsDefaults:
+    Value: !Join [ ",", [
+      !GetAtt FunctionDefaults1.Arn,
+      !GetAtt FunctionDefaults2.Arn,
+      !GetAtt FunctionDefaults3.Arn,
+    ]]
+  FunctionsVpc:
+    Value: !Join [ ",", [
+      !GetAtt FunctionVpc1.Arn,
+      !GetAtt FunctionVpc2.Arn
+    ]]
+  FunctionsS3:
+    Value: !Join [ ",", [
+      !GetAtt FunctionS3.Arn
+    ]]

@@ -1,0 +1,6 @@
+{
+    "lambdaARN": "PLACEHOLDER",
+    "powerValues": [512, 1024],
+    "num": 3,
+    "payload": "{}"
+}

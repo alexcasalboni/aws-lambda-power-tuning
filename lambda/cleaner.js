@@ -19,6 +19,11 @@ module.exports.handler = async(event, context) => {
     // run everything in parallel and wait until completed
     await Promise.all(ops);
 
+    if (event.error) {
+        // re-raise so that the state machine execution fails (correctly)
+        throw new Error(event.error.Cause);
+    }
+
     return 'OK';
 };
 

@@ -18,6 +18,10 @@ Resources:
       #   permissionsBoundary: ARN
       #   payloadS3Bucket: my-bucket
       #   payloadS3Key: my-key.json
+      #   layerSdkName: custom-layer-name
+      #   logGroupRetentionInDays: 7
+      #   securityGroupIds: id1, id2
+      #   subnetIds: id1, id2
 
 Outputs:
   PowerTuningStateMachine:

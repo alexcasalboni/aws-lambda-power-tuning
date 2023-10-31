@@ -336,7 +336,7 @@ describe('Lambda Functions', async() => {
             await invokeForSuccess(handler, eventOK);
         });
 
-        it('should fail is something goes wrong with the cleaup API calls', async() => {
+        it('should fail if something goes wrong with the cleaup API calls', async() => {
             deleteLambdaVersionStub && deleteLambdaVersionStub.restore();
             deleteLambdaVersionStub = sandBox.stub(utils, 'deleteLambdaVersion')
                 .callsFake(async() => {
@@ -345,6 +345,18 @@ describe('Lambda Functions', async() => {
                     throw error;
                 });
             await invokeForFailure(handler, eventOK);
+        });
+
+        it('should re-throw errors if cleaning-up-on-error', async() => {
+            const eventError = {
+                lambdaARN: 'arnOK',
+                powerValues: ['128', '256', '512'],
+                error: {
+                    "Error": "Error",
+                    "Cause": "{\"errorType\":\"Error\",\"errorMessage\":\"Whatever\",\"trace\":[...]}",
+                },
+            };
+            await invokeForFailure(handler, eventError);
         });
 
     });
