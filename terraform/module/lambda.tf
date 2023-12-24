@@ -13,7 +13,7 @@ resource "aws_lambda_function" "analyzer" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs16.x"
+  runtime = "nodejs20.x"
 
   dynamic "vpc_config" {
     for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
@@ -50,7 +50,7 @@ resource "aws_lambda_function" "cleaner" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs16.x"
+  runtime = "nodejs20.x"
 
   dynamic "vpc_config" {
     for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
@@ -87,7 +87,7 @@ resource "aws_lambda_function" "executor" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs16.x"
+  runtime = "nodejs20.x"
 
   dynamic "vpc_config" {
     for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
@@ -124,7 +124,7 @@ resource "aws_lambda_function" "initializer" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs16.x"
+  runtime = "nodejs20.x"
 
   dynamic "vpc_config" {
     for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
@@ -161,7 +161,7 @@ resource "aws_lambda_function" "optimizer" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs16.x"
+  runtime = "nodejs20.x"
 
   dynamic "vpc_config" {
     for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
@@ -190,7 +190,7 @@ resource "aws_lambda_layer_version" "lambda_layer" {
   layer_name  = "AWS-SDK-v2_1134_0"
   description = "AWS SDK 2.1134.0"
   compatible_architectures = ["x86_64"]
-  compatible_runtimes = ["nodejs16.x"]
+  compatible_runtimes = ["nodejs20.x"]
 
   depends_on = [data.archive_file.layer]
 }
