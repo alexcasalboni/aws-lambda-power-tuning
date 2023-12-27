@@ -62,6 +62,10 @@ Parameters:
     Type: CommaDelimitedList
     Default: ''
     Description: List of Subnets to use in every Lambda function's VPC Configuration (optional).
+  stateMachineNamePrefix:
+    Type: String
+    Default: "powerTuningStateMachine"
+    Description: Prefix to the name of the StateMachine. The StackId will be appended to this value (optional).
 
 Conditions:
   UsePermissionsBoundary: !Not [!Equals [!Ref permissionsBoundary, '']]
@@ -262,6 +266,11 @@ Resources:
   powerTuningStateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
+      StateMachineName: 
+        Fn::Join:
+          - '-'
+          - - !Ref stateMachineNamePrefix
+            - !Select [2, !Split ['/', !Ref AWS::StackId]]
       RoleArn: !GetAtt statemachineRole.Arn
       DefinitionString:
         !Sub
