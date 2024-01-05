@@ -3,18 +3,22 @@
 const sinon = require('sinon');
 const expect = require('expect.js');
 
-var AWS = require('aws-sdk-mock');
+var awsV3Mock = require('aws-sdk-client-mock');
+const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand } = require("@aws-sdk/client-lambda");
+
 const utils = require('../../lambda/utils');
 
 // mock all the Lambda API's
-AWS.mock('Lambda', 'getAlias', {});
-AWS.mock('Lambda', 'updateFunctionConfiguration', {});
-AWS.mock('Lambda', 'publishVersion', {});
-AWS.mock('Lambda', 'deleteFunction', {});
-AWS.mock('Lambda', 'createAlias', {});
-AWS.mock('Lambda', 'updateAlias', {});
-AWS.mock('Lambda', 'deleteAlias', {});
-AWS.mock('Lambda', 'invoke', {});
+const lambdaMock = awsV3Mock.mockClient(LambdaClient);
+lambdaMock.reset();
+lambdaMock.on(GetAliasCommand).resolves({});
+lambdaMock.on(UpdateFunctionConfigurationCommand).resolves({});
+lambdaMock.on(PublishVersionCommand).resolves({});
+lambdaMock.on(DeleteFunctionCommand).resolves({});
+lambdaMock.on(CreateAliasCommand).resolves({});
+lambdaMock.on(UpdateAliasCommand).resolves({});
+lambdaMock.on(DeleteAliasCommand).resolves({});
+lambdaMock.on(InvokeCommand).resolves({});
 
 // mock environment variables and context
 const powerValues = [128, 256, 512, 1024];
