@@ -73,7 +73,7 @@ Conditions:
 
 Globals:
   Function:
-    Runtime: nodejs16.x
+    Runtime: nodejs20.x
     MemorySize: 128
     Timeout: !Ref totalExecutionTimeout
     PermissionsBoundary: !If [UsePermissionsBoundary, !Ref permissionsBoundary, !Ref AWS::NoValue]
@@ -98,11 +98,11 @@ Resources:
       Description: AWS SDK 2.1134.0
       ContentUri: ./layer-sdk
       CompatibleRuntimes:
-        - nodejs16.x
+        - nodejs20.x
       LicenseInfo: 'Available under the MIT-0 license.'
       RetentionPolicy: Retain
     Metadata:
-      BuildMethod: nodejs16.x
+      BuildMethod: nodejs20.x
 
   initializerLogGroup:
     Type: AWS::Logs::LogGroup
