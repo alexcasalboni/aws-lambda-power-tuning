@@ -1,6 +1,6 @@
 'use strict';
 
-const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, waitUntilFunctionActive, waitUntilFunctionUpdated } = require("@aws-sdk/client-lambda");
+const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
 const { GetObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 const url = require('url');
 
@@ -56,7 +56,8 @@ module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
         await utils.getLambdaAlias(lambdaARN, alias);
         return true;
     } catch (error) {
-        if (error.code === 'ResourceNotFoundException') {
+        console.log("Error during verifyAlias (probably OK!)")
+        if (error instanceof ResourceNotFoundException) {
             // OK, the alias isn't supposed to exist
             console.log('OK, even if missing alias ');
             return false;

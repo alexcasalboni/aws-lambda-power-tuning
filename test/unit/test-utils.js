@@ -5,7 +5,7 @@ const expect = require('expect.js');
 
 var awsV3Mock = require('aws-sdk-client-mock');
 const {
-    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateFunctionConfigurationCommand, UpdateAliasCommand } = require("@aws-sdk/client-lambda");
+    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateFunctionConfigurationCommand, UpdateAliasCommand, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
 const { GetObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 
 process.env.sfCosts = `{"us-gov-west-1": 0.00003,"eu-north-1": 0.000025,
@@ -139,8 +139,7 @@ describe('Lambda Utils', () => {
         it('should return false if the alias does not exists', async () => {
             sandBox.stub(utils, 'getLambdaAlias')
                 .callsFake(async () => {
-                    const error = new Error('alias is not defined');
-                    error.code = 'ResourceNotFoundException';
+                    const error = new ResourceNotFoundException('alias is not defined');
                     throw error;
                 });
             const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
