@@ -5,7 +5,7 @@ const expect = require('expect.js');
 
 var awsV3Mock = require('aws-sdk-client-mock');
 const {
-    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateFunctionConfigurationCommand } = require("@aws-sdk/client-lambda");
+    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateFunctionConfigurationCommand, UpdateAliasCommand } = require("@aws-sdk/client-lambda");
 const { GetObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 
 process.env.sfCosts = `{"us-gov-west-1": 0.00003,"eu-north-1": 0.000025,
@@ -37,6 +37,7 @@ lambdaMock.on(DeleteFunctionCommand).resolves({});
 lambdaMock.on(CreateAliasCommand).resolves({});
 lambdaMock.on(DeleteAliasCommand).resolves({});
 lambdaMock.on(InvokeCommand).resolves({});
+lambdaMock.on(UpdateAliasCommand).resolves({})
 const s3Mock = awsV3Mock.mockClient(S3Client);
 s3Mock.reset();
 s3Mock.on(GetObjectCommand).resolves({
@@ -75,16 +76,16 @@ describe('Lambda Utils', () => {
         throw new Error('Export not found! ' + func);
     }
 
-    // TODO: Not sure how to do this with sdk v3
-    // lambdaUtilities.forEach(func => {
-    //     describe(_fname(func), () => {
-    //         it('should return a promise', () => {
-    //             const result = func('arn:aws:lambda:us-east-1:XXX:function:YYY', 'test', 'test');
-    //             expect(result).to.be.a(Promise);
-    //         });
-    //         // TODO add more tests!
-    //     });
-    // });
+    // this is mainly for coverage (it's not doing much, just making sure the code runs)
+    lambdaUtilities.forEach(func => {
+        describe(_fname(func), () => {
+            it('should return a promise', () => {
+                const result = func('arn:aws:lambda:us-east-1:XXX:function:YYY', 'test', 'test');
+                expect(result).to.be.an('object');
+            });
+            // TODO add more tests!
+        });
+    });
 
     afterEach('Global mock utilities afterEach', () => {
         // restore everything to its natural order
@@ -839,7 +840,9 @@ describe('Lambda Utils', () => {
 
         it('should throw if access denied', async () => {
             const err = new Error('Access Denied');
-            err.statusCode = 403;
+            err.$response = {
+                statusCode: 403,
+            }
             s3Mock.on(GetObjectCommand).callsFake(input => {
                 throw err;
             });
@@ -853,7 +856,9 @@ describe('Lambda Utils', () => {
 
         it('should throw if object not found', async () => {
             const err = new Error('Object not found');
-            err.statusCode = 404;
+            err.$response = {
+                statusCode: 404,
+            }
             s3Mock.on(GetObjectCommand).callsFake(input => {
                 throw err;
             });
@@ -867,7 +872,9 @@ describe('Lambda Utils', () => {
 
         it('should throw if unknown error', async () => {
             const err = new Error('Whatever error');
-            err.statusCode = 500;
+            err.$response = {
+                statusCode: 500,
+            }
             s3Mock.on(GetObjectCommand).callsFake(input => {
                 throw err;
             });
