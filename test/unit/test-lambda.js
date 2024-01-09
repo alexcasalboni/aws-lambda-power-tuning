@@ -3,18 +3,22 @@
 const sinon = require('sinon');
 const expect = require('expect.js');
 
-var AWS = require('aws-sdk-mock');
+var awsV3Mock = require('aws-sdk-client-mock');
+const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
+
 const utils = require('../../lambda/utils');
 
 // mock all the Lambda API's
-AWS.mock('Lambda', 'getAlias', {});
-AWS.mock('Lambda', 'updateFunctionConfiguration', {});
-AWS.mock('Lambda', 'publishVersion', {});
-AWS.mock('Lambda', 'deleteFunction', {});
-AWS.mock('Lambda', 'createAlias', {});
-AWS.mock('Lambda', 'updateAlias', {});
-AWS.mock('Lambda', 'deleteAlias', {});
-AWS.mock('Lambda', 'invoke', {});
+const lambdaMock = awsV3Mock.mockClient(LambdaClient);
+lambdaMock.reset();
+lambdaMock.on(GetAliasCommand).resolves({});
+lambdaMock.on(UpdateFunctionConfigurationCommand).resolves({});
+lambdaMock.on(PublishVersionCommand).resolves({});
+lambdaMock.on(DeleteFunctionCommand).resolves({});
+lambdaMock.on(CreateAliasCommand).resolves({});
+lambdaMock.on(UpdateAliasCommand).resolves({});
+lambdaMock.on(DeleteAliasCommand).resolves({});
+lambdaMock.on(InvokeCommand).resolves({});
 
 // mock environment variables and context
 const powerValues = [128, 256, 512, 1024];
@@ -99,8 +103,7 @@ describe('Lambda Functions', async() => {
             });
         getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
             .callsFake(async() => {
-                const error = new Error('alias is not defined');
-                error.code = 'ResourceNotFoundException';
+                const error = new ResourceNotFoundException('alias is not defined');
                 throw error;
             });
         sandBox.stub(utils, 'getLambdaPower')
@@ -220,8 +223,7 @@ describe('Lambda Functions', async() => {
                     if (alias === 'RAM128') {
                         return { FunctionVersion: '1' };
                     } else {
-                        const error = new Error('alias is not defined');
-                        error.code = 'ResourceNotFoundException';
+                        const error = new ResourceNotFoundException('alias is not defined');
                         throw error;
                     }
                 });
@@ -258,7 +260,6 @@ describe('Lambda Functions', async() => {
             getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
                 .callsFake(async() => {
                     const error = new Error('very bad error');
-                    error.code = 'VeryBadError';
                     throw error;
                 });
             await invokeForFailure(handler, { lambdaARN: 'arnOK', num: 5 });
@@ -318,8 +319,7 @@ describe('Lambda Functions', async() => {
             deleteLambdaVersionStub && deleteLambdaVersionStub.restore();
             deleteLambdaVersionStub = sandBox.stub(utils, 'deleteLambdaVersion')
                 .callsFake(async() => {
-                    const error = new Error('version is not defined');
-                    error.code = 'ResourceNotFoundException';
+                    const error = new ResourceNotFoundException('version is not defined');
                     throw error;
                 });
             await invokeForSuccess(handler, eventOK);
@@ -329,8 +329,7 @@ describe('Lambda Functions', async() => {
             deleteLambdaAliasStub && deleteLambdaAliasStub.restore();
             deleteLambdaAliasStub = sandBox.stub(utils, 'deleteLambdaAlias')
                 .callsFake(async() => {
-                    const error = new Error('alias is not defined');
-                    error.code = 'ResourceNotFoundException';
+                    const error = new ResourceNotFoundException('alias is not defined');
                     throw error;
                 });
             await invokeForSuccess(handler, eventOK);
@@ -341,7 +340,6 @@ describe('Lambda Functions', async() => {
             deleteLambdaVersionStub = sandBox.stub(utils, 'deleteLambdaVersion')
                 .callsFake(async() => {
                     const error = new Error('very bad error');
-                    error.code = 'VeryBadError';
                     throw error;
                 });
             await invokeForFailure(handler, eventOK);
@@ -1660,8 +1658,7 @@ describe('Lambda Functions', async() => {
             getLambdaAliasStub && getLambdaAliasStub.restore();
             getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
                 .callsFake(async() => {
-                    const error = new Error('alias is not defined');
-                    error.code = 'ResourceNotFoundException';
+                    const error = new ResourceNotFoundException('alias is not defined');
                     throw error;
                 });
             setLambdaPowerStub && setLambdaPowerStub.restore();

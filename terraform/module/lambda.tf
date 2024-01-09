@@ -187,8 +187,8 @@ resource "aws_lambda_function" "optimizer" {
 
 resource "aws_lambda_layer_version" "lambda_layer" {
   filename    = "../src/layer.zip"
-  layer_name  = "AWS-SDK-v2_1134_0"
-  description = "AWS SDK 2.1134.0"
+  layer_name  = "AWS-SDK-v3"
+  description = "AWS SDK 3"
   compatible_architectures = ["x86_64"]
   compatible_runtimes = ["nodejs20.x"]
 

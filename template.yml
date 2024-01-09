@@ -94,8 +94,8 @@ Resources:
   SDKlayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: !If [UseLayerSdkName, !Ref layerSdkName, AWS-SDK-v2_1134_0]
-      Description: AWS SDK 2.1134.0
+      LayerName: !If [UseLayerSdkName, !Ref layerSdkName, AWS-SDK-v3]
+      Description: AWS SDK 3
       ContentUri: ./layer-sdk
       CompatibleRuntimes:
         - nodejs20.x

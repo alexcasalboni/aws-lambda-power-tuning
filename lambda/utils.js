@@ -1,6 +1,7 @@
 'use strict';
 
-const AWS = require('aws-sdk');
+const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
+const { GetObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 const url = require('url');
 
 
@@ -44,7 +45,7 @@ module.exports.getLambdaAlias = (lambdaARN, alias) => {
         Name: alias,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.getAlias(params).promise();
+    return lambda.send(new GetAliasCommand(params));
 };
 
 /**
@@ -55,7 +56,8 @@ module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
         await utils.getLambdaAlias(lambdaARN, alias);
         return true;
     } catch (error) {
-        if (error.code === 'ResourceNotFoundException') {
+        console.log("Error during verifyAlias (probably OK!)")
+        if (error instanceof ResourceNotFoundException) {
             // OK, the alias isn't supposed to exist
             console.log('OK, even if missing alias ');
             return false;
@@ -103,12 +105,12 @@ module.exports.waitForFunctionUpdate = async(lambdaARN) => {
     console.log('Waiting for update to complete');
     const params = {
         FunctionName: lambdaARN,
-        $waiter: { // override delay (5s by default)
-            delay: 0.5,
-        },
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.waitFor('functionUpdated', params).promise();
+    return waitUntilFunctionUpdated({
+        client: lambda,
+        minDelay: 1,
+    }, params);
 };
 
 module.exports.waitForAliasActive = async(lambdaARN, alias) => {
@@ -116,17 +118,12 @@ module.exports.waitForAliasActive = async(lambdaARN, alias) => {
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
-        $waiter: {
-            // https://aws.amazon.com/blogs/developer/waiters-in-modular-aws-sdk-for-javascript/
-            // "In v2, there is no direct way to provide maximum wait time for a waiter.
-            // You need to configure delay and maxAttempts to indirectly suggest the maximum time you want the waiter to run for."
-            // 10s * 90 is ~15 minutes (max invocation time)
-            delay: 10,
-            maxAttempts: 90,
-        },
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.waitFor('functionActive', params).promise();
+    return waitUntilFunctionActive({
+        client: lambda,
+        maxDelay: 10 * 90,
+    }, params);
 };
 
 /**
@@ -139,7 +136,7 @@ module.exports.getLambdaPower = async(lambdaARN) => {
         Qualifier: '$LATEST',
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    const config = await lambda.getFunctionConfiguration(params).promise();
+    const config = await lambda.send(new GetFunctionConfigurationCommand(params));
     return config.MemorySize;
 };
 
@@ -154,7 +151,7 @@ module.exports.getLambdaConfig = async(lambdaARN, alias) => {
     };
     let architecture, isPending;
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    const config = await lambda.getFunctionConfiguration(params).promise();
+    const config = await lambda.send(new GetFunctionConfigurationCommand(params));
     if (typeof config.Architectures !== 'undefined') {
         architecture = config.Architectures[0];
     } else {
@@ -182,7 +179,7 @@ module.exports.setLambdaPower = (lambdaARN, value) => {
         MemorySize: parseInt(value, 10),
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.updateFunctionConfiguration(params).promise();
+    return lambda.send(new UpdateFunctionConfigurationCommand(params));
 };
 
 /**
@@ -194,7 +191,7 @@ module.exports.publishLambdaVersion = (lambdaARN /*, alias*/) => {
         FunctionName: lambdaARN,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.publishVersion(params).promise();
+    return lambda.send(new PublishVersionCommand(params));
 };
 
 /**
@@ -207,7 +204,7 @@ module.exports.deleteLambdaVersion = (lambdaARN, version) => {
         Qualifier: version,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.deleteFunction(params).promise();
+    return lambda.send(new DeleteFunctionCommand(params));
 };
 
 /**
@@ -221,7 +218,7 @@ module.exports.createLambdaAlias = (lambdaARN, alias, version) => {
         Name: alias,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.createAlias(params).promise();
+    return lambda.send(new CreateAliasCommand(params));
 };
 
 /**
@@ -235,7 +232,7 @@ module.exports.updateLambdaAlias = (lambdaARN, alias, version) => {
         Name: alias,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.updateAlias(params).promise();
+    return lambda.send(new UpdateAliasCommand(params));
 };
 
 /**
@@ -248,7 +245,7 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
         Name: alias,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.deleteAlias(params).promise();
+    return lambda.send( new DeleteAliasCommand(params));
 };
 
 /**
@@ -315,7 +312,7 @@ module.exports.invokeLambda = (lambdaARN, alias, payload, disablePayloadLogs) =>
         LogType: 'Tail', // will return logs
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.invoke(params).promise();
+    return lambda.send(new InvokeCommand(params));
 };
 
 /**
@@ -352,20 +349,26 @@ module.exports.fetchPayloadFromS3 = async(s3Path) => {
 };
 
 module.exports._fetchS3Object = async(bucket, key) => {
-    const s3 = new AWS.S3();
     try {
-        const response = await s3.getObject({
+        const s3Client = new S3Client({});
+        const input = {
             Bucket: bucket,
             Key: key,
-        }).promise();
-        return response.Body.toString('utf-8');
+        };
+        var response = undefined;
+        response = await s3Client.send(new GetObjectCommand(input));
+        return await response.Body.transformToString('utf-8');
     } catch (err) {
-        if (err.statusCode === 403) {
+        var statusCode = err.statusCode
+        if (err.$response && err.$response.statusCode) {
+            statusCode = err.$response.statusCode
+        }
+        if (statusCode === 403) {
             throw new Error(
                 `Permission denied when trying to read s3://${bucket}/${key}. ` +
                 'You might need to re-deploy the app with the correct payloadS3Bucket parameter.',
             );
-        } else if (err.statusCode === 404) {
+        } else if (statusCode === 404) {
             throw new Error(
                 `The object s3://${bucket}/${key} does not exist. ` +
                 'Make sure you are trying to access an existing object in the correct bucket.',
@@ -553,7 +556,10 @@ module.exports.regionFromARN = (arn) => {
 
 module.exports.lambdaClientFromARN = (lambdaARN) => {
     const region = this.regionFromARN(lambdaARN);
-    return new AWS.Lambda({region});
+    return new LambdaClient({
+        region,
+        requestTimeout: 15 * 60 * 1000
+    })
 };
 
 /**
