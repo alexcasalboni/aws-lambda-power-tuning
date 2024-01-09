@@ -64,6 +64,7 @@ Parameters:
     Description: List of Subnets to use in every Lambda function's VPC Configuration (optional).
   stateMachineNamePrefix:
     Type: String
+    MaxLength: 44
     Default: "powerTuningStateMachine"
     Description: Prefix to the name of the StateMachine. The StackId will be appended to this value (optional).
 
