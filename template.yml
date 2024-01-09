@@ -65,7 +65,9 @@ Parameters:
   stateMachineNamePrefix:
     Type: String
     MaxLength: 44
-    Default: "powerTuningStateMachine"
+    AllowedPattern: ^[a-zA-Z0-9]*$
+    ConstraintDescription: Prefix must conform to StateMachineName requirements.
+    Default: 'powerTuningStateMachine'
     Description: Prefix to the name of the StateMachine. The StackId will be appended to this value (optional).
 
 Conditions:
