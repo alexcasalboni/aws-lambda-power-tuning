@@ -64,7 +64,7 @@ Parameters:
     Description: List of Subnets to use in every Lambda function's VPC Configuration (optional).
   stateMachineNamePrefix:
     Type: String
-    MaxLength: 44
+    MaxLength: 43
     AllowedPattern: ^[a-zA-Z0-9\-_]*$
     ConstraintDescription: Prefix must conform to StateMachineName requirements.
     Default: 'powerTuningStateMachine'
