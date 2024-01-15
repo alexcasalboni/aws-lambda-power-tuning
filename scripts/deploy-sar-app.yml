@@ -18,6 +18,7 @@ Resources:
       #   permissionsBoundary: ARN
       #   payloadS3Bucket: my-bucket
       #   payloadS3Key: my-key.json
+      #   stateMachineNamePrefix: my-custom-name-prefix
 
 Outputs:
   PowerTuningStateMachine:
