@@ -22,3 +22,6 @@ layer-sdk/src
 # ignore SAM CLI created files/dirs
 .aws-sam/
 samconfig.toml
+
+#template file 
+template.yml

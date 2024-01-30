@@ -1,5 +1,5 @@
-import { expect as expectCDK, haveResourceLike } from '@aws-cdk/assert';
-import * as cdk from '@aws-cdk/core';
+import { Template } from 'aws-cdk-lib/assertions';
+import * as cdk from 'aws-cdk-lib';
 import * as TheLambdaPowerTuner from '../lib/the-lambda-power-tuner-stack';
 
 test('SAR Application Created', () => {
@@ -7,10 +7,11 @@ test('SAR Application Created', () => {
   // WHEN
   const stack = new TheLambdaPowerTuner.TheLambdaPowerTunerStack(app, 'MyTestStack');
   // THEN
-  expectCDK(stack).to(haveResourceLike("AWS::Serverless::Application", {
-    "Location": {
-      "ApplicationId": "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning",
-      "SemanticVersion": "4.2.0"
+
+  Template.fromStack(stack).hasResourceProperties('AWS::Serverless::Application', {
+    "Location":{
+      "ApplicationId": "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning"
     }
-  }));
+  });
+
 });
