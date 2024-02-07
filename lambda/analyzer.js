@@ -25,7 +25,13 @@ module.exports.handler = async(event, context) => {
         return console.log('[Dry-run] Skipping analysis');
     }
 
-    return findOptimalConfiguration(event);
+    const result = findOptimalConfiguration(event);
+
+    if (event.includeOutputResults) {
+        result.stats = event.stats;
+    }
+
+    return result;
 };
 
 const getStrategy = (event) => {

@@ -1647,6 +1647,67 @@ describe('Lambda Functions', async() => {
 
         });
 
+        it('should output all results if "includeOutputResults" is set to true', async() => {
+            const event = {
+                strategy: 'speed',
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
+                ],
+                includeOutputResults: true,
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+
+            expect(result).to.have.property('stats', event.stats);
+            expect(result.stats).to.be(event.stats);
+
+            expect(result).to.have.property('power');
+            expect(result).to.have.property('cost');
+            expect(result).to.have.property('duration');
+            expect(result.stateMachine).to.be.an('object');
+
+        });
+
+        it('should not output any results if "includeOutputResults" is set to false', async() => {
+            const event = {
+                strategy: 'speed',
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
+                ],
+                includeOutputResults: false,
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+
+            expect(result).to.not.have.property('stats');
+            expect(result).to.have.property('power');
+            expect(result).to.have.property('cost');
+            expect(result).to.have.property('duration');
+            expect(result.stateMachine).to.be.an('object');
+        });
+
+        it('should not output any results if "includeOutputResults" is not set', async() => {
+            const event = {
+                strategy: 'speed',
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+
+            expect(result).to.not.have.property('stats');
+            expect(result).to.have.property('power');
+            expect(result).to.have.property('cost');
+            expect(result).to.have.property('duration');
+            expect(result.stateMachine).to.be.an('object');
+        });
+
     });
 
     describe('optimizer', async() => {
