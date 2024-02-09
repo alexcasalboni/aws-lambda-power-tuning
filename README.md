@@ -18,9 +18,7 @@ Please note that the input function will be executed in your AWS account - perfo
 
 It's pretty simple and you can visually inspect each step in the AWS management console.
 
-
 ![state-machine](imgs/state-machine-screenshot.png?raw=true)
-
 
 ## What results can I expect from Lambda Power Tuning?
 
@@ -36,16 +34,13 @@ How to interpret the chart above: execution time goes from 35s with 128MB to les
 
 How to interpret the chart above: execution time goes from 2.4s with 128MB to 300ms with 1GB, for the very same average cost.
 
-
-## How to deploy the state machine 
+## How to deploy the state machine
 
 There are a few options documented [here](README-DEPLOY.md).
-
 
 ## How to execute the state machine
 
 You can execute the state machine manually or programmatically, see the documentation [here](README-EXECUTE.md).
-
 
 ## State Machine Input and Output
 
@@ -81,7 +76,6 @@ The state machine output will look like this:
 
 Full output documentation [here](README-INPUT-OUTPUT.md#user-content-state-machine-output).
 
-
 ## Data visualization
 
 You can visually inspect the tuning results to identify the optimal tradeoff between cost and performance.
@@ -106,12 +100,10 @@ Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/m
 
 [Here](README-ADVANCED.md) you can find out more about some advanced features of this project, its internals, and some considerations about security and execution cost.
 
-
 ## CHANGELOG (SAR versioning)
 
 From most recent to oldest, with major releases in bold:
 
-* *4.3.4* (2024-02-07): optionally include all results in output
 * *4.3.3* (2023-10-30): parametrized currency for visualization URL (USD|CNY)
 * *4.3.2* (2023-08-16): new disablePayloadLogs flag, updated documentation
 * *4.3.1* (2023-05-09): update dependencies, add VPC Configuration support, use Billed Duration instead Duration from logs, update state machine with ItemSelector
@@ -157,7 +149,6 @@ From most recent to oldest, with major releases in bold:
 * *1.0.1* (2019-05-13): new README for SAR
 * ***1.0.0*** (2019-05-13): AWS SAM refactor (published on SAR)
 * *0.0.1* (2017-03-27): previous project (serverless framework)
-
 
 ## Contributing
 

@@ -27,8 +27,8 @@ module.exports.handler = async(event, context) => {
 
     const result = findOptimalConfiguration(event);
 
-    if (event.includeOutputResults) {
-        result.stats = event.stats;
+    if (!!event.includeOutputResults) {
+        result.stats = removeTotalCostFromStats(event.stats);
     }
 
     return result;
@@ -141,3 +141,12 @@ const findBalanced = (stats, weight) => {
     // just return the first one
     return stats[0];
 };
+
+const removeTotalCostFromStats = (stats) => {
+    return stats
+        .map(stat => ({
+            value: stat.value,
+            averagePrice: stat.averagePrice,
+            averageDuration: stat.averageDuration
+        }));
+}

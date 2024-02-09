@@ -1661,8 +1661,14 @@ describe('Lambda Functions', async() => {
             const result = await invokeForSuccess(handler, event);
             expect(result).to.be.an('object');
 
-            expect(result).to.have.property('stats', event.stats);
-            expect(result.stats).to.be(event.stats);
+            expect(result).to.have.property('stats');
+            expect(result.stats).to.eql(event.stats.map(stat => ({
+                value: stat.value,
+                averagePrice: stat.averagePrice,
+                averageDuration: stat.averageDuration
+            })));
+
+            expect(result.stats[0]).to.not.have.property('totalCost');
 
             expect(result).to.have.property('power');
             expect(result).to.have.property('cost');
