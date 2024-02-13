@@ -155,19 +155,39 @@ describe('Lambda Utils', () => {
     });
 
     describe('extractDuration', () => {
-        const log =
+        const textLog =
             'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n' +
             'END RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\n' +
             'REPORT RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\tDuration: 469.40 ms\tBilled Duration: 500 ms\tMemory Size: 1024 MB\tMax Memory Used: 21 MB'
             ;
-        it('should extract the duration from a Lambda log', () => {
-            expect(utils.extractDuration(log)).to.be(500);
+
+        // JSON logs contain multiple objects, seperated by a newline
+        const jsonLog =
+            '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
+            '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
+            '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
+            '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":2,"memorySizeMB":1024,"maxMemoryUsedMB":68}}}'
+            ;
+
+        it('should extract the duration from a Lambda log (text format)', () => {
+            expect(utils.extractDuration(textLog)).to.be(500);
         });
+
         it('should return 0 if duration is not found', () => {
             expect(utils.extractDuration('hello world')).to.be(0);
             const partialLog = 'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n';
             expect(utils.extractDuration(partialLog)).to.be(0);
         });
+
+        it('should extract the duration from a Lambda log (json format)', () => {
+            expect(utils.extractDuration(jsonLog)).to.be(2);
+        });
+
+        it('should explode if invalid json format document is provided', () => {
+            const invalidJSONLog = '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}';
+            expect(() => utils.extractDuration(invalidJSONLog)).to.throwError();
+        });
+
     });
 
     describe('computePrice', () => {
