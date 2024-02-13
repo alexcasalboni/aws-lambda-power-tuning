@@ -153,7 +153,7 @@ The state machine will return the following output:
       "lambdaCost": 0.0005252,
       "visualization": "https://lambda-power-tuning.show/#<encoded_data>"
     },
-    "stats": [{ "averagePrice": 0.0000002083, "averageDuration": 2.9066666666666667, "totalCost": 0.00000207, "value": 128}, ... ]
+    "stats": [{ "averagePrice": 0.0000002083, "averageDuration": 2.9066666666666667, "value": 128}, ... ]
   }
 }
 ```
