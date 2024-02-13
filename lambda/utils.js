@@ -545,7 +545,7 @@ module.exports.extractDurationFromText = (log) => {
  */
 module.exports.extractDurationFromJSON = (log) => {
     // extract each line and parse it to JSON object
-    const lines = log.split('\n').map((line) => JSON.parse(line))
+    const lines = log.split('\n').map((line) => JSON.parse(line));
 
     // find the log corresponding to the invocation report
     const durationLine = lines.find((line) => line.type === 'platform.report');
@@ -553,7 +553,7 @@ module.exports.extractDurationFromJSON = (log) => {
         return durationLine.record.metrics.billedDurationMs;
     }
 
-    throw new Error("Unrecognized JSON log");
+    throw new Error('Unrecognized JSON log');
 };
 
 /**
@@ -614,7 +614,7 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
     ].join(';');
 
     if (process.env.AWS_REGION.startsWith('cn-')) {
-        baseURL += "?currency=CNY";
+        baseURL += '?currency=CNY';
     }
 
     return baseURL + '#' + hash;
