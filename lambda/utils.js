@@ -523,11 +523,40 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
  * Extract duration (in ms) from a given Lambda's CloudWatch log.
  */
 module.exports.extractDuration = (log) => {
+    if (log.charAt(0) === '{') {
+        // extract from JSON (multi-line)
+        return utils.extractDurationFromJSON(log);
+    } else {
+        // extract from text
+        return utils.extractDurationFromText(log);
+    }
+};
+
+/**
+ * Extract duration (in ms) from a given text log.
+ */
+module.exports.extractDurationFromText = (log) => {
     const regex = /\tBilled Duration: (\d+) ms/m;
     const match = regex.exec(log);
 
     if (match == null) return 0;
     return parseInt(match[1], 10);
+};
+
+/**
+ * Extract duration (in ms) from a given JSON log (multi-line).
+ */
+module.exports.extractDurationFromJSON = (log) => {
+    // extract each line and parse it to JSON object
+    const lines = log.split('\n').map((line) => JSON.parse(line));
+
+    // find the log corresponding to the invocation report
+    const durationLine = lines.find((line) => line.type === 'platform.report');
+    if (durationLine){
+        return durationLine.record.metrics.billedDurationMs;
+    }
+
+    throw new Error('Unrecognized JSON log');
 };
 
 /**
@@ -591,7 +620,7 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
     ].join(';');
 
     if (process.env.AWS_REGION.startsWith('cn-')) {
-        baseURL += "?currency=CNY";
+        baseURL += '?currency=CNY';
     }
 
     return baseURL + '#' + hash;
