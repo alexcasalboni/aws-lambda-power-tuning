@@ -156,4 +156,4 @@ Feature requests and pull requests are more than welcome!
 
 ### How to get started with local development?
 
-For this repository, install dev dependencies with `npm install`. You can run tests with `npm test`, linting with `npm run lint`, and coverage with `npm run coverage`. Travis will automatically run the test suite on every commit and PR.
+For this repository, install dev dependencies with `npm install`. You can run tests with `npm test`, linting with `npm run lint`, and coverage with `npm run coverage`. Unit tests will run automatically on every commit and PR.
