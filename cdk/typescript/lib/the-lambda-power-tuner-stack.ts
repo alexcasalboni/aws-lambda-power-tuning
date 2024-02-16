@@ -9,6 +9,13 @@ export class TheLambdaPowerTunerStack extends cdk.Stack {
 
     let powerValues = '128,256,512,1024,1536,3008';
     let lambdaResource = "*";
+  //let visualizationURL: https://lambda-power-tuning.show/; # you can use your own visualization URL
+  //let totalExecutionTimeout: 300; # execution timeout for individual steps
+  //let permissionsBoundary: ARN;
+  //let payloadS3Bucket: my-bucket;
+  //let payloadS3Key: my-key.json;
+  //let stateMachineNamePrefix: my-custom-name-prefix;
+    
 
     // Deploy the aws-lambda-powertuning application from the Serverless Application Repository
     // https://serverlessrepo.aws.amazon.com/applications/arn:aws:serverlessrepo:us-east-1:451282441545:applications~aws-lambda-power-tuning
@@ -19,7 +26,13 @@ export class TheLambdaPowerTunerStack extends cdk.Stack {
       },
       parameters: {
         "lambdaResource": lambdaResource,
-        "PowerValues": powerValues
+        "PowerValues": powerValues,
+        //"visualizationURL": visualizationURL,
+        //"totalExecutionTimeout": totalExecutionTimeout,
+        //"permissionsBoundary": permissionsBoundary,
+        //"payloadS3Bucket": payloadS3Bucket,
+        //"payloadS3Key": payloadS3Key,
+        //"stateMachineNamePrefix": stateMachineNamePrefix      
       }
     })
   }
