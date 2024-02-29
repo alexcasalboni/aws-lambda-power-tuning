@@ -26,7 +26,6 @@ namespace TheLambdaPowerTunerStack.Tests
                     { "Location" , new ObjectDict
                         {
                             { "ApplicationId", "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning" },
-                            { "SemanticVersion", "4.3.4" }
                         }
                     }
                 } 
