@@ -104,6 +104,7 @@ Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/m
 
 From most recent to oldest, with major releases in bold:
 
+* *4.3.4* (2024-02-26): upgrade to Nodejs20, custom state machine prefix, SDKv3 migration, new includeOutputResults input parameter, JSON loggin support
 * *4.3.3* (2023-10-30): parametrized currency for visualization URL (USD|CNY)
 * *4.3.2* (2023-08-16): new disablePayloadLogs flag, updated documentation
 * *4.3.1* (2023-05-09): update dependencies, add VPC Configuration support, use Billed Duration instead Duration from logs, update state machine with ItemSelector
