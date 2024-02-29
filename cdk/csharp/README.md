@@ -1,8 +1,14 @@
-# How to deploy the AWS Lambda Power Tuner tool using the CDK for C#
+# How to deploy AWS Lambda Power Tuning using the CDK for C#
 
-This CDK project deploys the *AWS Lambda Power Tuner* tool using C#.
+This CDK project deploys *AWS Lambda Power Tuning* using C#.
 
 You can use the project as a standalone or reuse it within your own CDK projects.
+
+
+## CDK Prerequisites
+
+See [here](../README.md).
+
 
 ## Language specific prerequisites
 
