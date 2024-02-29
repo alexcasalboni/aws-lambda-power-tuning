@@ -20,14 +20,7 @@ Check also the langauge specific requirements in the respective README.
 
 Run these commands from the project folders:
 
+* `cdk bootstrap`      bootstrap one or more environments
 * `cdk deploy`      deploy this stack to your default AWS account/region
 * `cdk diff`        compare deployed stack with current state
 * `cdk synth`       emits the synthesized CloudFormation template
-
-## Deployment
-
-```
-cd cdk/csharp
-dotnet build
-cdk deploy
-```
