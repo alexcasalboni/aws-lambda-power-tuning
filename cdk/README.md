@@ -1,8 +1,8 @@
-# Deploy the AWS Lambda Power Tuner tool using the CDK
+# Deploy AWS Lambda Power Tuning using the CDK
 
-Here you find various CDK projects to deploy the *AWS Lambda Power Tuner* tool using your preferred programming language.
+Here you find various CDK projects to deploy *AWS Lambda Power Tuning* using your preferred programming language.
 
-Currently we support
+Currently we support:
 
 - [TypeScript](typescript/README.md)
 - [C#](csharp/README.md)
