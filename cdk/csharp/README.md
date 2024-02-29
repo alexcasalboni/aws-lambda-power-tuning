@@ -15,14 +15,14 @@ See also the general [prerequisites for CDK](https://docs.aws.amazon.com/cdk/v2/
 
 ```
 cd cdk/csharp
-dotnet build src
+dotnet build
 cdk deploy
 ```
 
 ## Useful commands
 
-* `dotnet build src` compile this app
-* `dotnet test src`  test this app
+* `dotnet build`  compile this app
+* `dotnet test`  	 test this app
 * `cdk deploy`       deploy this stack to your default AWS account/region
 * `cdk diff`         compare deployed stack with current state
 * `cdk synth`        emits the synthesized CloudFormation template
