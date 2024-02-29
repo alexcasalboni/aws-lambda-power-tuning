@@ -5,6 +5,11 @@ This CDK project deploys *AWS Lambda Power Tuning* using TypeScript.
 You can use the project as a standalone or reuse it within your own CDK projects.
 
 
+## CDK Prerequisites
+
+See [here](../README.md).
+
+
 ## Language specific prerequisites
 
 - [TypeScript 3.8 or later](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_prerequisites)
