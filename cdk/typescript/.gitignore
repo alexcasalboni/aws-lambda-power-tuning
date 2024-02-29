@@ -10,3 +10,6 @@ cdk.out
 # Parcel build directories
 .cache
 .build
+
+#template file 
+template.yml
