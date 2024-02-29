@@ -11,13 +11,13 @@ namespace TheLambdaPowerTunerStack
         {
             var stateMachineConfiguration = new Dictionary<string, string>
             {
-                { "lambdaResource", "*" },
-                { "PowerValues", "128,256,512,1024,1536,3008" },
-                { "visualizationURL", "https://lambda-power-tuning.show/" },
-                { "totalExecutionTimeout", "300" },
-                { "payloadS3Key", "*" },
-                { "logGroupRetentionInDays", "7" },
-                { "stateMachineNamePrefix", "powerTuningStateMachine" },
+                // { "lambdaResource", "*" },
+                // { "PowerValues", "128,256,512,1024,1536,3008" },
+                // { "visualizationURL", "https://lambda-power-tuning.show/" },
+                // { "totalExecutionTimeout", "300" },
+                // { "payloadS3Key", "*" },
+                // { "logGroupRetentionInDays", "7" },
+                // { "stateMachineNamePrefix", "powerTuningStateMachine" },
                 // { "permissionsBoundary", "<ARN of permission boundary>" },
                 // { "payloadS3Bucket", "<S3 bucket name used for large payloads>" },
                 // { "layerSdkName", "<name of the SDK layer>" },
