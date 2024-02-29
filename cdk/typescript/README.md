@@ -15,12 +15,9 @@ See [here](../README.md).
 - [TypeScript 3.8 or later](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_prerequisites)
 - [Requirements for CDK with TypeScript](https://docs.aws.amazon.com/cdk/v2/guide/work-with-cdk-typescript.html)
 
-
-## Building and testing the app
+## Building, testing, and deploying the app
 
  * `npm run build`   compile typescript to js
  * `npm run watch`   watch for changes and compile
  * `npm run test`    perform the jest unit tests
  * `npm run deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk synth`       emits the synthesized CloudFormation template
