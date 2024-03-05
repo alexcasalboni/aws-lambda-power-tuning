@@ -6,6 +6,7 @@ Currently we support:
 
 - [TypeScript](typescript/README.md)
 - [C#](csharp/README.md)
+- [Python](python/README.md)
 
 You can use these projects as a standalone or reuse it within your own CDK projects.
 
