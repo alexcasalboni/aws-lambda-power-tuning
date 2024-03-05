@@ -30,7 +30,7 @@ step to activate your virtualenv.
 $ source .venv/bin/activate
 ```
 
-If you are a Windows platform, you would activate the virtualenv like this:
+If you are on Windows platform, you would activate the virtualenv like this:
 
 ```
 % .venv\Scripts\activate.bat
