@@ -15,7 +15,7 @@ See [here](../README.md).
 - [Python 3.6 or later](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_prerequisites)
 - [Requirements for CDK with Python](https://docs.aws.amazon.com/cdk/v2/guide/work-with-cdk-python.html)
 
-## Building, testing, and deploying the app
+## Virtualenv setup and requirements 
 
 To manually create a virtualenv on MacOS and Linux:
 
@@ -38,10 +38,11 @@ If you are on Windows platform, you would activate the virtualenv like this:
 
 Once the virtualenv is activated, you can install the required dependencies.
 
+
 ```
 $ pip install -r requirements.txt
 ```
-
+## Building, testing, and deploying the app
 cdk synth
 pytest
 cdk deploy
