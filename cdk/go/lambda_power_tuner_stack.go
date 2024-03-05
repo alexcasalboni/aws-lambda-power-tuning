@@ -28,14 +28,14 @@ func NewLambdaPowerTunerStack(scope constructs.Construct, id string, props *Lamb
 			// "PowerValues": "128,256,512,1024,1536,3008",
 			// "visualizationURL": "https://lambda-power-tuning.show/",
 			// "totalExecutionTimeout": "300",
-			// "payloadS3Key":"*",
-			// "logGroupRetentionInDays":"7",
-			// "stateMachineNamePrefix":"powerTuningStateMachine",
-			// "permissionsBoundary":"<ARN of permission boundary>",
-			// "payloadS3Bucket":"<S3 bucket name used for large payloads>",
-			// "layerSdkName":"<name of the SDK layer>",
-			// "securityGroupIds":"<List of Security Groups to use in every Lambda function's VPC Configuration>",
-			// "subnetIds":"<List of Subnets to use in every Lambda function's VPC Configuration>"
+			// "payloadS3Key": "*",
+			// "logGroupRetentionInDays": "7",
+			// "stateMachineNamePrefix": "powerTuningStateMachine",
+			// "permissionsBoundary": "<ARN of permission boundary>",
+			// "payloadS3Bucket": "<S3 bucket name used for large payloads>",
+			// "layerSdkName": "<name of the SDK layer>",
+			// "securityGroupIds": "<List of Security Groups to use in every Lambda function's VPC Configuration>",
+			// "subnetIds": "<List of Subnets to use in every Lambda function's VPC Configuration>"
 		},
 	})
 
