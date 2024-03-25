@@ -383,13 +383,8 @@ module.exports._fetchS3Object = async(bucket, key) => {
  * Generate a list of `num` payloads (repeated or weighted)
  */
 module.exports.generatePayloads = (num, payloadInput) => {
-    if (Array.isArray(payloadInput)) {
-        // if array, generate a list of payloads based on weights
-
-        // fail if empty list or missing weight/payload
-        if (payloadInput.length === 0 || payloadInput.some(p => !p.weight || !p.payload)) {
-            throw new Error('Invalid weighted payload structure');
-        }
+    if (Array.isArray(payloadInput) && utils.isWeightedPayload(payloadInput)) {
+        // if weighted array, generate a list of payloads based on weights
 
         if (num < payloadInput.length) {
             throw new Error(`You have ${payloadInput.length} payloads and only "num"=${num}. Please increase "num".`);
@@ -427,6 +422,17 @@ module.exports.generatePayloads = (num, payloadInput) => {
         payloads.fill(utils.convertPayload(payloadInput), 0, num);
         return payloads;
     }
+};
+
+/**
+ * Check if payload is an array where each element contains the property "weight"
+ */
+module.exports.isWeightedPayload = (payload) => {
+    /**
+     * Return true only if the input is a non-empty array where the elements contain a weight property.
+     * e.g. [{ "payload": {...}, "weight": 5 }, ...]
+     */
+    return Array.isArray(payload) && payload.every(p => p.weight && p.payload) && !!payload.length;
 };
 
 /**
