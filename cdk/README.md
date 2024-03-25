@@ -8,6 +8,7 @@ Currently we support:
 - [C#](csharp/README.md)
 - [Python](python/README.md)
 - [go](go/README.md)
+- [Java](java/README.md)
 
 You can use these projects as a standalone or reuse it within your own CDK projects.
 
