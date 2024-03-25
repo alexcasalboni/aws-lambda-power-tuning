@@ -383,7 +383,7 @@ module.exports._fetchS3Object = async(bucket, key) => {
  * Generate a list of `num` payloads (repeated or weighted)
  */
 module.exports.generatePayloads = (num, payloadInput) => {
-    if (Array.isArray(payloadInput) && utils.isWeightedPayload(payloadInput)) {
+    if (utils.isWeightedPayload(payloadInput)) {
         // if weighted array, generate a list of payloads based on weights
 
         if (num < payloadInput.length) {
