@@ -32,7 +32,7 @@ The state machine accepts the following input parameters:
 * **lambdaARN** (required, string): unique identifier of the Lambda function you want to optimize
 * **powerValues** (optional, string or list of integers): the list of power values to be tested; if not provided, the default values configured at deploy-time are used (by default: 128MB, 256MB, 512MB, 1024MB, 1536MB, and 3008MB); you can provide any power values between 128MB and 10,240MB (⚠️ [New AWS accounts have reduced concurrency and memory quotas, 3008MB max](https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html))
 * **num** (required, integer): the # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)
-* **payload** (string, object, or list): the static payload that will be used for every invocation (object or string); when using a list, a weighted payload is expected in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not percentages); more details below in the [Weighted Payloads section](#user-content-weighted-payloads)
+* **payload** (string, object, or list): the static payload that will be used for every invocation (object or string); when using a list the payload will be treated as a weighted payload if and only if it's in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not percentages); more details below in the [Weighted Payloads section](#user-content-weighted-payloads)
 * **payloadS3** (string): a reference to Amazon S3 for large payloads (>256KB), formatted as `s3://bucket/key`; it requires read-only IAM permissions, see `payloadS3Bucket` and `payloadS3Key` below and find more details in the [S3 payloads section](#user-content-s3-payloads)
 * **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
 * **strategy** (string): it can be `"cost"` or `"speed"` or `"balanced"` (the default value is `"cost"`); if you use `"cost"` the state machine will suggest the cheapest option (disregarding its performance), while if you use `"speed"` the state machine will suggest the fastest option (disregarding its cost). When using `"balanced"` the state machine will choose a compromise between `"cost"` and `"speed"` according to the parameter `"balancedWeight"`
@@ -67,6 +67,9 @@ You can use different alias names such as `dev`, `test`, `production`, etc. If y
 
 
 ### Weighted Payloads
+
+> [!IMPORTANT]
+> Your payload will only be treated as a weighted payload if it adheres to the JSON structure that follows. Otherwise, it's assumed to be an array-shaped payload.
 
 Weighted payloads can be used in scenarios where the payload structure and the corresponding performance/speed could vary a lot in production and you'd like to include multiple payloads in the tuning process.
 

@@ -37,7 +37,7 @@ lambdaMock.on(DeleteFunctionCommand).resolves({});
 lambdaMock.on(CreateAliasCommand).resolves({});
 lambdaMock.on(DeleteAliasCommand).resolves({});
 lambdaMock.on(InvokeCommand).resolves({});
-lambdaMock.on(UpdateAliasCommand).resolves({})
+lambdaMock.on(UpdateAliasCommand).resolves({});
 const s3Mock = awsV3Mock.mockClient(S3Client);
 s3Mock.reset();
 s3Mock.on(GetObjectCommand).resolves({
@@ -611,12 +611,22 @@ describe('Lambda Utils', () => {
             });
         });
 
-        it('should explode if invalid weighted payloads', async () => {
-            expect(() => utils.generatePayloads(10, [])).to.throwError();
-            expect(() => utils.generatePayloads(10, [{}])).to.throwError();
-            expect(() => utils.generatePayloads(10, [1, 2, 3])).to.throwError();
-            expect(() => utils.generatePayloads(10, [{ weight: 1 }])).to.throwError();
-            expect(() => utils.generatePayloads(10, [{ payload: {} }])).to.throwError();
+        it('should return input array as output if not weighted', async() => {
+            let payloads = [
+                [],
+                [{}],
+                [1, 2, 3],
+                [{ weight: 1 }],
+                [{ payload: {}, weight: 1 }, { payload: {}}],
+                [{ payload: {} }],
+            ];
+
+            payloads.forEach(payload => {
+                let output = utils.generatePayloads(10, payload);
+
+                expect(output.length).to.be(10);
+                expect(output.every(p => p === JSON.stringify(payload))).to.be(true);
+            });
         });
 
         it('should explode if num < count(payloads)', async () => {
@@ -824,6 +834,55 @@ describe('Lambda Utils', () => {
             expect(counters[26]).to.be(1 + 4);
         });
 
+    });
+
+    describe('isWeightedPayload', () => {
+        it('should return true for a correctly weighted payload', () => {
+            const validPayload = [
+                { payload: { data: 'foo' }, weight: 5 },
+                { payload: { data: 'bar' }, weight: 10 },
+            ];
+            expect(utils.isWeightedPayload(validPayload)).to.be(true);
+        });
+
+        it('should return false for payload only containing weights (no "payload" property)', () => {
+            const validPayload = [
+                { weight: 5 },
+                { weight: 10 },
+            ];
+            expect(utils.isWeightedPayload(validPayload)).to.be(false);
+        });
+
+        it('should return false for a payload that is not an array', () => {
+            const invalidPayload = { payload: { data: 'foo' }, weight: 5 };
+            expect(utils.isWeightedPayload(invalidPayload)).to.be(false);
+        });
+
+        it('should return false for an undefined payload', () => {
+            const invalidPayload = undefined;
+            expect(utils.isWeightedPayload(invalidPayload)).to.be(false);
+        });
+
+        it('should return false for an empty array payload', () => {
+            const invalidPayload = [];
+            expect(utils.isWeightedPayload(invalidPayload)).to.be(false);
+        });
+
+        it('should return false for an invalid payload array (elements missing weight property)', () => {
+            const invalidPayload = [
+                { payload: { data: 'foo' } },
+                { payload: { data: 'bar' }, weight: 10 },
+            ];
+            expect(utils.isWeightedPayload(invalidPayload)).to.be(false);
+        });
+
+        it('should return false for an invalid payload (elements missing payload property)', () => {
+            const invalidPayload = [
+                { weight: 5 },
+                { payload: { data: 'bar' }, weight: 10 },
+            ];
+            expect(utils.isWeightedPayload(invalidPayload)).to.be(false);
+        });
     });
 
     describe('fetchPayloadFromS3', () => {
