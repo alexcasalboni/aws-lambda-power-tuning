@@ -1,4 +1,4 @@
-# How to deploy the AWS Lambda Power Tunening using the CDK for TypeScript
+# How to deploy the AWS Lambda Power Tuning using the CDK for TypeScript
 
 This CDK project deploys *AWS Lambda Power Tuning* using TypeScript.
 
