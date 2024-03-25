@@ -1,4 +1,4 @@
-# How to deploy the AWS Lambda Power Tuneing using the CDK for Python
+# How to deploy the AWS Lambda Power Tuning using the CDK for Python
 
 This CDK project deploys *AWS Lambda Power Tuning* using Python.
 
