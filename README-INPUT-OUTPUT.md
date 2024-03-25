@@ -3,6 +3,28 @@
 Each execution of the state machine will require an input and will provide the corresponding output.
 
 
+## Deployment configuration options
+
+The CloudFormation template accepts the following parameters:
+
+* **PowerValues** (list of numbers): these power values will be used as the default in case no `powerValues` input parameter is provided at execution time
+* **visualizationURL** (string): the base URL for the visualization tool, by default it's `lambda-power-tuning.show` but you could use your own custom tool
+* **totalExecutionTimeout** (number in seconds, default=`300`): the timeout in seconds applied to all functions of the state machine
+* **lambdaResource** (string, default=`*`): the `Resource` used in IAM policies; it's `*` by default but you could restrict it to a prefix or a specific function ARN
+* **permissionsBoundary** (string): the ARN of a permissions boundary (policy), applied to all functions of the state machine
+* **payloadS3Bucket** (string): the S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the [S3 payloads section](#user-content-s3-payloads)
+* **payloadS3Key** (string, default=`*`): the S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](#user-content-s3-payloads)
+* **layerSdkName** (string): the name of the SDK layer, in case you need to customize it (optional)
+* **logGroupRetentionInDays** (number, default=7): the number of days to retain log events in the Lambda log groups. Before this parameter existed, log events were retained indefinitely
+* **securityGroupIds** (list of SecurityGroup IDs): List of Security Groups to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
+* **subnetIds** (list of Subnet IDs): List of Subnets to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
+* **stateMachineNamePrefix** (string, default=`powerTuningStateMachine`): Allows you to customize the name of the state machine. Maximum 43 characters, only alphanumeric (plus `-` and `_`). The last portion of the `AWS::StackId` will be appended to this value, so the full name will look like `powerTuningStateMachine-89549da0-a4f9-11ee-844d-12a2895ed91f`. Note: `StateMachineName` has a maximum of 80 characters and 36+1 from the `StackId` are appended, allowing 43 for a custom prefix.
+
+
+
+Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can easily estimate the total execution timeout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min. If you have a sleep between invocations set, you should include that in your timeout calculations.
+
+
 ## State machine input (at execution time)
 
 The state machine accepts the following input parameters:
@@ -25,25 +47,6 @@ The state machine accepts the following input parameters:
 * **disablePayloadLogs** (boolean) If provided and set to a truthy value, suppresses `payload` from error messages and logs. If `preProcessorARN` is provided, this also suppresses the output payload of the pre-processor.
 * **includeOutputResults** (boolean) If provided and set to true, the average cost and average duration for every power value configuration will be included in the state machine output.
 
-## State machine configuration (at deployment time)
-
-The CloudFormation template accepts the following parameters:
-
-* **PowerValues** (list of numbers): these power values will be used as the default in case no `powerValues` input parameter is provided at execution time
-* **visualizationURL** (string): the base URL for the visualization tool, by default it's `lambda-power-tuning.show` but you could use your own custom tool
-* **totalExecutionTimeout** (number in seconds, default=`300`): the timeout in seconds applied to all functions of the state machine
-* **lambdaResource** (string, default=`*`): the `Resource` used in IAM policies; it's `*` by default but you could restrict it to a prefix or a specific function ARN
-* **permissionsBoundary** (string): the ARN of a permissions boundary (policy), applied to all functions of the state machine
-* **payloadS3Bucket** (string): the S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the [S3 payloads section](#user-content-s3-payloads)
-* **payloadS3Key** (string, default=`*`): the S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](#user-content-s3-payloads)
-* **layerSdkName** (string): the name of the SDK layer, in case you need to customize it (optional)
-* **logGroupRetentionInDays** (number, default=7): the number of days to retain log events in the Lambda log groups. Before this parameter existed, log events were retained indefinitely
-* **securityGroupIds** (list of SecurityGroup IDs): List of Security Groups to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
-* **subnetIds** (list of Subnet IDs): List of Subnets to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
-* **stateMachineNamePrefix** (string, default=`powerTuningStateMachine`): Allows you to customize the name of the state machine. Maximum 43 characters, only alphanumeric (plus `-` and `_`). The last portion of the `AWS::StackId` will be appended to this value, so the full name will look like `powerTuningStateMachine-89549da0-a4f9-11ee-844d-12a2895ed91f`. Note: `StateMachineName` has a maximum of 80 characters and 36+1 from the `StackId` are appended, allowing 43 for a custom prefix.
-
-
-Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can easily estimate the total execution timeout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min. If you have a sleep between invocations set, you should include that in your timeout calculations.
 
 ### Usage in CI/CD pipelines
 

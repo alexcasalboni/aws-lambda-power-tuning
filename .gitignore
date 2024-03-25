@@ -5,6 +5,7 @@
 node_modules
 jspm_packages
 venv
+.venv
 coverage
 .nyc_output
 
@@ -22,3 +23,9 @@ layer-sdk/src
 # ignore SAM CLI created files/dirs
 .aws-sam/
 samconfig.toml
+
+# ignore terraform created files/dirs
+.terraform/
+.terraform.*
+*.tfstate*
+cid.log
