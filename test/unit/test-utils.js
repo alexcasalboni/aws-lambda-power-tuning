@@ -617,14 +617,15 @@ describe('Lambda Utils', () => {
                 [{}],
                 [1, 2, 3],
                 [{ weight: 1 }],
+                [{ payload: {}, weight: 1 }, { payload: {}}],
                 [{ payload: {} }],
             ];
 
             payloads.forEach(payload => {
                 let output = utils.generatePayloads(10, payload);
-                let test = output.every(p => p === JSON.stringify(payload));
+
                 expect(output.length).to.be(10);
-                expect(test).to.be(true);
+                expect(output.every(p => p === JSON.stringify(payload))).to.be(true);
             });
         });
 
