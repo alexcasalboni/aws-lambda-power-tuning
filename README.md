@@ -95,8 +95,6 @@ Each execution of the state machine will require an input where you can define t
 |  **disablePayloadLogs**<br/>type: _boolean_<br/>default: `false`  | If provided and set to a truthy value, suppresses `payload` from error messages and logs. If `preProcessorARN` is provided, this also suppresses the output payload of the pre-processor.                                                                                                                                                                                                                                                                 |
 | **includeOutputResults**<br/>type: _boolean_<br/>default: `false` | If provided and set to true, the average cost and average duration for every power value configuration will be included in the state machine output.                                                                                                                                                                                                                                                                                                      |
 
-### State Machine Input and Output
-
 Here's a typical execution input with basic parameters:
 
 ```json
