@@ -10,6 +10,23 @@ Feel free to customize the `scripts/sample-execution-input.json`, and then run `
 
 The script will start a state machine execution, wait for the execution to complete (polling), and then show the execution results.
 
+### Usage in CI/CD pipelines
+
+If you want to run the state machine as part of your continuous integration pipeline and automatically fine-tune your functions at every deployment, you can execute it with the script `scripts/execute.sh` (or similar) by providing the following input parameters:
+
+```json
+{
+    "lambdaARN": "...",
+    "num": 10,
+    "payload": {},
+    "powerValues": [128, 256, 512, ...],
+    "autoOptimize": true,
+    "autoOptimizeAlias": "prod"
+}
+```
+
+You can use different alias names such as `dev`, `test`, `production`, etc. If you don't configure any alias name, the state machine will only update the `$LATEST` alias.
+
 ## Option 2: Execute the state machine manually (web console)
 
 Once the state machine is deployed, you can execute it and provide an input object.
@@ -18,7 +35,7 @@ You will find the new state machine in the [Step Functions Console](https://cons
 
 The state machine name will depend on the stack name (default: `aws-lambda-power-tuning`). Find it and click "**Start execution**".
 
-You'll be able to provide the execution input (check the [full documentation here](README-INPUT-OUTPUT.md)]), which will look like this:
+You'll be able to provide the execution input (check the [full documentation here](README.md#state-machine-input-at-execution-time)), which will look like this:
 
 ```json
 {

@@ -36,13 +36,64 @@ How to interpret the chart above: execution time goes from 2.4s with 128MB to 30
 
 ## How to deploy the state machine
 
-There are a few options documented [here](README-DEPLOY.md).
+There are 5 deployment options for deploying the tool using Infrastructure as Code (IaC).
+
+1. The easiest way is to [deploy the app via the AWS Serverless Application Repository (SAR)](README-DEPLOY.md#option1).
+1. [Using the AWS SAM CLI](README-DEPLOY.md#option2)
+1. [Using the AWS CDK](README-DEPLOY.md#option3)
+1. [Using Terraform by Hashicorp and SAR](README-DEPLOY.md#option4)
+1. [Using native Terraform](README-DEPLOY.md#option5)
+
+Read more about the [deployment options here](README-DEPLOY.md).
+
+### State machine configuration (at deployment time)
+
+The CloudFormation template (used for option 1 to 4) accepts the following parameters:
+
+|                    <div style="width:260px">**Parameter**</div>                     | Description                                                                                                                                                                                                                                                                                                                                                                                                                   |
+|:-----------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **PowerValues**<br>type: _list of numbers_<br>default: [128,256,512,1024,1536,3008] | These power values (in MB) will be used as the default in case no `powerValues` input parameter is provided at execution time                                                                                                                                                                                                                                                                                                 | |
+|    **visualizationURL**<br>type: _string_<br>default: `lambda-power-tuning.show`    | The base URL for the visualization tool, you can bring your own visualization tool                                                                                                                                                                                                                                                                                                                                            |
+|            **totalExecutionTimeout**<br>type: _number_<br>default: `300`            | The timeout in seconds applied to all functions of the state machine                                                                                                                                                                                                                                                                                                                                                          |
+|                **lambdaResource**<br>type: _string_<br>default: `*`                 | The `Resource` used in IAM policies; it's `*` by default but you could restrict it to a prefix or a specific function ARN                                                                                                                                                                                                                                                                                                     |
+|                    **permissionsBoundary**<br>type: _string_<br>                    | The ARN of a permissions boundary (policy), applied to all functions of the state machine                                                                                                                                                                                                                                                                                                                                     |
+|                      **payloadS3Bucket**<br>type: _string_<br>                      | The S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the [S3 payloads section](README-ADVANCED.md#user-content-s3-payloads)                                                                                                                                                                   |
+|                 **payloadS3Key**<br>type: _string_<br>default: `*`                  | The S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](README-ADVANCED.md#user-content-s3-payloads)                                                                                                                                                                            |
+|                       **layerSdkName**<br>type: _string_<br>                        | The name of the SDK layer, in case you need to customize it (optional)                                                                                                                                                                                                                                                                                                                                                        |
+|            **logGroupRetentionInDays**<br>type: _number_<br>default: `7`            | The number of days to retain log events in the Lambda log groups. Before this parameter existed, log events were retained indefinitely                                                                                                                                                                                                                                                                                        |
+|            **securityGroupIds**<br>type: _list of SecurityGroup IDs_<br>            | List of Security Groups to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service                                                                                                                                                                                       |
+|                   **subnetIds**<br>type: _list of Subnet IDs_<br>                   | List of Subnets to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service                                                                                                                                                                                               |
+| **stateMachineNamePrefix**<br>type: _string_<br>default: `powerTuningStateMachine`  | Allows you to customize the name of the state machine. Maximum 43 characters, only alphanumeric (plus `-` and `_`). The last portion of the `AWS::StackId` will be appended to this value, so the full name will look like `powerTuningStateMachine-89549da0-a4f9-11ee-844d-12a2895ed91f`. Note: `StateMachineName` has a maximum of 80 characters and 36+1 from the `StackId` are appended, allowing 43 for a custom prefix. |
+
+Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can easily estimate the total execution timeout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min. If you have a sleep between invocations set, you should include that in your timeout calculations.
 
 ## How to execute the state machine
 
 You can execute the state machine manually or programmatically, see the documentation [here](README-EXECUTE.md).
 
-## State Machine Input and Output
+### State machine input (at execution time)
+
+Each execution of the state machine will require an input where you can define the following input parameters:
+
+|           <div style="width:260px">**Parameter**</div>            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+|:-----------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|         **lambdaARN** (required)<br/>type: _string_<br/>          | Unique identifier of the Lambda function you want to optimize                                                                                                                                                                                                                                                                                                                                                                                             |
+|              **num** (required)<br/>type: _integer_               | The # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)                                                                                                                                                                                                                                                                                                                                                            |
+|      **powerValues**<br/>type: _string or list of integers_       | The list of power values to be tested; if not provided, the default values configured at deploy-time are used; you can provide any power values between 128MB and 10,240MB (⚠️ New AWS accounts have reduced concurrency and memory quotas (3008MB max))                                                                                                                                                                                                  |
+|          **payload**<br/>type: _string, object, or list_          | The static payload that will be used for every invocation (object or string); when using a list, a weighted payload is expected in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not percentages); more details below in the [Weighted Payloads section](README-ADVANCED.md#user-content-weighted-payloads) |
+|                 **payloadS3**<br/>type: _string_                  | A reference to Amazon S3 for large payloads (>256KB), formatted as `s3://bucket/key`; it requires read-only IAM permissions, see `payloadS3Bucket` and `payloadS3Key` below and find more details in the [S3 payloads section](README-ADVANCED.md#user-content-s3-payloads)                                                                                                                                                                               |
+|  **parallelInvocation**<br/>type: _boolean_<br/>default: `false`  | If true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)                                                                                                                                                                                                                                                                                |
+|       **strategy**<br/>type: _string_<br/>default: `"cost"`       | It can be `"cost"` or `"speed"` or `"balanced"`; if you use `"cost"` the state machine will suggest the cheapest option (disregarding its performance), while if you use `"speed"` the state machine will suggest the fastest option (disregarding its cost). When using `"balanced"` the state machine will choose a compromise between `"cost"` and `"speed"` according to the parameter `"balancedWeight"`                                             |
+|     **balancedWeight**<br/>type: _number_<br/>default: `0.5`      | Parameter that express the trade-off between cost and time. Value is between 0 & 1, 0.0 is equivalent to `"speed"` strategy, 1.0 is equivalent to `"cost"` strategy                                                                                                                                                                                                                                                                                       |
+|     **autoOptimize**<br/>type: _boolean_<br/>default: `false`     | If `true`, the state machine will apply the optimal configuration at the end of its execution                                                                                                                                                                                                                                                                                                                                                             |
+|             **autoOptimizeAlias**<br/>type: _string_              | If provided - and only if `autoOptimize` if `true`, the state machine will create or update this alias with the new optimal power value                                                                                                                                                                                                                                                                                                                   |
+|        **dryRun**<br/>type: _boolean_<br/>default: `false`        | If true, the state machine will execute the input function only once and it will disable every functionality related to logs analysis, auto-tuning, and visualization; the dry-run mode is intended for testing purposes, for example to verify that IAM permissions are set up correctly                                                                                                                                                                 |
+|              **preProcessorARN**<br/>type: _string_               | It must be the ARN of a Lambda function; if provided, the function will be invoked before every invocation of `lambdaARN`; more details below in the [Pre/Post-processing functions section](README-ADVANCED.md#user-content-prepost-processing-functions)                                                                                                                                                                                                |
+|              **postProcessorARN**<br/>type: _string_              | It must be the ARN of a Lambda function; if provided, the function will be invoked after every invocation of `lambdaARN`; more details below in the [Pre/Post-processing functions section](README-ADVANCED.md#user-content-prepost-processing-functions)                                                                                                                                                                                                 |
+|    **discardTopBottom**<br/>type: _number_<br/>default: `0.2`     | By default, the state machine will discard the top/bottom 20% of "outliers" (the fastest and slowest), to filter out the effects of cold starts that would bias the overall averages. You can customize this parameter by providing a value between 0 and 0.4, with 0 meaning no results are discarded and 0.4 meaning that 40% of the top/bottom results are discarded (i.e. only 20% of the results are considered).                                    |
+|            **sleepBetweenRunsMs**<br/>type: _integer_             | If provided, the time in milliseconds that the tuner function will sleep/wait after invoking your function, but before carrying out the Post-Processing step, should that be provided. This could be used if you have aggressive downstream rate limits you need to respect. By default this will be set to 0 and the function won't sleep between invocations. Setting this value will have no effect if running the invocations in parallel.            |
+|  **disablePayloadLogs**<br/>type: _boolean_<br/>default: `false`  | If provided and set to a truthy value, suppresses `payload` from error messages and logs. If `preProcessorARN` is provided, this also suppresses the output payload of the pre-processor.                                                                                                                                                                                                                                                                 |
+| **includeOutputResults**<br/>type: _boolean_<br/>default: `false` | If provided and set to true, the average cost and average duration for every power value configuration will be included in the state machine output.                                                                                                                                                                                                                                                                                                      |
 
 Here's a typical execution input with basic parameters:
 
@@ -55,26 +106,35 @@ Here's a typical execution input with basic parameters:
 }
 ```
 
-Full input documentation [here](README-INPUT-OUTPUT.md#user-content-state-machine-input).
+### State Machine Output
 
-The state machine output will look like this:
+The state machine will return the following output:
 
 ```json
 {
   "results": {
     "power": "128",
     "cost": 0.0000002083,
-    "duration": 2.906,
+    "duration": 2.9066666666666667,
     "stateMachine": {
       "executionCost": 0.00045,
       "lambdaCost": 0.0005252,
       "visualization": "https://lambda-power-tuning.show/#<encoded_data>"
-    }
+    },
+    "stats": [{ "averagePrice": 0.0000002083, "averageDuration": 2.9066666666666667, "value": 128}, ... ]
   }
 }
 ```
 
-Full output documentation [here](README-INPUT-OUTPUT.md#user-content-state-machine-output).
+More details on each value:
+
+* **results.power**: the optimal power configuration (RAM)
+* **results.cost**: the corresponding average cost (per invocation)
+* **results.duration**: the corresponding average duration (per invocation)
+* **results.stateMachine.executionCost**: the AWS Step Functions cost corresponding to this state machine execution (fixed value for "worst" case)
+* **results.stateMachine.lambdaCost**: the AWS Lambda cost corresponding to this state machine execution (depending on `num` and average execution time)
+* **results.stateMachine.visualization**: if you visit this autogenerated URL, you will be able to visualize and inspect average statistics about cost and performance; important note: average statistics are NOT shared with the server since all the data is encoded in the URL hash ([example](https://lambda-power-tuning.show/#gAAAAQACAAQABsAL;ZooQR4yvkUa/pQRGRC5zRaADHUVjOftE;QdWhOEMkoziDT5Q4xhiIOMYYiDi6RNc4)), which is available only client-side
+* **results.stats**: the average duration and cost for every tested power value configuration (only included if `includeOutputResults` is set to a truthy value)
 
 ## Data visualization
 
@@ -91,57 +151,6 @@ Optionally, you could deploy your own custom visualization tool and configure th
 ## Additional features, considerations, and internals
 
 [Here](README-ADVANCED.md) you can find out more about some advanced features of this project, its internals, and some considerations about security and execution cost.
-
-## CHANGELOG (SAR versioning)
-
-From most recent to oldest, with major releases in bold:
-
-* *4.3.4* (2024-02-26): upgrade to Nodejs20, custom state machine prefix, SDKv3 migration, new includeOutputResults input parameter, JSON loggin support
-* *4.3.3* (2023-10-30): parametrized currency for visualization URL (USD|CNY)
-* *4.3.2* (2023-08-16): new disablePayloadLogs flag, updated documentation
-* *4.3.1* (2023-05-09): update dependencies, add VPC Configuration support, use Billed Duration instead Duration from logs, update state machine with ItemSelector
-* ***4.3.0*** (2023-03-06): SnapStart support (alias waiter)
-* *4.2.3* (2023-03-01): fix layer runtime (nodejs16.x)
-* *4.2.2* (2023-02-15): configurable sleep parameter, bump runtime to nodejs16.x, docs updates, GH Actions, and minor bug fixes
-* *4.2.1* (2022-08-02): customizable SDK layer name and logs retention value
-* ***4.2.0*** (2022-01-03): support S3 payloads
-* *4.1.4* (2022-01-03): sorting bugfix and updated dependencies
-* *4.1.3* (2021-12-16): support simple strings as event payload
-* *4.1.2* (2021-10-12): add x86_64 fallback when Graviton is not supported yet
-* *4.1.1* (2021-10-12): fixed connection timeout for long-running functions
-* ***4.1.0*** (2021-10-11): support Lambda functions powered by Graviton2
-* ***4.0.0*** (2021-08-16): support AWS Lambda states expansion to all functions
-* *3.4.2* (2020-12-03): permissions boundary bugfix (Step Functions role)
-* *3.4.1* (2020-12-02): permissions boundary support
-* ***3.4.0*** (2020-12-01): 1ms billing
-* *3.3.3* (2020-07-17): payload logging bugfix for pre-processors
-* *3.3.2* (2020-06-17): weighted payloads bugfix (for real)
-* *3.3.1* (2020-06-16): weighted payloads bugfix
-* ***3.3.0*** (2020-06-10): Pre/Post-processing functions, correct regional pricing, customizable execution timeouts, and other internal improvements
-* *3.2.5* (2020-05-19): improved logging for weighted payloads and in case of invocation errors
-* *3.2.4* (2020-03-11): dryRun bugfix
-* *3.2.3* (2020-02-25): new dryRun input parameter
-* *3.2.2* (2020-01-30): upgraded runtime to Node.js 12.x
-* *3.2.1* (2020-01-27): improved scripts and SAR template reference
-* ***3.2.0*** (2020-01-17): support for weighted payloads
-* *3.1.2* (2020-01-17): improved optimal selection when same speed/cost
-* *3.1.1* (2019-10-24): customizable least-privilege (lambdaResource CFN param)
-* ***3.1.0*** (2019-10-24): $LATEST power reset and optional auto-tuning (new Optimizer step)
-* ***3.0.0*** (2019-10-22): dynamic parallelism (powerValues as execution parameter)
-* *2.1.3* (2019-10-22): upgraded runtime to Node.js 10.x
-* *2.1.2* (2019-10-17): new balanced optimization strategy
-* *2.1.1* (2019-10-10): custom domain for visualization URL
-* ***2.1.0*** (2019-10-10): average statistics visualization (URL in state machine output)
-* ***2.0.0*** (2019-07-28): multiple optimization strategies (cost and speed), new output format with AWS Step Functions and AWS Lambda cost
-* *1.3.1* (2019-07-23): retry policies and failed invocations management
-* ***1.3.0*** (2019-07-22): implemented error handling
-* *1.2.1* (2019-07-22): Node.js refactor and updated IAM permissions (added lambda:UpdateAlias)
-* ***1.2.0*** (2019-05-24): updated IAM permissions (least privilege for actions)
-* *1.1.1* (2019-05-15): updated docs
-* ***1.1.0*** (2019-05-15): cross-region invocation support
-* *1.0.1* (2019-05-13): new README for SAR
-* ***1.0.0*** (2019-05-13): AWS SAM refactor (published on SAR)
-* *0.0.1* (2017-03-27): previous project (serverless framework)
 
 ## Contributing
 
