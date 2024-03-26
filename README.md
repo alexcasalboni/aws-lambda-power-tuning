@@ -36,15 +36,19 @@ How to interpret the chart above: execution time goes from 2.4s with 128MB to 30
 
 ## How to deploy the state machine
 
-There are a few options documented [here](README-DEPLOY.md).
+There are 5 deployment options for deploying the tool using Infrastructure as Code (IaC).
 
-# State Machine Input and Output
+1. The easiest way is to [deploy the app via the AWS Serverless Application Repository (SAR)](README-DEPLOY.md#option1).
+1. [Using the AWS SAM CLI](README-DEPLOY.md#option2)
+1. [Using the AWS CDK](README-DEPLOY.md#option3)
+1. [Using Terraform by Hashicorp and SAR](README-DEPLOY.md#option4)
+1. [Using native Terraform](README-DEPLOY.md#option5)
 
-Each execution of the state machine will require an input and will provide the corresponding output.
+Read more about the [deployment options here](README-DEPLOY.md).
 
 ### State machine configuration (at deployment time)
 
-The CloudFormation template accepts the following parameters
+The CloudFormation template (used for option 1 to 4) accepts the following parameters:
 
 |                    <div style="width:260px">**Parameter**</div>                     | Description                                                                                                                                                                                                                                                                                                                                                                                                                   |
 |:-----------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -53,8 +57,8 @@ The CloudFormation template accepts the following parameters
 |            **totalExecutionTimeout**<br>type: _number_<br>default: `300`            | The timeout in seconds applied to all functions of the state machine                                                                                                                                                                                                                                                                                                                                                          |
 |                **lambdaResource**<br>type: _string_<br>default: `*`                 | The `Resource` used in IAM policies; it's `*` by default but you could restrict it to a prefix or a specific function ARN                                                                                                                                                                                                                                                                                                     |
 |                    **permissionsBoundary**<br>type: _string_<br>                    | The ARN of a permissions boundary (policy), applied to all functions of the state machine                                                                                                                                                                                                                                                                                                                                     |
-|                      **payloadS3Bucket**<br>type: _string_<br>                      | The S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the[S3 payloads section](#user-content-s3-payloads)                                                                                                                                                                                      |
-|                 **payloadS3Key**<br>type: _string_<br>default: `*`                  | The S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](#user-content-s3-payloads)                                                                                                                                                                                              |
+|                      **payloadS3Bucket**<br>type: _string_<br>                      | The S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the [S3 payloads section](README-ADVANCED.md#user-content-s3-payloads)                                                                                                                                                                   |
+|                 **payloadS3Key**<br>type: _string_<br>default: `*`                  | The S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](README-ADVANCED.md#user-content-s3-payloads)                                                                                                                                                                            |
 |                       **layerSdkName**<br>type: _string_<br>                        | The name of the SDK layer, in case you need to customize it (optional)                                                                                                                                                                                                                                                                                                                                                        |
 |            **logGroupRetentionInDays**<br>type: _number_<br>default: `7`            | The number of days to retain log events in the Lambda log groups. Before this parameter existed, log events were retained indefinitely                                                                                                                                                                                                                                                                                        |
 |            **securityGroupIds**<br>type: _list of SecurityGroup IDs_<br>            | List of Security Groups to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service                                                                                                                                                                                       |
@@ -64,8 +68,6 @@ The CloudFormation template accepts the following parameters
 Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can easily estimate the total execution timeout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min. If you have a sleep between invocations set, you should include that in your timeout calculations.
 
 ## How to execute the state machine
-
-You can execute the state machine manually or programmatically, see the documentation [here](README-EXECUTE.md).
 
 You can execute the state machine manually or programmatically, see the documentation [here](README-EXECUTE.md).
 
@@ -93,7 +95,7 @@ Each execution of the state machine will require an input where you can define t
 |  **disablePayloadLogs**<br/>type: _boolean_<br/>default: `false`  | If provided and set to a truthy value, suppresses `payload` from error messages and logs. If `preProcessorARN` is provided, this also suppresses the output payload of the pre-processor.                                                                                                                                                                                                                                                                 |
 | **includeOutputResults**<br/>type: _boolean_<br/>default: `false` | If provided and set to true, the average cost and average duration for every power value configuration will be included in the state machine output.                                                                                                                                                                                                                                                                                                      |
 
-## State Machine Input and Output
+### State Machine Input and Output
 
 Here's a typical execution input with basic parameters:
 
@@ -106,9 +108,7 @@ Here's a typical execution input with basic parameters:
 }
 ```
 
-Full input documentation [here](README-INPUT-OUTPUT.md#user-content-state-machine-input).
-
-## State Machine Output
+### State Machine Output
 
 The state machine will return the following output:
 
@@ -137,26 +137,6 @@ More details on each value:
 * **results.stateMachine.lambdaCost**: the AWS Lambda cost corresponding to this state machine execution (depending on `num` and average execution time)
 * **results.stateMachine.visualization**: if you visit this autogenerated URL, you will be able to visualize and inspect average statistics about cost and performance; important note: average statistics are NOT shared with the server since all the data is encoded in the URL hash ([example](https://lambda-power-tuning.show/#gAAAAQACAAQABsAL;ZooQR4yvkUa/pQRGRC5zRaADHUVjOftE;QdWhOEMkoziDT5Q4xhiIOMYYiDi6RNc4)), which is available only client-side
 * **results.stats**: the average duration and cost for every tested power value configuration (only included if `includeOutputResults` is set to a truthy value)
-
-
-The state machine output will look like this:
-
-```json
-{
-  "results": {
-    "power": "128",
-    "cost": 0.0000002083,
-    "duration": 2.906,
-    "stateMachine": {
-      "executionCost": 0.00045,
-      "lambdaCost": 0.0005252,
-      "visualization": "https://lambda-power-tuning.show/#<encoded_data>"
-    }
-  }
-}
-```
-
-Full output documentation [here](README-INPUT-OUTPUT.md#user-content-state-machine-output).
 
 ## Data visualization
 

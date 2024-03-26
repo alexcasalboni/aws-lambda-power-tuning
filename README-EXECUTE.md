@@ -35,7 +35,7 @@ You will find the new state machine in the [Step Functions Console](https://cons
 
 The state machine name will depend on the stack name (default: `aws-lambda-power-tuning`). Find it and click "**Start execution**".
 
-You'll be able to provide the execution input (check the [full documentation here](README-INPUT-OUTPUT.md)]), which will look like this:
+You'll be able to provide the execution input (check the [full documentation here](README.md#state-machine-input-at-execution-time)), which will look like this:
 
 ```json
 {
