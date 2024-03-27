@@ -1,5 +1,6 @@
 'use strict';
 
+const { ResourceNotFoundException } = require("@aws-sdk/client-lambda");
 const utils = require('./utils');
 
 /**
@@ -48,7 +49,7 @@ const cleanup = async(lambdaARN, alias) => {
         await utils.deleteLambdaAlias(lambdaARN, alias);
         await utils.deleteLambdaVersion(lambdaARN, FunctionVersion);
     } catch (error) {
-        if (error.code === 'ResourceNotFoundException') {
+        if (error instanceof ResourceNotFoundException) {
             console.error('OK, even if version/alias was not found');
             console.error(error);
         } else {

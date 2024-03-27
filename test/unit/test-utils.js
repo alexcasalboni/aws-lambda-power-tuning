@@ -3,7 +3,10 @@
 const sinon = require('sinon');
 const expect = require('expect.js');
 
-var AWS = require('aws-sdk-mock');
+var awsV3Mock = require('aws-sdk-client-mock');
+const {
+    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateFunctionConfigurationCommand, UpdateAliasCommand, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
+const { GetObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 
 process.env.sfCosts = `{"us-gov-west-1": 0.00003,"eu-north-1": 0.000025,
 "eu-central-1": 0.000025,"us-east-1": 0.000025,"ap-northeast-1": 0.000025,
@@ -19,29 +22,37 @@ process.env.baseCosts = '{"x86_64": {"ap-east-1":2.9e-9,"af-south-1":2.8e-9,"me-
 process.env.AWS_REGION = 'af-south-1';
 
 const utils = require('../../lambda/utils');
+const { consoleLogStub: consoleLogSetupStub } = require('../setup.spec');
 
 const sandBox = sinon.createSandbox();
 
 // AWS SDK mocks
-AWS.mock('Lambda', 'getAlias', {});
-AWS.mock('Lambda', 'getFunctionConfiguration', {
+const lambdaMock = awsV3Mock.mockClient(LambdaClient);
+lambdaMock.reset();
+lambdaMock.on(GetAliasCommand).resolves({});
+lambdaMock.on(GetFunctionConfigurationCommand).resolves({
     MemorySize: 1024,
     State: 'Active',
     LastUpdateStatus: 'Successful',
     Architectures: ['x86_64'],
     Environment: {Variables: {TEST: 'OK'}},
 });
-AWS.mock('Lambda', 'updateFunctionConfiguration', {});
-AWS.mock('Lambda', 'publishVersion', {});
-AWS.mock('Lambda', 'deleteFunction', {});
-AWS.mock('Lambda', 'createAlias', {});
-AWS.mock('Lambda', 'deleteAlias', {});
-AWS.mock('Lambda', 'invoke', {});
-AWS.mock('S3', 'getObject', {Body: Buffer.from('{"Value": "OK"}')});
-
-// note: waiters aren't correctly mocked by aws-sdk-mock (for now)
-// https://github.com/dwyl/aws-sdk-mock/issues/173
-AWS.mock('Lambda', 'waitFor', {});
+lambdaMock.on(UpdateFunctionConfigurationCommand).resolves({});
+lambdaMock.on(PublishVersionCommand).resolves({});
+lambdaMock.on(DeleteFunctionCommand).resolves({});
+lambdaMock.on(CreateAliasCommand).resolves({});
+lambdaMock.on(DeleteAliasCommand).resolves({});
+lambdaMock.on(InvokeCommand).resolves({});
+lambdaMock.on(UpdateAliasCommand).resolves({});
+const s3Mock = awsV3Mock.mockClient(S3Client);
+s3Mock.reset();
+s3Mock.on(GetObjectCommand).resolves({
+    Body: {
+        transformToString: async (encoding) => {
+            return '{"Value": "OK"}'
+        }
+    }
+});
 
 describe('Lambda Utils', () => {
 
@@ -70,11 +81,12 @@ describe('Lambda Utils', () => {
         throw new Error('Export not found! ' + func);
     }
 
+    // this is mainly for coverage (it's not doing much, just making sure the code runs)
     lambdaUtilities.forEach(func => {
         describe(_fname(func), () => {
             it('should return a promise', () => {
                 const result = func('arn:aws:lambda:us-east-1:XXX:function:YYY', 'test', 'test');
-                expect(result).to.be.a(Promise);
+                expect(result).to.be.an('object');
             });
             // TODO add more tests!
         });
@@ -120,7 +132,7 @@ describe('Lambda Utils', () => {
         });
 
         it('should return the power value and env vars even when empty env', async() => {
-            AWS.remock('Lambda', 'getFunctionConfiguration', {
+            lambdaMock.on(GetFunctionConfigurationCommand).resolves({
                 MemorySize: 1024,
                 State: 'Active',
                 LastUpdateStatus: 'Successful',
@@ -137,20 +149,19 @@ describe('Lambda Utils', () => {
 
     describe('verifyAliasExistance', () => {
 
-        it('should return true if the alias exists', async() => {
+        it('should return true if the alias exists', async () => {
             sandBox.stub(utils, 'getLambdaAlias')
-                .callsFake(async() => {
+                .callsFake(async () => {
                     return { FunctionVersion: '1' };
                 });
             const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
             expect(aliasExists).to.be(true);
         });
 
-        it('should return false if the alias does not exists', async() => {
+        it('should return false if the alias does not exists', async () => {
             sandBox.stub(utils, 'getLambdaAlias')
-                .callsFake(async() => {
-                    const error = new Error('alias is not defined');
-                    error.code = 'ResourceNotFoundException';
+                .callsFake(async () => {
+                    const error = new ResourceNotFoundException('alias is not defined');
                     throw error;
                 });
             const aliasExists = await utils.verifyAliasExistance('arnOK', 'aliasName');
@@ -160,7 +171,7 @@ describe('Lambda Utils', () => {
 
     describe('waitForFunctionUpdate', () => {
 
-        it('should return if LastUpdateStatus is successful', async() => {
+        it('should return if LastUpdateStatus is successful', async () => {
             // TODO: remove waitFor mock and test this properly
             await utils.waitForFunctionUpdate('arn:aws:lambda:us-east-1:XXX:function:YYY');
         });
@@ -169,7 +180,7 @@ describe('Lambda Utils', () => {
 
     describe('waitForAliasActive', () => {
 
-        it('should return if Status is Active', async() => {
+        it('should return if Status is Active', async () => {
             // TODO: remove waitFor mock and test this properly
             await utils.waitForAliasActive('arn:aws:lambda:us-east-1:XXX:function:YYY', 'aliasName');
         });
@@ -177,19 +188,39 @@ describe('Lambda Utils', () => {
     });
 
     describe('extractDuration', () => {
-        const log =
+        const textLog =
             'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n' +
             'END RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\n' +
             'REPORT RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\tDuration: 469.40 ms\tBilled Duration: 500 ms\tMemory Size: 1024 MB\tMax Memory Used: 21 MB'
             ;
-        it('should extract the duration from a Lambda log', () => {
-            expect(utils.extractDuration(log)).to.be(500);
+
+        // JSON logs contain multiple objects, seperated by a newline
+        const jsonLog =
+            '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
+            '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
+            '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
+            '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":2,"memorySizeMB":1024,"maxMemoryUsedMB":68}}}'
+            ;
+
+        it('should extract the duration from a Lambda log (text format)', () => {
+            expect(utils.extractDuration(textLog)).to.be(500);
         });
+
         it('should return 0 if duration is not found', () => {
             expect(utils.extractDuration('hello world')).to.be(0);
             const partialLog = 'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n';
             expect(utils.extractDuration(partialLog)).to.be(0);
         });
+
+        it('should extract the duration from a Lambda log (json format)', () => {
+            expect(utils.extractDuration(jsonLog)).to.be(2);
+        });
+
+        it('should explode if invalid json format document is provided', () => {
+            const invalidJSONLog = '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}';
+            expect(() => utils.extractDuration(invalidJSONLog)).to.throwError();
+        });
+
     });
 
     describe('computePrice', () => {
@@ -322,7 +353,7 @@ describe('Lambda Utils', () => {
     describe('lambdaClientFromARN', () => {
         it('should return the region name', () => {
             const arn = 'arn:aws:lambda:us-east-1:XXX:function:YYY';
-            expect(utils.lambdaClientFromARN(arn).config.region).to.be('us-east-1');
+            expect(utils.regionFromARN(arn)).to.be('us-east-1');
         });
 
         [undefined, null, 0, 10, '', 'arn:aws', {}].forEach(arn => {
@@ -333,13 +364,14 @@ describe('Lambda Utils', () => {
     });
 
     describe('buildVisualizationURL', () => {
+        const stats = [
+            { power: 1, duration: 2, cost: 3 },
+            { power: 2, duration: 2, cost: 2 },
+            { power: 3, duration: 1, cost: 2 },
+        ];
+        const prefix = 'https://prefix/';
+
         it('should return the visualization URL based on stats', () => {
-            const stats = [
-                {power: 1, duration: 2, cost: 3},
-                {power: 2, duration: 2, cost: 2},
-                {power: 3, duration: 1, cost: 2},
-            ];
-            const prefix = 'https://prefix/';
             const URL = utils.buildVisualizationURL(stats, prefix);
             expect(URL).to.be.a('string');
             expect(URL).to.contain('prefix');
@@ -348,6 +380,16 @@ describe('Lambda Utils', () => {
             expect(URL).to.contain('AQACAAMA'); // powers
             expect(URL).to.contain('AAAAQAAAAEAAAIA'); // times
             expect(URL).to.contain('AABAQAAAAEAAAABA'); // costs
+        });
+        it('should include the CNY currency if region is cn-north-1', () => {
+            process.env.AWS_REGION = 'cn-north-1';
+            const URL = utils.buildVisualizationURL(stats, prefix);
+            expect(URL).to.contain('?currency=CNY');
+        });
+        it('should include the CNY currency if region is cn-north-1', () => {
+            process.env.AWS_REGION = 'cn-northwest-1';
+            const URL = utils.buildVisualizationURL(stats, prefix);
+            expect(URL).to.contain('?currency=CNY');
         });
     });
 
@@ -407,50 +449,50 @@ describe('Lambda Utils', () => {
 
     describe('getLambdaConfig', () => {
 
-        it('should return a string representing the arch type', async() => {
+        it('should return a string representing the arch type', async () => {
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
             const alias = 'aliasName';
-            const {architecture} = await utils.getLambdaConfig(ARN, alias);
+            const { architecture } = await utils.getLambdaConfig(ARN, alias);
             expect(architecture).to.be('x86_64');
         });
 
-        it('should return arm64 when Graviton is supported', async() => {
-            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ['arm64']});
+        it('should return arm64 when Graviton is supported', async () => {
+            lambdaMock.on(GetFunctionConfigurationCommand).resolves({ MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ['arm64'] });
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
             const alias = 'aliasName';
-            const {architecture} = await utils.getLambdaConfig(ARN, alias);
+            const { architecture } = await utils.getLambdaConfig(ARN, alias);
             expect(architecture).to.be('arm64');
         });
 
-        it('should always return x86_64 when Graviton is not supported', async() => {
-            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful'});
+        it('should always return x86_64 when Graviton is not supported', async () => {
+            lambdaMock.on(GetFunctionConfigurationCommand).resolves({ MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful' });
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
             const alias = 'aliasName';
-            const {architecture} = await utils.getLambdaConfig(ARN, alias);
+            const { architecture } = await utils.getLambdaConfig(ARN, alias);
             expect(architecture).to.be('x86_64');
         });
 
-        it('should return isPending true when function/alias state is Pending', async() => {
-            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Pending', LastUpdateStatus: 'Successful'});
+        it('should return isPending true when function/alias state is Pending', async () => {
+            lambdaMock.on(GetFunctionConfigurationCommand).resolves({ MemorySize: 1024, State: 'Pending', LastUpdateStatus: 'Successful' });
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
             const alias = 'aliasName';
-            const {isPending} = await utils.getLambdaConfig(ARN, alias);
+            const { isPending } = await utils.getLambdaConfig(ARN, alias);
             expect(isPending).to.be(true);
         });
 
-        it('should return isPending false when function/alias state is not Pending', async() => {
-            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful'});
+        it('should return isPending false when function/alias state is not Pending', async () => {
+            lambdaMock.on(GetFunctionConfigurationCommand).resolves({ MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful' });
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
             const alias = 'aliasName';
-            const {isPending} = await utils.getLambdaConfig(ARN, alias);
+            const { isPending } = await utils.getLambdaConfig(ARN, alias);
             expect(isPending).to.be(false);
         });
 
-        it('should return isPending false when function/alias state is missing', async() => {
-            AWS.remock('Lambda', 'getFunctionConfiguration', {MemorySize: 1024, LastUpdateStatus: 'Successful'});
+        it('should return isPending false when function/alias state is missing', async () => {
+            lambdaMock.on(GetFunctionConfigurationCommand).resolves({ MemorySize: 1024, LastUpdateStatus: 'Successful' });
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
             const alias = 'aliasName';
-            const {isPending} = await utils.getLambdaConfig(ARN, alias);
+            const { isPending } = await utils.getLambdaConfig(ARN, alias);
             expect(isPending).to.be(false);
         });
     });
@@ -462,15 +504,15 @@ describe('Lambda Utils', () => {
             invokeLambdaCounter = 0;
         });
 
-        it('should invoke the processing function without an alias', async() => {
+        it('should invoke the processing function without an alias', async () => {
             const ARN = 'arn:aws:lambda:eu-west-1:XXX:function:name';
             const data = await utils.invokeLambdaProcessor(ARN, '{}');
             expect(data).to.be(undefined); // mocked API call
         });
 
-        it('should invoke the processing function', async() => {
+        it('should invoke the processing function', async () => {
             sandBox.stub(utils, 'invokeLambda')
-                .callsFake(async() => {
+                .callsFake(async () => {
                     invokeLambdaCounter++;
                     return {
                         Payload: '{"OK": "OK"}',
@@ -481,9 +523,10 @@ describe('Lambda Utils', () => {
             expect(data).to.be('{"OK": "OK"}');
         });
 
-        it('should explode if processor fails', async() => {
+        const invokeLambdaProcessorReturningUnhandledError = async ({ disablePayloadLogs, isPayloadInErrorMessage }) => {
+            const payload = { keyOne: 'value-one' };
             sandBox.stub(utils, 'invokeLambda')
-                .callsFake(async() => {
+                .callsFake(async () => {
                     invokeLambdaCounter++;
                     return {
                         Payload: '{"KO": "KO"}',
@@ -491,14 +534,28 @@ describe('Lambda Utils', () => {
                     };
                 });
             try {
-                const data = await utils.invokeLambdaProcessor('arnOK', {});
+                const data = await utils.invokeLambdaProcessor('arnOK', payload, 'Pre', disablePayloadLogs);
                 expect(data).to.be(null);
             } catch (ex) {
-                expect(ex.message.includes('failed with error')).to.be(true);
+                expect(ex.message).to.contain('failed with error');
+                expect(ex.message.includes('and payload')).to.be(isPayloadInErrorMessage);
             }
 
             expect(invokeLambdaCounter).to.be(1);
-        });
+        };
+
+        it('should explode if processor fails and share payload in error when disablePayloadLogs is undefined', async () => invokeLambdaProcessorReturningUnhandledError({
+            disablePayloadLogs: undefined,
+            isPayloadInErrorMessage: true,
+        }));
+        it('should explode if processor fails and share payload in error when disablePayloadLogs is false', async () => invokeLambdaProcessorReturningUnhandledError({
+            disablePayloadLogs: false,
+            isPayloadInErrorMessage: true,
+        }));
+        it('should explode if processor fails and not share payload in error when disablePayloadLogs is true', async () => invokeLambdaProcessorReturningUnhandledError({
+            disablePayloadLogs: true,
+            isPayloadInErrorMessage: false,
+        }));
     });
 
     const isJsonString = (str) => {
@@ -512,7 +569,7 @@ describe('Lambda Utils', () => {
 
     describe('convertPayload', () => {
 
-        it('should JSON-encode strings, if not JSON strings already', async() => {
+        it('should JSON-encode strings, if not JSON strings already', async () => {
             const strings = [
                 'test',
                 '',
@@ -524,7 +581,7 @@ describe('Lambda Utils', () => {
             });
         });
 
-        it('should return already a JSON-encoded string as is', async() => {
+        it('should return already a JSON-encoded string as is', async () => {
             const strings = [
                 '{"test": true}',
                 '[]',
@@ -537,15 +594,15 @@ describe('Lambda Utils', () => {
             });
         });
 
-        it('should return undefined when undefined is given', async() => {
+        it('should return undefined when undefined is given', async () => {
             expect(utils.convertPayload()).to.be(undefined);
             expect(utils.convertPayload(undefined)).to.be(undefined);
         });
 
-        it('should convert everything else to string', async() => {
+        it('should convert everything else to string', async () => {
             expect(utils.convertPayload(null)).to.be('null');
             expect(utils.convertPayload({})).to.be('{}');
-            expect(utils.convertPayload({test: true})).to.be('{"test":true}');
+            expect(utils.convertPayload({ test: true })).to.be('{"test":true}');
             expect(utils.convertPayload([])).to.be('[]');
             expect(utils.convertPayload([1, 2, 3])).to.be('[1,2,3]');
             expect(utils.convertPayload(['ok', {}])).to.be('["ok",{}]');
@@ -554,8 +611,8 @@ describe('Lambda Utils', () => {
 
     describe('generatePayloads', () => {
 
-        it('should generate a list of the same payload, if not weighted', async() => {
-            const payload = {test: true};
+        it('should generate a list of the same payload, if not weighted', async () => {
+            const payload = { test: true };
 
             const output = utils.generatePayloads(10, payload);
             expect(output.length).to.be(10);
@@ -565,7 +622,7 @@ describe('Lambda Utils', () => {
             });
         });
 
-        it('should generate a list of encoded JSON strings, if not weighted', async() => {
+        it('should generate a list of encoded JSON strings, if not weighted', async () => {
             const payload = 'just a string';
 
             const output = utils.generatePayloads(10, payload);
@@ -576,30 +633,40 @@ describe('Lambda Utils', () => {
             });
         });
 
-        it('should explode if invalid weighted payloads', async() => {
-            expect(() => utils.generatePayloads(10, [])).to.throwError();
-            expect(() => utils.generatePayloads(10, [{}])).to.throwError();
-            expect(() => utils.generatePayloads(10, [1, 2, 3])).to.throwError();
-            expect(() => utils.generatePayloads(10, [{weight: 1}])).to.throwError();
-            expect(() => utils.generatePayloads(10, [{payload: {}}])).to.throwError();
+        it('should return input array as output if not weighted', async() => {
+            let payloads = [
+                [],
+                [{}],
+                [1, 2, 3],
+                [{ weight: 1 }],
+                [{ payload: {}, weight: 1 }, { payload: {}}],
+                [{ payload: {} }],
+            ];
+
+            payloads.forEach(payload => {
+                let output = utils.generatePayloads(10, payload);
+
+                expect(output.length).to.be(10);
+                expect(output.every(p => p === JSON.stringify(payload))).to.be(true);
+            });
         });
 
-        it('should explode if num < count(payloads)', async() => {
+        it('should explode if num < count(payloads)', async () => {
             const weightedPayload = [ // 6 weighted payloads
-                {weight: 1, payload: {}},
-                {weight: 1, payload: {test: 1}},
-                {weight: 1, payload: {test: 2}},
-                {weight: 1, payload: {ok: 1}},
-                {weight: 1, payload: {ok: 2}},
-                {weight: 1, payload: {ok: 3}},
+                { weight: 1, payload: {} },
+                { weight: 1, payload: { test: 1 } },
+                { weight: 1, payload: { test: 2 } },
+                { weight: 1, payload: { ok: 1 } },
+                { weight: 1, payload: { ok: 2 } },
+                { weight: 1, payload: { ok: 3 } },
             ];
             expect(() => utils.generatePayloads(5, weightedPayload)).to.throwError();
         });
 
-        it('should return weighted payloads (100/2)', async() => {
+        it('should return weighted payloads (100/2)', async () => {
             const weightedPayload = [
-                { payload: {test: 'A'}, weight: 1 },
-                { payload: {test: 'B'}, weight: 1 },
+                { payload: { test: 'A' }, weight: 1 },
+                { payload: { test: 'B' }, weight: 1 },
             ];
 
             const counters = {
@@ -617,11 +684,11 @@ describe('Lambda Utils', () => {
             expect(counters.B).to.be(50);
         });
 
-        it('should return weighted payloads (100/3)', async() => {
+        it('should return weighted payloads (100/3)', async () => {
             const weightedPayload = [
-                { payload: {test: 'A'}, weight: 1 },
-                { payload: {test: 'B'}, weight: 1 },
-                { payload: {test: 'C'}, weight: 1 },
+                { payload: { test: 'A' }, weight: 1 },
+                { payload: { test: 'B' }, weight: 1 },
+                { payload: { test: 'C' }, weight: 1 },
             ];
 
             const counters = {
@@ -641,11 +708,11 @@ describe('Lambda Utils', () => {
             expect(counters.C).to.be(34); // the last payload will fill the missing gap
         });
 
-        it('should return weighted payloads (20/3)', async() => {
+        it('should return weighted payloads (20/3)', async () => {
             const weightedPayload = [
-                { payload: {test: 'A'}, weight: 1 },
-                { payload: {test: 'B'}, weight: 1 },
-                { payload: {test: 'C'}, weight: 1 },
+                { payload: { test: 'A' }, weight: 1 },
+                { payload: { test: 'B' }, weight: 1 },
+                { payload: { test: 'C' }, weight: 1 },
             ];
 
             const counters = {
@@ -665,9 +732,9 @@ describe('Lambda Utils', () => {
             expect(counters.C).to.be(8); // the last payload will fill the missing gap
         });
 
-        it('should return weighted payloads (10/1)', async() => {
+        it('should return weighted payloads (10/1)', async () => {
             const weightedPayload = [
-                { payload: {test: 'A'}, weight: 1 },
+                { payload: { test: 'A' }, weight: 1 },
             ];
 
             const counters = {
@@ -685,12 +752,12 @@ describe('Lambda Utils', () => {
             expect(counters.A).to.be(10);
         });
 
-        it('should return weighted payloads (23/4)', async() => {
+        it('should return weighted payloads (23/4)', async () => {
             const weightedPayload = [
-                { payload: {test: 'A'}, weight: 1 },
-                { payload: {test: 'B'}, weight: 1 },
-                { payload: {test: 'C'}, weight: 1 },
-                { payload: {test: 'D'}, weight: 1 },
+                { payload: { test: 'A' }, weight: 1 },
+                { payload: { test: 'B' }, weight: 1 },
+                { payload: { test: 'C' }, weight: 1 },
+                { payload: { test: 'D' }, weight: 1 },
             ];
 
             const counters = {
@@ -711,13 +778,13 @@ describe('Lambda Utils', () => {
             expect(counters.D).to.be(8);
         });
 
-        it('should return weighted payloads (54/5)', async() => {
+        it('should return weighted payloads (54/5)', async () => {
             const weightedPayload = [
-                { payload: {test: 'A'}, weight: 1 },
-                { payload: {test: 'B'}, weight: 1 },
-                { payload: {test: 'C'}, weight: 1 },
-                { payload: {test: 'D'}, weight: 1 },
-                { payload: {test: 'E'}, weight: 1 },
+                { payload: { test: 'A' }, weight: 1 },
+                { payload: { test: 'B' }, weight: 1 },
+                { payload: { test: 'C' }, weight: 1 },
+                { payload: { test: 'D' }, weight: 1 },
+                { payload: { test: 'E' }, weight: 1 },
             ];
 
             const counters = {
@@ -739,34 +806,34 @@ describe('Lambda Utils', () => {
             expect(counters.E).to.be(14);
         });
 
-        it('should return weighted payloads (30/26)', async() => {
+        it('should return weighted payloads (30/26)', async () => {
             const weightedPayload = [
-                { payload: {test: '1'}, weight: 1 },
-                { payload: {test: '2'}, weight: 1 },
-                { payload: {test: '3'}, weight: 1 },
-                { payload: {test: '4'}, weight: 1 },
-                { payload: {test: '5'}, weight: 1 },
-                { payload: {test: '6'}, weight: 1 },
-                { payload: {test: '7'}, weight: 1 },
-                { payload: {test: '8'}, weight: 1 },
-                { payload: {test: '9'}, weight: 1 },
-                { payload: {test: '10'}, weight: 1 },
-                { payload: {test: '11'}, weight: 1 },
-                { payload: {test: '12'}, weight: 1 },
-                { payload: {test: '13'}, weight: 1 },
-                { payload: {test: '14'}, weight: 1 },
-                { payload: {test: '15'}, weight: 1 },
-                { payload: {test: '16'}, weight: 1 },
-                { payload: {test: '17'}, weight: 1 },
-                { payload: {test: '18'}, weight: 1 },
-                { payload: {test: '19'}, weight: 1 },
-                { payload: {test: '20'}, weight: 1 },
-                { payload: {test: '21'}, weight: 1 },
-                { payload: {test: '22'}, weight: 1 },
-                { payload: {test: '23'}, weight: 1 },
-                { payload: {test: '24'}, weight: 1 },
-                { payload: {test: '25'}, weight: 1 },
-                { payload: {test: '26'}, weight: 1 },
+                { payload: { test: '1' }, weight: 1 },
+                { payload: { test: '2' }, weight: 1 },
+                { payload: { test: '3' }, weight: 1 },
+                { payload: { test: '4' }, weight: 1 },
+                { payload: { test: '5' }, weight: 1 },
+                { payload: { test: '6' }, weight: 1 },
+                { payload: { test: '7' }, weight: 1 },
+                { payload: { test: '8' }, weight: 1 },
+                { payload: { test: '9' }, weight: 1 },
+                { payload: { test: '10' }, weight: 1 },
+                { payload: { test: '11' }, weight: 1 },
+                { payload: { test: '12' }, weight: 1 },
+                { payload: { test: '13' }, weight: 1 },
+                { payload: { test: '14' }, weight: 1 },
+                { payload: { test: '15' }, weight: 1 },
+                { payload: { test: '16' }, weight: 1 },
+                { payload: { test: '17' }, weight: 1 },
+                { payload: { test: '18' }, weight: 1 },
+                { payload: { test: '19' }, weight: 1 },
+                { payload: { test: '20' }, weight: 1 },
+                { payload: { test: '21' }, weight: 1 },
+                { payload: { test: '22' }, weight: 1 },
+                { payload: { test: '23' }, weight: 1 },
+                { payload: { test: '24' }, weight: 1 },
+                { payload: { test: '25' }, weight: 1 },
+                { payload: { test: '26' }, weight: 1 },
             ];
 
             const counters = {
@@ -791,9 +858,58 @@ describe('Lambda Utils', () => {
 
     });
 
+    describe('isWeightedPayload', () => {
+        it('should return true for a correctly weighted payload', () => {
+            const validPayload = [
+                { payload: { data: 'foo' }, weight: 5 },
+                { payload: { data: 'bar' }, weight: 10 },
+            ];
+            expect(utils.isWeightedPayload(validPayload)).to.be(true);
+        });
+
+        it('should return false for payload only containing weights (no "payload" property)', () => {
+            const validPayload = [
+                { weight: 5 },
+                { weight: 10 },
+            ];
+            expect(utils.isWeightedPayload(validPayload)).to.be(false);
+        });
+
+        it('should return false for a payload that is not an array', () => {
+            const invalidPayload = { payload: { data: 'foo' }, weight: 5 };
+            expect(utils.isWeightedPayload(invalidPayload)).to.be(false);
+        });
+
+        it('should return false for an undefined payload', () => {
+            const invalidPayload = undefined;
+            expect(utils.isWeightedPayload(invalidPayload)).to.be(false);
+        });
+
+        it('should return false for an empty array payload', () => {
+            const invalidPayload = [];
+            expect(utils.isWeightedPayload(invalidPayload)).to.be(false);
+        });
+
+        it('should return false for an invalid payload array (elements missing weight property)', () => {
+            const invalidPayload = [
+                { payload: { data: 'foo' } },
+                { payload: { data: 'bar' }, weight: 10 },
+            ];
+            expect(utils.isWeightedPayload(invalidPayload)).to.be(false);
+        });
+
+        it('should return false for an invalid payload (elements missing payload property)', () => {
+            const invalidPayload = [
+                { weight: 5 },
+                { payload: { data: 'bar' }, weight: 10 },
+            ];
+            expect(utils.isWeightedPayload(invalidPayload)).to.be(false);
+        });
+    });
+
     describe('fetchPayloadFromS3', () => {
 
-        it('should fetch the object from S3 if valid URI', async() => {
+        it('should fetch the object from S3 if valid URI', async () => {
             const payload = await utils.fetchPayloadFromS3('s3://my-bucket/my-key.json');
             expect(payload).to.be.an('object');
             expect(payload.Value).to.be('OK');
@@ -811,8 +927,8 @@ describe('Lambda Utils', () => {
             's3://',
         ];
 
-        invalidURIs.forEach(async(uri) => {
-            it(`should explode if invalid URI - ${uri}`, async() => {
+        invalidURIs.forEach(async (uri) => {
+            it(`should explode if invalid URI - ${uri}`, async () => {
                 try {
                     await utils.fetchPayloadFromS3(uri);
                     throw new Error(`${uri} did not throw`);
@@ -822,11 +938,13 @@ describe('Lambda Utils', () => {
             });
         });
 
-        it('should throw if access denied', async() => {
-            AWS.remock('S3', 'getObject', (params, callback) => {
-                const err = new Error('Access Denied');
-                err.statusCode = 403;
-                callback(err, null);
+        it('should throw if access denied', async () => {
+            const err = new Error('Access Denied');
+            err.$response = {
+                statusCode: 403,
+            }
+            s3Mock.on(GetObjectCommand).callsFake(input => {
+                throw err;
             });
             try {
                 await utils.fetchPayloadFromS3('s3://bucket/key.json');
@@ -836,11 +954,13 @@ describe('Lambda Utils', () => {
             }
         });
 
-        it('should throw if object not found', async() => {
-            AWS.remock('S3', 'getObject', (params, callback) => {
-                const err = new Error('Object not found');
-                err.statusCode = 404;
-                callback(err, null);
+        it('should throw if object not found', async () => {
+            const err = new Error('Object not found');
+            err.$response = {
+                statusCode: 404,
+            }
+            s3Mock.on(GetObjectCommand).callsFake(input => {
+                throw err;
             });
             try {
                 await utils.fetchPayloadFromS3('s3://bucket/key.json');
@@ -850,11 +970,13 @@ describe('Lambda Utils', () => {
             }
         });
 
-        it('should throw if unknown error', async() => {
-            AWS.remock('S3', 'getObject', (params, callback) => {
-                const err = new Error('Whatever error');
-                err.statusCode = 500;
-                callback(err, null);
+        it('should throw if unknown error', async () => {
+            const err = new Error('Whatever error');
+            err.$response = {
+                statusCode: 500,
+            }
+            s3Mock.on(GetObjectCommand).callsFake(input => {
+                throw err;
             });
             try {
                 await utils.fetchPayloadFromS3('s3://bucket/key.json');
@@ -871,10 +993,14 @@ describe('Lambda Utils', () => {
             '[{"value": "ok"}, {"value2": "ok2"}]',
         ];
 
-        validJson.forEach(async(str) => {
-            it('should parse string if valid json - ' + str, async() => {
-                AWS.remock('S3', 'getObject', (params, callback) => {
-                    callback(null, {Body: str});
+        validJson.forEach(async (str) => {
+            it('should parse string if valid json - ' + str, async () => {
+                s3Mock.on(GetObjectCommand).resolves({
+                    Body: {
+                        transformToString: async (encoding) => {
+                            return str
+                        }
+                    }
                 });
 
                 const payload = await utils.fetchPayloadFromS3('s3://bucket/key.json');
@@ -882,9 +1008,14 @@ describe('Lambda Utils', () => {
             });
         });
 
-        it('should return string if invalid json', async() => {
-            AWS.remock('S3', 'getObject', (params, callback) => {
-                callback(null, {Body: 'just a string'});
+        it('should return string if invalid json', async () => {
+            var output = 'just a string';
+            s3Mock.on(GetObjectCommand).resolves({
+                Body: {
+                    transformToString: async (encoding) => {
+                        return output
+                    }
+                }
             });
 
             const payload = await utils.fetchPayloadFromS3('s3://bucket/key.json');
@@ -896,7 +1027,7 @@ describe('Lambda Utils', () => {
 
     describe('sleep', () => {
 
-        it('should wait X milliseconds', async() => {
+        it('should wait X milliseconds', async () => {
 
             const clock = sinon.useFakeTimers();
 
@@ -913,4 +1044,51 @@ describe('Lambda Utils', () => {
 
     });
 
+    describe('invokeLambda', () => {
+        const alias = 'aliasName';
+        const arn = 'arn:aws:lambda:eu-west-1:XXX:function:name';
+        const payload = { testKey: 'test-value' };
+
+        let consoleLogStub;
+
+        const invokeLambdaAndAssertOnConsoleLog = async ({ disablePayloadLogs, isPayloadInConsoleLog }) => {
+            utils.invokeLambda(arn, alias, payload, disablePayloadLogs);
+
+            const consoleLogArg = consoleLogStub.firstCall.args[0];
+
+            expect(consoleLogArg).to.contain('Invoking function');
+            expect(consoleLogArg.includes('with payload')).to.be(isPayloadInConsoleLog);
+        };
+
+        before(() => {
+            if (consoleLogSetupStub) {
+                consoleLogStub = consoleLogSetupStub;
+            } else {
+                consoleLogStub = sinon.stub(console, 'log');
+            }
+        });
+
+        beforeEach(() => {
+            consoleLogStub.resetHistory();
+        });
+
+        after(() => {
+            if (!consoleLogSetupStub) {
+                consoleLogStub.restore();
+            }
+        });
+
+        it('should invoke lambda and share payload in console log when disablePayloadLogs is undefined', async () => invokeLambdaAndAssertOnConsoleLog({
+            disablePayloadLogs: undefined,
+            isPayloadInConsoleLog: true,
+        }));
+        it('should invoke lambda and share payload in console log when disablePayloadLogs is false', async () => invokeLambdaAndAssertOnConsoleLog({
+            disablePayloadLogs: false,
+            isPayloadInConsoleLog: true,
+        }));
+        it('should invoke lambda and not share payload in console log when disablePayloadLogs is true', async () => invokeLambdaAndAssertOnConsoleLog({
+            disablePayloadLogs: true,
+            isPayloadInConsoleLog: false,
+        }));
+    });
 });

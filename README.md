@@ -18,9 +18,7 @@ Please note that the input function will be executed in your AWS account - perfo
 
 It's pretty simple and you can visually inspect each step in the AWS management console.
 
-
 ![state-machine](imgs/state-machine-screenshot.png?raw=true)
-
 
 ## What results can I expect from Lambda Power Tuning?
 
@@ -36,16 +34,13 @@ How to interpret the chart above: execution time goes from 35s with 128MB to les
 
 How to interpret the chart above: execution time goes from 2.4s with 128MB to 300ms with 1GB, for the very same average cost.
 
-
-## How to deploy the state machine 
+## How to deploy the state machine
 
 There are a few options documented [here](README-DEPLOY.md).
-
 
 ## How to execute the state machine
 
 You can execute the state machine manually or programmatically, see the documentation [here](README-EXECUTE.md).
-
 
 ## State Machine Input and Output
 
@@ -81,7 +76,6 @@ The state machine output will look like this:
 
 Full output documentation [here](README-INPUT-OUTPUT.md#user-content-state-machine-output).
 
-
 ## Data visualization
 
 You can visually inspect the tuning results to identify the optimal tradeoff between cost and performance.
@@ -94,23 +88,17 @@ Website repository: [matteo-ronchetti/aws-lambda-power-tuning-ui](https://github
 
 Optionally, you could deploy your own custom visualization tool and configure the CloudFormation Parameter named `visualizationURL` with your own URL.
 
-## Power Tuner UI
-
-Lambda Power Tuner UI is a web interface to simplify the deployment and execution of Lambda Power Tuning. It's built and maintained by [Matthew Dorrian](https://twitter.com/DorrianMatthew) and it aims at providing a consistent interface and a uniform developer experience across teams and projects.
-
-![Power Tuner UI](https://github.com/mattymoomoo/aws-power-tuner-ui/blob/master/imgs/website.png?raw=true)
-
-Power Tuner UI repository: [mattymoomoo/aws-power-tuner-ui](https://github.com/mattymoomoo/aws-power-tuner-ui)
-
 ## Additional features, considerations, and internals
 
 [Here](README-ADVANCED.md) you can find out more about some advanced features of this project, its internals, and some considerations about security and execution cost.
-
 
 ## CHANGELOG (SAR versioning)
 
 From most recent to oldest, with major releases in bold:
 
+* *4.3.4* (2024-02-26): upgrade to Nodejs20, custom state machine prefix, SDKv3 migration, new includeOutputResults input parameter, JSON loggin support
+* *4.3.3* (2023-10-30): parametrized currency for visualization URL (USD|CNY)
+* *4.3.2* (2023-08-16): new disablePayloadLogs flag, updated documentation
 * *4.3.1* (2023-05-09): update dependencies, add VPC Configuration support, use Billed Duration instead Duration from logs, update state machine with ItemSelector
 * ***4.3.0*** (2023-03-06): SnapStart support (alias waiter)
 * *4.2.3* (2023-03-01): fix layer runtime (nodejs16.x)
@@ -155,11 +143,10 @@ From most recent to oldest, with major releases in bold:
 * ***1.0.0*** (2019-05-13): AWS SAM refactor (published on SAR)
 * *0.0.1* (2017-03-27): previous project (serverless framework)
 
-
 ## Contributing
 
 Feature requests and pull requests are more than welcome!
 
 ### How to get started with local development?
 
-For this repository, install dev dependencies with `npm install`. You can run tests with `npm test`, linting with `npm run lint`, and coverage with `npm run coverage`. Travis will automatically run the test suite on every commit and PR.
+For this repository, install dev dependencies with `npm install`. You can run tests with `npm test`, linting with `npm run lint`, and coverage with `npm run coverage`. Unit tests will run automatically on every commit and PR.

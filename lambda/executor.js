@@ -1,11 +1,5 @@
 'use strict';
 
-const AWS = require('aws-sdk');
-
-// the executor needs a longer socket timeout to invoke long-running functions
-// 15 minutes is fine here because the Executor will timeout anyway
-AWS.config.update({httpOptions: {timeout: 15 * 60 * 1000}});
-
 const utils = require('./utils');
 
 const minRAM = parseInt(process.env.minRAM, 10);
@@ -28,6 +22,7 @@ module.exports.handler = async(event, context) => {
         discardTopBottom,
         onlyColdStarts,
         sleepBetweenRunsMs,
+        disablePayloadLogs,
     } = await extractDataFromInput(event);
 
     validateInput(lambdaARN, value, num); // may throw
@@ -58,6 +53,7 @@ module.exports.handler = async(event, context) => {
         postARN: postProcessorARN,
         onlyColdStarts: onlyColdStarts,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
+        disablePayloadLogs: disablePayloadLogs,
     };
 
     // wait if the function/alias state is Pending
@@ -141,10 +137,11 @@ const extractDataFromInput = async(event) => {
         discardTopBottom: discardTopBottom,
         onlyColdStarts: !!input.onlyColdStarts,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
+        disablePayloadLogs: !!input.disablePayloadLogs,
     };
 };
 
-const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, onlyColdStarts}) => {
+const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, disablePayloadLogs, onlyColdStarts}) => {
     const results = [];
     // run all invocations in parallel ...
     const invocations = utils.range(num).map(async(_, i) => {
@@ -153,10 +150,14 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
             await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
             console.log(`${aliasToInvoke} is active`);
         }
-        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN);
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
-            throw new Error(`Invocation error (running in parallel): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
+            let errorMessage = `Invocation error (running in parallel): ${invocationResults.Payload}`;
+            if (!disablePayloadLogs) {
+                errorMessage += ` with payload ${JSON.stringify(actualPayload)}`;
+            }
+            throw new Error(errorMessage);
         }
         results.push(invocationResults);
     });
@@ -165,7 +166,7 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
     return results;
 };
 
-const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, onlyColdStarts, sleepBetweenRunsMs }) => {
+const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs, disablePayloadLogs, onlyColdStarts}) => {
     const results = [];
     for (let i = 0; i < num; i++) {
         let aliasToInvoke = utils.buildAliasString(lambdaAlias, onlyColdStarts, i);
@@ -173,10 +174,14 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
         if (onlyColdStarts){
             await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
         }
-        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN);
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
-            throw new Error(`Invocation error (running in series): ${invocationResults.Payload} with payload ${JSON.stringify(actualPayload)}`);
+            let errorMessage = `Invocation error (running in series): ${invocationResults.Payload}`;
+            if (!disablePayloadLogs) {
+                errorMessage += ` with payload ${JSON.stringify(actualPayload)}`;
+            }
+            throw new Error(errorMessage);
         }
         if (sleepBetweenRunsMs > 0) {
             await utils.sleep(sleepBetweenRunsMs);

@@ -3,6 +3,28 @@
 Each execution of the state machine will require an input and will provide the corresponding output.
 
 
+## Deployment configuration options
+
+The CloudFormation template accepts the following parameters:
+
+* **PowerValues** (list of numbers): these power values will be used as the default in case no `powerValues` input parameter is provided at execution time
+* **visualizationURL** (string): the base URL for the visualization tool, by default it's `lambda-power-tuning.show` but you could use your own custom tool
+* **totalExecutionTimeout** (number in seconds, default=`300`): the timeout in seconds applied to all functions of the state machine
+* **lambdaResource** (string, default=`*`): the `Resource` used in IAM policies; it's `*` by default but you could restrict it to a prefix or a specific function ARN
+* **permissionsBoundary** (string): the ARN of a permissions boundary (policy), applied to all functions of the state machine
+* **payloadS3Bucket** (string): the S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the [S3 payloads section](#user-content-s3-payloads)
+* **payloadS3Key** (string, default=`*`): the S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](#user-content-s3-payloads)
+* **layerSdkName** (string): the name of the SDK layer, in case you need to customize it (optional)
+* **logGroupRetentionInDays** (number, default=7): the number of days to retain log events in the Lambda log groups. Before this parameter existed, log events were retained indefinitely
+* **securityGroupIds** (list of SecurityGroup IDs): List of Security Groups to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
+* **subnetIds** (list of Subnet IDs): List of Subnets to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
+* **stateMachineNamePrefix** (string, default=`powerTuningStateMachine`): Allows you to customize the name of the state machine. Maximum 43 characters, only alphanumeric (plus `-` and `_`). The last portion of the `AWS::StackId` will be appended to this value, so the full name will look like `powerTuningStateMachine-89549da0-a4f9-11ee-844d-12a2895ed91f`. Note: `StateMachineName` has a maximum of 80 characters and 36+1 from the `StackId` are appended, allowing 43 for a custom prefix.
+
+
+
+Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can easily estimate the total execution timeout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min. If you have a sleep between invocations set, you should include that in your timeout calculations.
+
+
 ## State machine input (at execution time)
 
 The state machine accepts the following input parameters:
@@ -10,7 +32,7 @@ The state machine accepts the following input parameters:
 * **lambdaARN** (required, string): unique identifier of the Lambda function you want to optimize
 * **powerValues** (optional, string or list of integers): the list of power values to be tested; if not provided, the default values configured at deploy-time are used (by default: 128MB, 256MB, 512MB, 1024MB, 1536MB, and 3008MB); you can provide any power values between 128MB and 10,240MB (⚠️ [New AWS accounts have reduced concurrency and memory quotas, 3008MB max](https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html))
 * **num** (required, integer): the # of invocations for each power configuration (minimum 5, recommended: between 10 and 100)
-* **payload** (string, object, or list): the static payload that will be used for every invocation (object or string); when using a list, a weighted payload is expected in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not percentages); more details below in the [Weighted Payloads section](#user-content-weighted-payloads)
+* **payload** (string, object, or list): the static payload that will be used for every invocation (object or string); when using a list the payload will be treated as a weighted payload if and only if it's in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not percentages); more details below in the [Weighted Payloads section](#user-content-weighted-payloads)
 * **payloadS3** (string): a reference to Amazon S3 for large payloads (>256KB), formatted as `s3://bucket/key`; it requires read-only IAM permissions, see `payloadS3Bucket` and `payloadS3Key` below and find more details in the [S3 payloads section](#user-content-s3-payloads)
 * **parallelInvocation** (false by default): if true, all the invocations will be executed in parallel (note: depending on the value of `num`, you may experience throttling when setting `parallelInvocation` to true)
 * **strategy** (string): it can be `"cost"` or `"speed"` or `"balanced"` (the default value is `"cost"`); if you use `"cost"` the state machine will suggest the cheapest option (disregarding its performance), while if you use `"speed"` the state machine will suggest the fastest option (disregarding its cost). When using `"balanced"` the state machine will choose a compromise between `"cost"` and `"speed"` according to the parameter `"balancedWeight"`
@@ -21,26 +43,10 @@ The state machine accepts the following input parameters:
 * **preProcessorARN** (string): it must be the ARN of a Lambda function; if provided, the function will be invoked before every invocation of `lambdaARN`; more details below in the [Pre/Post-processing functions section](#user-content-prepost-processing-functions)
 * **postProcessorARN** (string): it must be the ARN of a Lambda function; if provided, the function will be invoked after every invocation of `lambdaARN`; more details below in the [Pre/Post-processing functions section](#user-content-prepost-processing-functions)
 * **discardTopBottom** (number between 0.0 and 0.4, by default is 0.2): By default, the state machine will discard the top/bottom 20% of "outliers" (the fastest and slowest), to filter out the effects of cold starts that would bias the overall averages. You can customize this parameter by providing a value between 0 and 0.4, with 0 meaning no results are discarded and 0.4 meaning that 40% of the top/bottom results are discarded (i.e. only 20% of the results are considered).
-* **sleepBetweenRunsMs** (integer) If provided, the time in milliseconds that the tuner function will sleep/wait after invoking your function, but before carrying out the Post-Processing step, should that be provided. This could be used if you have agressive downstream rate limits you need to respect. By default this will be set to 0 and the function won't sleep between invocations. Setting this value will have no effect if running the invocations in parallel.
+* **sleepBetweenRunsMs** (integer) If provided, the time in milliseconds that the tuner function will sleep/wait after invoking your function, but before carrying out the Post-Processing step, should that be provided. This could be used if you have aggressive downstream rate limits you need to respect. By default this will be set to 0 and the function won't sleep between invocations. Setting this value will have no effect if running the invocations in parallel.
+* **disablePayloadLogs** (boolean) If provided and set to a truthy value, suppresses `payload` from error messages and logs. If `preProcessorARN` is provided, this also suppresses the output payload of the pre-processor.
+* **includeOutputResults** (boolean) If provided and set to true, the average cost and average duration for every power value configuration will be included in the state machine output.
 
-## State machine configuration (at deployment time)
-
-The CloudFormation template accepts the following parameters:
-
-* **PowerValues** (list of numbers): these power values will be used as the default in case no `powerValues` input parameter is provided at execution time
-* **visualizationURL** (string): the base URL for the visualization tool, by default it's `lambda-power-tuning.show` but you could use your own custom tool
-* **totalExecutionTimeout** (number in seconds, default=`300`): the timeout in seconds applied to all functions of the state machine
-* **lambdaResource** (string, default=`*`): the `Resource` used in IAM policies; it's `*` by default but you could restrict it to a prefix or a specific function ARN
-* **permissionsBoundary** (string): the ARN of a permissions boundary (policy), applied to all functions of the state machine
-* **payloadS3Bucket** (string): the S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the [S3 payloads section](#user-content-s3-payloads)
-* **payloadS3Key** (string, default=`*`): they S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the [S3 payloads section](#user-content-s3-payloads)
-* **layerSdkName** (string): the name of the SDK layer, in case you need to customize it (optional)
-* **logGroupRetentionInDays** (number, default=7): the number of days to retain log events in the Lambda log groups. Before this parameter existed, log events were retained indefinitely
-* **securityGroupIds** (list of SecurityGroup IDs): List of Security Groups to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
-* **subnetIds** (list of Subnet IDs): List of Subnets to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
-
-
-Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can easily estimate the total execution timeout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min. If you have a sleep between invocations set, you should include that in your timeout calculations.
 
 ### Usage in CI/CD pipelines
 
@@ -61,6 +67,9 @@ You can use different alias names such as `dev`, `test`, `production`, etc. If y
 
 
 ### Weighted Payloads
+
+> [!IMPORTANT]
+> Your payload will only be treated as a weighted payload if it adheres to the JSON structure that follows. Otherwise, it's assumed to be an array-shaped payload.
 
 Weighted payloads can be used in scenarios where the payload structure and the corresponding performance/speed could vary a lot in production and you'd like to include multiple payloads in the tuning process.
 
@@ -149,7 +158,8 @@ The state machine will return the following output:
       "executionCost": 0.00045,
       "lambdaCost": 0.0005252,
       "visualization": "https://lambda-power-tuning.show/#<encoded_data>"
-    }
+    },
+    "stats": [{ "averagePrice": 0.0000002083, "averageDuration": 2.9066666666666667, "value": 128}, ... ]
   }
 }
 ```
@@ -162,4 +172,4 @@ More details on each value:
 * **results.stateMachine.executionCost**: the AWS Step Functions cost corresponding to this state machine execution (fixed value for "worst" case)
 * **results.stateMachine.lambdaCost**: the AWS Lambda cost corresponding to this state machine execution (depending on `num` and average execution time)
 * **results.stateMachine.visualization**: if you visit this autogenerated URL, you will be able to visualize and inspect average statistics about cost and performance; important note: average statistics are NOT shared with the server since all the data is encoded in the URL hash ([example](https://lambda-power-tuning.show/#gAAAAQACAAQABsAL;ZooQR4yvkUa/pQRGRC5zRaADHUVjOftE;QdWhOEMkoziDT5Q4xhiIOMYYiDi6RNc4)), which is available only client-side
-
+* **results.stats**: the average duration and cost for every tested power value configuration (only included if `includeOutputResults` is set to a truthy value)

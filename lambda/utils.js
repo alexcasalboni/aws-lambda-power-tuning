@@ -1,6 +1,7 @@
 'use strict';
 
-const AWS = require('aws-sdk');
+const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
+const { GetObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 const url = require('url');
 
 
@@ -52,7 +53,7 @@ module.exports.getLambdaAlias = (lambdaARN, alias) => {
         Name: alias,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.getAlias(params).promise();
+    return lambda.send(new GetAliasCommand(params));
 };
 
 /**
@@ -63,7 +64,8 @@ module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
         await utils.getLambdaAlias(lambdaARN, alias);
         return true;
     } catch (error) {
-        if (error.code === 'ResourceNotFoundException') {
+        console.log("Error during verifyAlias (probably OK!)")
+        if (error instanceof ResourceNotFoundException) {
             // OK, the alias isn't supposed to exist
             console.log('OK, even if missing alias ');
             return false;
@@ -110,12 +112,12 @@ module.exports.waitForFunctionUpdate = async(lambdaARN) => {
     console.log('Waiting for update to complete');
     const params = {
         FunctionName: lambdaARN,
-        $waiter: { // override delay (5s by default)
-            delay: 0.5,
-        },
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.waitFor('functionUpdated', params).promise();
+    return waitUntilFunctionUpdated({
+        client: lambda,
+        minDelay: 1,
+    }, params);
 };
 
 module.exports.waitForAliasActive = async(lambdaARN, alias) => {
@@ -123,17 +125,12 @@ module.exports.waitForAliasActive = async(lambdaARN, alias) => {
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
-        $waiter: {
-            // https://aws.amazon.com/blogs/developer/waiters-in-modular-aws-sdk-for-javascript/
-            // "In v2, there is no direct way to provide maximum wait time for a waiter.
-            // You need to configure delay and maxAttempts to indirectly suggest the maximum time you want the waiter to run for."
-            // 10s * 90 is ~15 minutes (max invocation time)
-            delay: 10,
-            maxAttempts: 90,
-        },
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.waitFor('functionActiveV2', params).promise();
+    return waitUntilFunctionActive({
+        client: lambda,
+        maxDelay: 10 * 90,
+    }, params);
 };
 
 /**
@@ -146,7 +143,7 @@ module.exports.getLambdaPower = async(lambdaARN) => {
         Qualifier: '$LATEST',
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    const config = await lambda.getFunctionConfiguration(params).promise();
+    const config = await lambda.send(new GetFunctionConfigurationCommand(params));
     return {
         power: config.MemorySize,
         // we need to fetch env vars only to add a new one and force a cold start
@@ -165,7 +162,7 @@ module.exports.getLambdaConfig = async(lambdaARN, alias) => {
     };
     let architecture, isPending;
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    const config = await lambda.getFunctionConfiguration(params).promise();
+    const config = await lambda.send(new GetFunctionConfigurationCommand(params));
     if (typeof config.Architectures !== 'undefined') {
         architecture = config.Architectures[0];
     } else {
@@ -194,7 +191,7 @@ module.exports.setLambdaPower = (lambdaARN, value, envVars) => {
         Environment: {Variables: envVars},
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.updateFunctionConfiguration(params).promise();
+    return lambda.send(new UpdateFunctionConfigurationCommand(params));
 };
 
 /**
@@ -206,7 +203,7 @@ module.exports.publishLambdaVersion = (lambdaARN /*, alias*/) => {
         FunctionName: lambdaARN,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.publishVersion(params).promise();
+    return lambda.send(new PublishVersionCommand(params));
 };
 
 /**
@@ -219,7 +216,7 @@ module.exports.deleteLambdaVersion = (lambdaARN, version) => {
         Qualifier: version,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.deleteFunction(params).promise();
+    return lambda.send(new DeleteFunctionCommand(params));
 };
 
 /**
@@ -233,7 +230,7 @@ module.exports.createLambdaAlias = (lambdaARN, alias, version) => {
         Name: alias,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.createAlias(params).promise();
+    return lambda.send(new CreateAliasCommand(params));
 };
 
 /**
@@ -247,7 +244,7 @@ module.exports.updateLambdaAlias = (lambdaARN, alias, version) => {
         Name: alias,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.updateAlias(params).promise();
+    return lambda.send(new UpdateAliasCommand(params));
 };
 
 /**
@@ -260,16 +257,20 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
         Name: alias,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.deleteAlias(params).promise();
+    return lambda.send( new DeleteAliasCommand(params));
 };
 
 /**
  * Invoke a (pre/post-)processor Lambda function and return its output (data.Payload).
  */
-module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 'Pre') => {
-    const processorData = await utils.invokeLambda(processorARN, null, payload);
+module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 'Pre', disablePayloadLogs = false) => {
+    const processorData = await utils.invokeLambda(processorARN, null, payload, disablePayloadLogs);
     if (processorData.FunctionError) {
-        throw new Error(`${preOrPost}Processor ${processorARN} failed with error ${processorData.Payload} and payload ${JSON.stringify(payload)}`);
+        let errorMessage = `${preOrPost}Processor ${processorARN} failed with error ${processorData.Payload}`;
+        if (!disablePayloadLogs) {
+            errorMessage += ` and payload ${JSON.stringify(payload)}`;
+        }
+        throw new Error(errorMessage);
     }
     return processorData.Payload;
 };
@@ -277,7 +278,7 @@ module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 
 /**
  * Wrapper around Lambda function invocation with pre/post-processor functions.
  */
-module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, preARN, postARN) => {
+module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, preARN, postARN, disablePayloadLogs) => {
 
     var actualPayload = payload; // might change based on pre-processor
 
@@ -285,20 +286,20 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
     if (preARN) {
         console.log('Invoking pre-processor');
         // overwrite payload with pre-processor's output (only if not empty)
-        const preProcessorOutput = await utils.invokeLambdaProcessor(preARN, payload, 'Pre');
+        const preProcessorOutput = await utils.invokeLambdaProcessor(preARN, payload, 'Pre', disablePayloadLogs);
         if (preProcessorOutput) {
             actualPayload = preProcessorOutput;
         }
     }
 
     // invoke function to be power-tuned
-    const invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload);
+    const invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload, disablePayloadLogs);
 
     // then invoke post-processor, if provided
     if (postARN) {
         console.log('Invoking post-processor');
         // note: invocation may have failed (invocationResults.FunctionError)
-        await utils.invokeLambdaProcessor(postARN, invocationResults.Payload, 'Post');
+        await utils.invokeLambdaProcessor(postARN, invocationResults.Payload, 'Post', disablePayloadLogs);
     }
 
     return {
@@ -310,8 +311,12 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
 /**
  * Invoke a given Lambda Function:Alias with payload and return its logs.
  */
-module.exports.invokeLambda = (lambdaARN, alias, payload) => {
-    console.log(`Invoking function ${lambdaARN}:${alias || '$LATEST'} with payload ${JSON.stringify(payload)}`);
+module.exports.invokeLambda = (lambdaARN, alias, payload, disablePayloadLogs) => {
+    let consoleLogMessage = `Invoking function ${lambdaARN}:${alias || '$LATEST'}`;
+    if (!disablePayloadLogs) {
+        consoleLogMessage += ` with payload ${JSON.stringify(payload)}`;
+    }
+    console.log(consoleLogMessage);
     const params = {
         FunctionName: lambdaARN,
         Qualifier: alias,
@@ -319,7 +324,7 @@ module.exports.invokeLambda = (lambdaARN, alias, payload) => {
         LogType: 'Tail', // will return logs
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.invoke(params).promise();
+    return lambda.send(new InvokeCommand(params));
 };
 
 /**
@@ -356,20 +361,26 @@ module.exports.fetchPayloadFromS3 = async(s3Path) => {
 };
 
 module.exports._fetchS3Object = async(bucket, key) => {
-    const s3 = new AWS.S3();
     try {
-        const response = await s3.getObject({
+        const s3Client = new S3Client({});
+        const input = {
             Bucket: bucket,
             Key: key,
-        }).promise();
-        return response.Body.toString('utf-8');
+        };
+        var response = undefined;
+        response = await s3Client.send(new GetObjectCommand(input));
+        return await response.Body.transformToString('utf-8');
     } catch (err) {
-        if (err.statusCode === 403) {
+        var statusCode = err.statusCode
+        if (err.$response && err.$response.statusCode) {
+            statusCode = err.$response.statusCode
+        }
+        if (statusCode === 403) {
             throw new Error(
                 `Permission denied when trying to read s3://${bucket}/${key}. ` +
                 'You might need to re-deploy the app with the correct payloadS3Bucket parameter.',
             );
-        } else if (err.statusCode === 404) {
+        } else if (statusCode === 404) {
             throw new Error(
                 `The object s3://${bucket}/${key} does not exist. ` +
                 'Make sure you are trying to access an existing object in the correct bucket.',
@@ -384,13 +395,8 @@ module.exports._fetchS3Object = async(bucket, key) => {
  * Generate a list of `num` payloads (repeated or weighted)
  */
 module.exports.generatePayloads = (num, payloadInput) => {
-    if (Array.isArray(payloadInput)) {
-        // if array, generate a list of payloads based on weights
-
-        // fail if empty list or missing weight/payload
-        if (payloadInput.length === 0 || payloadInput.some(p => !p.weight || !p.payload)) {
-            throw new Error('Invalid weighted payload structure');
-        }
+    if (utils.isWeightedPayload(payloadInput)) {
+        // if weighted array, generate a list of payloads based on weights
 
         if (num < payloadInput.length) {
             throw new Error(`You have ${payloadInput.length} payloads and only "num"=${num}. Please increase "num".`);
@@ -428,6 +434,17 @@ module.exports.generatePayloads = (num, payloadInput) => {
         payloads.fill(utils.convertPayload(payloadInput), 0, num);
         return payloads;
     }
+};
+
+/**
+ * Check if payload is an array where each element contains the property "weight"
+ */
+module.exports.isWeightedPayload = (payload) => {
+    /**
+     * Return true only if the input is a non-empty array where the elements contain a weight property.
+     * e.g. [{ "payload": {...}, "weight": 5 }, ...]
+     */
+    return Array.isArray(payload) && payload.every(p => p.weight && p.payload) && !!payload.length;
 };
 
 /**
@@ -524,11 +541,40 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
  * Extract duration (in ms) from a given Lambda's CloudWatch log.
  */
 module.exports.extractDuration = (log) => {
+    if (log.charAt(0) === '{') {
+        // extract from JSON (multi-line)
+        return utils.extractDurationFromJSON(log);
+    } else {
+        // extract from text
+        return utils.extractDurationFromText(log);
+    }
+};
+
+/**
+ * Extract duration (in ms) from a given text log.
+ */
+module.exports.extractDurationFromText = (log) => {
     const regex = /\tBilled Duration: (\d+) ms/m;
     const match = regex.exec(log);
 
     if (match == null) return 0;
     return parseInt(match[1], 10);
+};
+
+/**
+ * Extract duration (in ms) from a given JSON log (multi-line).
+ */
+module.exports.extractDurationFromJSON = (log) => {
+    // extract each line and parse it to JSON object
+    const lines = log.split('\n').map((line) => JSON.parse(line));
+
+    // find the log corresponding to the invocation report
+    const durationLine = lines.find((line) => line.type === 'platform.report');
+    if (durationLine){
+        return durationLine.record.metrics.billedDurationMs;
+    }
+
+    throw new Error('Unrecognized JSON log');
 };
 
 /**
@@ -561,7 +607,12 @@ module.exports.lambdaClientFromARN = (lambdaARN) => {
     // create a client only once
     if (typeof client === 'undefined'){
         // set Max Retries to 20, increase the retry delay to 500
-        client = new AWS.Lambda({region: region, maxRetries: 20, retryDelayOptions: {base: 500}});
+        client = new LambdaClient({
+            region,
+            maxAttempts: 20,
+            requestTimeout: 15 * 60 * 1000
+        })
+          
     }
     return client;
 };
@@ -593,6 +644,10 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
         encode(times),
         encode(costs),
     ].join(';');
+
+    if (process.env.AWS_REGION.startsWith('cn-')) {
+        baseURL += '?currency=CNY';
+    }
 
     return baseURL + '#' + hash;
 };

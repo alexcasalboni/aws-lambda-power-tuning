@@ -3,18 +3,22 @@
 const sinon = require('sinon');
 const expect = require('expect.js');
 
-var AWS = require('aws-sdk-mock');
+var awsV3Mock = require('aws-sdk-client-mock');
+const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
+
 const utils = require('../../lambda/utils');
 
 // mock all the Lambda API's
-AWS.mock('Lambda', 'getAlias', {});
-AWS.mock('Lambda', 'updateFunctionConfiguration', {});
-AWS.mock('Lambda', 'publishVersion', {});
-AWS.mock('Lambda', 'deleteFunction', {});
-AWS.mock('Lambda', 'createAlias', {});
-AWS.mock('Lambda', 'updateAlias', {});
-AWS.mock('Lambda', 'deleteAlias', {});
-AWS.mock('Lambda', 'invoke', {});
+const lambdaMock = awsV3Mock.mockClient(LambdaClient);
+lambdaMock.reset();
+lambdaMock.on(GetAliasCommand).resolves({});
+lambdaMock.on(UpdateFunctionConfigurationCommand).resolves({});
+lambdaMock.on(PublishVersionCommand).resolves({});
+lambdaMock.on(DeleteFunctionCommand).resolves({});
+lambdaMock.on(CreateAliasCommand).resolves({});
+lambdaMock.on(UpdateAliasCommand).resolves({});
+lambdaMock.on(DeleteAliasCommand).resolves({});
+lambdaMock.on(InvokeCommand).resolves({});
 
 // mock environment variables and context
 const powerValues = [128, 256, 512, 1024];
@@ -45,7 +49,7 @@ const invokeForSuccess = async(handler, event) => {
     }
 };
 
-// utility to invoke handler (success case)
+// utility to invoke handler and assert an exception is caught (success case)
 const invokeForFailure = async(handler, event) => {
 
     let result;
@@ -99,8 +103,7 @@ describe('Lambda Functions', async() => {
             });
         getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
             .callsFake(async() => {
-                const error = new Error('alias is not defined');
-                error.code = 'ResourceNotFoundException';
+                const error = new ResourceNotFoundException('alias is not defined');
                 throw error;
             });
         sandBox.stub(utils, 'getLambdaPower')
@@ -334,8 +337,7 @@ describe('Lambda Functions', async() => {
                     if (alias === 'RAM128') {
                         return { FunctionVersion: '1' };
                     } else {
-                        const error = new Error('alias is not defined');
-                        error.code = 'ResourceNotFoundException';
+                        const error = new ResourceNotFoundException('alias is not defined');
                         throw error;
                     }
                 });
@@ -382,7 +384,6 @@ describe('Lambda Functions', async() => {
             getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
                 .callsFake(async() => {
                     const error = new Error('very bad error');
-                    error.code = 'VeryBadError';
                     throw error;
                 });
             await invokeForFailure(handler, {
@@ -465,8 +466,7 @@ describe('Lambda Functions', async() => {
             deleteLambdaVersionStub && deleteLambdaVersionStub.restore();
             deleteLambdaVersionStub = sandBox.stub(utils, 'deleteLambdaVersion')
                 .callsFake(async() => {
-                    const error = new Error('version is not defined');
-                    error.code = 'ResourceNotFoundException';
+                    const error = new ResourceNotFoundException('version is not defined');
                     throw error;
                 });
             await invokeForSuccess(handler, eventOK);
@@ -476,8 +476,7 @@ describe('Lambda Functions', async() => {
             deleteLambdaAliasStub && deleteLambdaAliasStub.restore();
             deleteLambdaAliasStub = sandBox.stub(utils, 'deleteLambdaAlias')
                 .callsFake(async() => {
-                    const error = new Error('alias is not defined');
-                    error.code = 'ResourceNotFoundException';
+                    const error = new ResourceNotFoundException('alias is not defined');
                     throw error;
                 });
             await invokeForSuccess(handler, eventOK);
@@ -488,7 +487,6 @@ describe('Lambda Functions', async() => {
             deleteLambdaVersionStub = sandBox.stub(utils, 'deleteLambdaVersion')
                 .callsFake(async() => {
                     const error = new Error('very bad error');
-                    error.code = 'VeryBadError';
                     throw error;
                 });
             await invokeForFailure(handler, eventOK);
@@ -939,7 +937,7 @@ describe('Lambda Functions', async() => {
             expect(waitForAliasActiveCounter).to.be(0);
         });
 
-        it('should include payload in exception message if invocation fails (series)', async() => {
+        const invokeForFailureInSeriesAndAssertOnErrorMessage = async({disablePayloadLogs, isPayloadInErrorMessage}) => {
             invokeLambdaStub && invokeLambdaStub.restore();
             invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
                 .callsFake(async(_arn, _alias, payload) => {
@@ -954,17 +952,33 @@ describe('Lambda Functions', async() => {
                     lambdaARN: 'arnOK',
                     num: 10,
                     payload: 'SENTINEL',
+                    disablePayloadLogs: disablePayloadLogs,
                 },
             });
 
-            expect(error.message).to.contain('SENTINEL');
+            expect(error.message.includes('SENTINEL')).to.be(isPayloadInErrorMessage);
             expect(error.message).to.contain('in series');
 
             expect(getLambdaConfigCounter).to.be(1);
             expect(waitForAliasActiveCounter).to.be(0);
-        });
+        };
 
-        it('should include payload in exception message if invocation fails (parallel)', async() => {
+        it('should include payload in exception message if invocation fails and disablePayloadLogs is undefined (series)', async() => invokeForFailureInSeriesAndAssertOnErrorMessage({
+            disablePayloadLogs: undefined,
+            isPayloadInErrorMessage: true,
+        }));
+
+        it('should include payload in exception message if invocation fails and disablePayloadLogs is false (series)', async() => invokeForFailureInSeriesAndAssertOnErrorMessage({
+            disablePayloadLogs: false,
+            isPayloadInErrorMessage: true,
+        }));
+
+        it('should not include payload in exception message if invocation fails and disablePayloadLogs is true (series)', async() => invokeForFailureInSeriesAndAssertOnErrorMessage({
+            disablePayloadLogs: true,
+            isPayloadInErrorMessage: false,
+        }));
+
+        const invokeForFailureInParallelAndAssertOnErrorMessage = async({disablePayloadLogs, isPayloadInErrorMessage}) => {
             invokeLambdaStub && invokeLambdaStub.restore();
             invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
                 .callsFake(async(_arn, _alias, payload) => {
@@ -980,16 +994,31 @@ describe('Lambda Functions', async() => {
                     num: 10,
                     parallelInvocation: true,
                     payload: 'SENTINEL',
+                    disablePayloadLogs: disablePayloadLogs,
                 },
             });
 
-            expect(error.message).to.contain('SENTINEL');
+            expect(error.message.includes('SENTINEL')).to.be(isPayloadInErrorMessage);
             expect(error.message).to.contain('in parallel');
 
             expect(getLambdaConfigCounter).to.be(1);
             expect(waitForAliasActiveCounter).to.be(0);
-        });
+        };
 
+        it('should include payload in exception message if invocation fails and disablePayloadLogs is undefined (parallel)', async() => invokeForFailureInParallelAndAssertOnErrorMessage({
+            disablePayloadLogs: undefined,
+            isPayloadInErrorMessage: true,
+        }));
+
+        it('should include payload in exception message if invocation fails and disablePayloadLogs is false (parallel)', async() => invokeForFailureInParallelAndAssertOnErrorMessage({
+            disablePayloadLogs: false,
+            isPayloadInErrorMessage: true,
+        }));
+
+        it('should not include payload in exception message if invocation fails and disablePayloadLogs is true (parallel)', async() => invokeForFailureInParallelAndAssertOnErrorMessage({
+            disablePayloadLogs: true,
+            isPayloadInErrorMessage: false,
+        }));
 
         it('should include weighted payload in exception message if invocation fails (series)', async() => {
             invokeLambdaStub && invokeLambdaStub.restore();
@@ -1831,6 +1860,73 @@ describe('Lambda Functions', async() => {
 
         });
 
+        it('should output all results if "includeOutputResults" is set to true', async() => {
+            const event = {
+                strategy: 'speed',
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
+                    { value: '256', averagePrice: 200, averageDuration: 200, totalCost: 1 },
+                    { value: '512', averagePrice: 300, averageDuration: 100, totalCost: 1 },
+                ],
+                includeOutputResults: true,
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+
+            expect(result).to.have.property('stats');
+            expect(result.stats).to.eql(event.stats.map(stat => ({
+                value: stat.value,
+                averagePrice: stat.averagePrice,
+                averageDuration: stat.averageDuration
+            })));
+
+            expect(result.stats[0]).to.not.have.property('totalCost');
+
+            expect(result).to.have.property('power');
+            expect(result).to.have.property('cost');
+            expect(result).to.have.property('duration');
+            expect(result.stateMachine).to.be.an('object');
+
+        });
+
+        it('should not output any results if "includeOutputResults" is set to false', async() => {
+            const event = {
+                strategy: 'speed',
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
+                ],
+                includeOutputResults: false,
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+
+            expect(result).to.not.have.property('stats');
+            expect(result).to.have.property('power');
+            expect(result).to.have.property('cost');
+            expect(result).to.have.property('duration');
+            expect(result.stateMachine).to.be.an('object');
+        });
+
+        it('should not output any results if "includeOutputResults" is not set', async() => {
+            const event = {
+                strategy: 'speed',
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 300, totalCost: 1 },
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+
+            expect(result).to.not.have.property('stats');
+            expect(result).to.have.property('power');
+            expect(result).to.have.property('cost');
+            expect(result).to.have.property('duration');
+            expect(result.stateMachine).to.be.an('object');
+        });
+
     });
 
     describe('optimizer', async() => {
@@ -1842,8 +1938,7 @@ describe('Lambda Functions', async() => {
             getLambdaAliasStub && getLambdaAliasStub.restore();
             getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
                 .callsFake(async() => {
-                    const error = new Error('alias is not defined');
-                    error.code = 'ResourceNotFoundException';
+                    const error = new ResourceNotFoundException('alias is not defined');
                     throw error;
                 });
             setLambdaPowerStub && setLambdaPowerStub.restore();

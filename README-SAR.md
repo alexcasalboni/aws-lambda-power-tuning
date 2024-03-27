@@ -53,6 +53,8 @@ The state machine accepts the following input parameters:
 * **preProcessorARN** (string): it must be the ARN of a Lambda function; if provided, the function will be invoked before every invocation of `lambdaARN`; more details below in the Pre/Post-processing functions section
 * **postProcessorARN** (string): it must be the ARN of a Lambda function; if provided, the function will be invoked after every invocation of `lambdaARN`; more details below in the Pre/Post-processing functions section
 * **discardTopBottom** (number between 0.0 and 0.4, by default is 0.2): By default, the state machine will discard the top/bottom 20% of "outliers" (the fastest and slowest), to filter out the effects of cold starts that would bias the overall averages. You can customize this parameter by providing a value between 0 and 0.4, with 0 meaning no results are discarded and 0.4 meaning that 40% of the top/bottom results are discarded (i.e. only 20% of the results are considered).
+* **sleepBetweenRunsMs** (integer) If provided, the time in milliseconds that the tuner function will sleep/wait after invoking your function, but before carrying out the Post-Processing step, should that be provided. This could be used if you have aggressive downstream rate limits you need to respect. By default this will be set to 0 and the function won't sleep between invocations. Setting this value will have no effect if running the invocations in parallel.
+* **disablePayloadLogs** (boolean) If provided and set to a truthy value, suppresses `payload` from error messages and logs. If `preProcessorARN` is provided, this also suppresses the output payload of the pre-processor.
 
 
 ## State machine configuration (at deployment time)
@@ -65,11 +67,12 @@ The CloudFormation template accepts the following parameters:
 * **lambdaResource** (string, default=`*`): the `Resource` used in IAM policies; it's `*` by default but you could restrict it to a prefix or a specific function ARN
 * **permissionsBoundary** (string): the ARN of a permissions boundary (policy), applied to all functions of the state machine
 * **payloadS3Bucket** (string): the S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details below in the **S3 payloads section**
-* **payloadS3Key** (string, default=`*`): they S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the **S3 payloads section**
+* **payloadS3Key** (string, default=`*`): the S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details below in the **S3 payloads section**
 * **layerSdkName** (string): the name of the SDK layer, in case you need to customize it (optional)
 * **logGroupRetentionInDays** (number, default=7): the number of days to retain log events in the Lambda log groups. Before this parameter existed, log events were retained indefinitely
 * **securityGroupIds** (list of SecurityGroup IDs): List of Security Groups to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
 * **subnetIds** (list of Subnet IDs): List of Subnets to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service
+* **stateMachineNamePrefix** (string, default=`powerTuningStateMachine`): Allows you to customize the name of the state machine. Maximum 43 characters, only alphanumeric (plus `-` and `_`). The last portion of the `AWS::StackId` will be appended to this value, so the full name will look like `powerTuningStateMachine-89549da0-a4f9-11ee-844d-12a2895ed91f`. Note: `StateMachineName` has a maximum of 80 characters and 36+1 from the `StackId` are appended, allowing 43 for a custom prefix.
 
 Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can easily estimate the total execution timeout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min.
 
@@ -260,6 +263,9 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 From most recent to oldest, with major releases in bold:
 
+* *4.3.4* (2024-02-26): upgrade to Nodejs20, custom state machine prefix, SDKv3 migration, new includeOutputResults input parameter, JSON loggin support
+* *4.3.3* (2023-10-30): parametrized currency for visualization URL (USD|CNY)
+* *4.3.2* (2023-08-16): new disablePayloadLogs flag, updated documentation
 * *4.3.1* (2023-05-09): update dependencies, add VPC Configuration support, use Billed Duration instead Duration from logs, update state machine with ItemSelector
 * ***4.3.0*** (2023-03-06): SnapStart support (alias waiter)
 * *4.2.3* (2023-03-01): fix layer runtime (nodejs16.x)
