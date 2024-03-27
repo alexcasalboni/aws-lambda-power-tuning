@@ -26,6 +26,14 @@ module.exports.lambdaBaseCost = (region, architecture) => {
     return this.baseCostForRegion(priceMap, region);
 };
 
+module.exports.buildAliasString = (baseAlias, onlyColdStarts, index) => {
+    let alias = baseAlias;
+    if (onlyColdStarts) {
+        alias += `-${index}`;
+    }
+    return alias;
+};
+
 module.exports.allPowerValues = () => {
     const increment = 64;
     const powerValues = [];
@@ -71,14 +79,18 @@ module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
 /**
  * Update power, publish new version, and create/update alias.
  */
-module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
+module.exports.createPowerConfiguration = async(lambdaARN, value, alias, envVars) => {
     try {
-        await utils.setLambdaPower(lambdaARN, value);
+        await utils.setLambdaPower(lambdaARN, value, envVars);
 
-        // wait for functoin update to complete
+        // wait for function update to complete
         await utils.waitForFunctionUpdate(lambdaARN);
 
         const {Version} = await utils.publishLambdaVersion(lambdaARN);
+        if (typeof alias === 'undefined'){
+            console.log('No alias defined');
+            return;
+        }
         const aliasExists = await utils.verifyAliasExistance(lambdaARN, alias);
         if (aliasExists) {
             await utils.updateLambdaAlias(lambdaARN, alias, Version);
@@ -86,13 +98,8 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
             await utils.createLambdaAlias(lambdaARN, alias, Version);
         }
     } catch (error) {
-        if (error.message && error.message.includes('Alias already exists')) {
-            // shouldn't happen, but nothing we can do in that case
-            console.log('OK, even if: ', error);
-        } else {
-            console.log('error during config creation for value ' + value);
-            throw error; // a real error :)
-        }
+        console.log('error during config creation for value ' + value);
+        throw error; // a real error :)
     }
 };
 
@@ -137,7 +144,11 @@ module.exports.getLambdaPower = async(lambdaARN) => {
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     const config = await lambda.send(new GetFunctionConfigurationCommand(params));
-    return config.MemorySize;
+    return {
+        power: config.MemorySize,
+        // we need to fetch env vars only to add a new one and force a cold start
+        envVars: (config.Environment || {}).Variables || {},
+    };
 };
 
 /**
@@ -172,11 +183,12 @@ module.exports.getLambdaConfig = async(lambdaARN, alias) => {
 /**
  * Update a given Lambda Function's memory size (always $LATEST version).
  */
-module.exports.setLambdaPower = (lambdaARN, value) => {
+module.exports.setLambdaPower = (lambdaARN, value, envVars) => {
     console.log('Setting power to ', value);
     const params = {
         FunctionName: lambdaARN,
         MemorySize: parseInt(value, 10),
+        Environment: {Variables: envVars},
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.send(new UpdateFunctionConfigurationCommand(params));
@@ -589,12 +601,20 @@ module.exports.regionFromARN = (arn) => {
     return arn.split(':')[3];
 };
 
+let client;
 module.exports.lambdaClientFromARN = (lambdaARN) => {
     const region = this.regionFromARN(lambdaARN);
-    return new LambdaClient({
-        region,
-        requestTimeout: 15 * 60 * 1000
-    })
+    // create a client only once
+    if (typeof client === 'undefined'){
+        // set Max Retries to 20, increase the retry delay to 500
+        client = new LambdaClient({
+            region,
+            maxAttempts: 20,
+            requestTimeout: 15 * 60 * 1000
+        })
+          
+    }
+    return client;
 };
 
 /**

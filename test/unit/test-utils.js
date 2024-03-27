@@ -30,7 +30,13 @@ const sandBox = sinon.createSandbox();
 const lambdaMock = awsV3Mock.mockClient(LambdaClient);
 lambdaMock.reset();
 lambdaMock.on(GetAliasCommand).resolves({});
-lambdaMock.on(GetFunctionConfigurationCommand).resolves({ MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ['x86_64'] });
+lambdaMock.on(GetFunctionConfigurationCommand).resolves({
+    MemorySize: 1024,
+    State: 'Active',
+    LastUpdateStatus: 'Successful',
+    Architectures: ['x86_64'],
+    Environment: {Variables: {TEST: 'OK'}},
+});
 lambdaMock.on(UpdateFunctionConfigurationCommand).resolves({});
 lambdaMock.on(PublishVersionCommand).resolves({});
 lambdaMock.on(DeleteFunctionCommand).resolves({});
@@ -47,7 +53,6 @@ s3Mock.on(GetObjectCommand).resolves({
         }
     }
 });
-
 
 describe('Lambda Utils', () => {
 
@@ -119,9 +124,26 @@ describe('Lambda Utils', () => {
     });
 
     describe('getLambdaPower', () => {
-        it('should return the memory value', async () => {
+        it('should return the power value and env vars', async() => {
             const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
-            expect(value).to.be(1024);
+            expect(value.power).to.be(1024);
+            expect(value.envVars).to.be.an('object');
+            expect(value.envVars.TEST).to.be('OK');
+        });
+
+        it('should return the power value and env vars even when empty env', async() => {
+            lambdaMock.on(GetFunctionConfigurationCommand).resolves({
+                MemorySize: 1024,
+                State: 'Active',
+                LastUpdateStatus: 'Successful',
+                Architectures: ['x86_64'],
+                Environment: null, // this is null if no vars are set
+            });
+
+            const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
+            expect(value.power).to.be(1024);
+            expect(value.envVars).to.be.an('object');
+            expect(value.envVars.TEST).to.be(undefined);
         });
     });
 

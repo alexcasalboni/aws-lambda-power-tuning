@@ -133,6 +133,22 @@ Resources:
               Action:
                 - lambda:GetAlias
                 - lambda:GetFunctionConfiguration
+              Resource: !Ref lambdaResource
+  versionPublisher:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: publisher.handler
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole # Only logs
+        - Version: '2012-10-17' # allow Lambda actions
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetAlias
+                - lambda:GetFunctionConfiguration
                 - lambda:PublishVersion
                 - lambda:UpdateFunctionConfiguration
                 - lambda:CreateAlias
@@ -161,6 +177,7 @@ Resources:
               Action:
                 - lambda:InvokeFunction
                 - lambda:GetFunctionConfiguration
+                - lambda:GetFunction
               Resource: !Ref lambdaResource
         - !If
           - S3BucketProvided # if S3 bucket is provided
@@ -285,7 +302,14 @@ Resources:
                   "Initializer": {
                       "Type": "Task",
                       "Resource": "${initializerArn}",
-                      "Next": "Branching",
+                      "Next": "versionPublisher",
+                      "ResultPath": "$.powerValues",
+                      "TimeoutSeconds": ${totalExecutionTimeout}
+                  },
+                  "versionPublisher": {
+                      "Type": "Task",
+                      "Resource": "${versionPublisherArn}",
+                      "Next": "IsCountReached",
                       "ResultPath": "$.powerValues",
                       "TimeoutSeconds": ${totalExecutionTimeout},
                       "Catch": [{
@@ -294,10 +318,21 @@ Resources:
                         "ResultPath": "$.error"
                       }]
                   },
+                  "IsCountReached": {
+                      "Type": "Choice",
+                      "Choices": [
+                          {
+                              "Variable": "$.powerValues.iterator.continue",
+                              "BooleanEquals": true,
+                              "Next": "versionPublisher"
+                          }
+                      ],
+                      "Default": "Branching"
+                  },
                   "Branching": {
                       "Type": "Map",
                       "Next": "Cleaner",
-                      "ItemsPath": "$.powerValues",
+                      "ItemsPath": "$.powerValues.powerValues",
                       "ResultPath": "$.stats",
                       "ItemSelector": {
                         "input.$": "$",
@@ -359,6 +394,7 @@ Resources:
               }
           }'
           - initializerArn: !GetAtt initializer.Arn
+            versionPublisherArn: !GetAtt versionPublisher.Arn
             executorArn: !GetAtt executor.Arn
             cleanerArn: !GetAtt cleaner.Arn
             analyzerArn: !GetAtt analyzer.Arn

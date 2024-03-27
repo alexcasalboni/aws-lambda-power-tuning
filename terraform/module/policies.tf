@@ -34,6 +34,19 @@ resource "aws_iam_policy_attachment" "initializer-attach" {
   policy_arn = aws_iam_policy.initializer_policy.arn
 }
 
+resource "aws_iam_policy" "publisher_policy" {
+  name        = "${var.lambda_function_prefix}_publisher-policy"
+  description = "Lambda power tuning policy - Publisher - Terraform"
+
+  policy = local.publisher_template
+}
+
+resource "aws_iam_policy_attachment" "publisher-attach" {
+  name       = "publisher-attachment"
+  roles      = [aws_iam_role.publisher_role.name]
+  policy_arn = aws_iam_policy.publisher_policy.arn
+}
+
 resource "aws_iam_policy" "cleaner_policy" {
   name        = "${var.lambda_function_prefix}_cleaner-policy"
   description = "Lambda power tuning policy - Cleaner - Terraform"

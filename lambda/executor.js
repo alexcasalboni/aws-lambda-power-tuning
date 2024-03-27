@@ -20,6 +20,7 @@ module.exports.handler = async(event, context) => {
         preProcessorARN,
         postProcessorARN,
         discardTopBottom,
+        onlyColdStarts,
         sleepBetweenRunsMs,
         disablePayloadLogs,
     } = await extractDataFromInput(event);
@@ -35,8 +36,9 @@ module.exports.handler = async(event, context) => {
     const lambdaAlias = 'RAM' + value;
     let results;
 
-    // fetch architecture from $LATEST
-    const {architecture, isPending} = await utils.getLambdaConfig(lambdaARN, lambdaAlias);
+    let aliasToInvoke = utils.buildAliasString(lambdaAlias, onlyColdStarts, 0);
+    const {architecture, isPending} = await utils.getLambdaConfig(lambdaARN, aliasToInvoke);
+
     console.log(`Detected architecture type: ${architecture}, isPending: ${isPending}`);
 
     // pre-generate an array of N payloads
@@ -49,12 +51,13 @@ module.exports.handler = async(event, context) => {
         payloads: payloads,
         preARN: preProcessorARN,
         postARN: postProcessorARN,
+        onlyColdStarts: onlyColdStarts,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
         disablePayloadLogs: disablePayloadLogs,
     };
 
     // wait if the function/alias state is Pending
-    if (isPending) {
+    if (isPending && !onlyColdStarts) {
         await utils.waitForAliasActive(lambdaARN, lambdaAlias);
         console.log('Alias active');
     }
@@ -97,7 +100,11 @@ const extractDiscardTopBottomValue = (event) => {
     // extract discardTopBottom used to trim values from average duration
     let discardTopBottom = event.discardTopBottom;
     if (typeof discardTopBottom === 'undefined') {
-        discardTopBottom = 0.2;
+        if (event.onlyColdStarts){
+            discardTopBottom = 0;
+        } else {
+            discardTopBottom = 0.2;
+        }
     }
     // discardTopBottom must be between 0 and 0.4
     return Math.min(Math.max(discardTopBottom, 0.0), 0.4);
@@ -128,16 +135,22 @@ const extractDataFromInput = async(event) => {
         preProcessorARN: input.preProcessorARN,
         postProcessorARN: input.postProcessorARN,
         discardTopBottom: discardTopBottom,
+        onlyColdStarts: !!input.onlyColdStarts,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
         disablePayloadLogs: !!input.disablePayloadLogs,
     };
 };
 
-const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, disablePayloadLogs}) => {
+const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, disablePayloadLogs, onlyColdStarts}) => {
     const results = [];
     // run all invocations in parallel ...
     const invocations = utils.range(num).map(async(_, i) => {
-        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN, disablePayloadLogs);
+        let aliasToInvoke = utils.buildAliasString(lambdaAlias, onlyColdStarts, i);
+        if (onlyColdStarts){
+            await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
+            console.log(`${aliasToInvoke} is active`);
+        }
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
             let errorMessage = `Invocation error (running in parallel): ${invocationResults.Payload}`;
@@ -153,11 +166,15 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
     return results;
 };
 
-const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs, disablePayloadLogs}) => {
+const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs, disablePayloadLogs, onlyColdStarts}) => {
     const results = [];
     for (let i = 0; i < num; i++) {
+        let aliasToInvoke = utils.buildAliasString(lambdaAlias, onlyColdStarts, i);
         // run invocations in series
-        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN, disablePayloadLogs);
+        if (onlyColdStarts){
+            await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
+        }
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
             let errorMessage = `Invocation error (running in series): ${invocationResults.Payload}`;
