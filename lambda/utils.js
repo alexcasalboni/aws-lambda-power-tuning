@@ -554,8 +554,14 @@ module.exports.extractDurationFromText = (log) => {
  */
 module.exports.extractDurationFromJSON = (log) => {
     // extract each line and parse it to JSON object
-    const lines = log.split('\n').map((line) => JSON.parse(line));
-
+    const lines = log.split('\n').filter((line) => line.startsWith('{')).map((line) => {
+         try {
+              return JSON.parse(line);
+         } catch (e) {
+            console.error(`Detected invalid JSON line: ${line}`);
+             return '';
+       }
+    });
     // find the log corresponding to the invocation report
     const durationLine = lines.find((line) => line.type === 'platform.report');
     if (durationLine){
