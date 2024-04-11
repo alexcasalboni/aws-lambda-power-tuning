@@ -187,6 +187,15 @@ describe('Lambda Utils', () => {
             '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
             '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":4,"memorySizeMB":1024,"maxMemoryUsedMB":68}}}'
             ;
+
+        const jsonMixedLogWithInvalidJSON =
+            '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"\n' + // missing } here
+            '[AWS Parameters and Secrets Lambda Extension] 2024/04/11 02:14:17 PARAMETERS_SECRETS_EXTENSION_LOG_LEVEL is info. Log level set to info.' +
+            '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
+            '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
+            '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":8,"memorySizeMB":1024,"maxMemoryUsedMB":68}}}'
+            ;
+        
         it('should extract the duration from a Lambda log (text format)', () => {
             expect(utils.extractDuration(textLog)).to.be(500);
         });
@@ -203,6 +212,10 @@ describe('Lambda Utils', () => {
 
         it('should extract the duration from a Lambda log (json text mixed format)', () => {
             expect(utils.extractDuration(jsonMixedLog)).to.be(4);
+        });
+
+        it('should extract the duration from a Lambda log (json text mixed format with invalid JSON)', () => {
+            expect(utils.extractDuration(jsonMixedLogWithInvalidJSON)).to.be(8);
         });
 
         it('should explode if invalid json format document is provided', () => {
