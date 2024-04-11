@@ -1,23 +1,15 @@
 # How to deploy the AWS Lambda Power Tuning tool
 
-There are multiple options to deploy the tool.
+There are 5 deployment options for deploying the tool using Infrastructure as Code (IaC).
 
-If you are familiar with Infrastructure as Code, there are 4 ways for you to create all of the resources necessary for Lambda Power Tuning.
 
-The following three options utilize [AWS CloudFormation](https://aws.amazon.com/cloudformation/) on your behalf to create the necessary resources. Each will create a new CloudFormation stack in your AWS account containing all the resources for the Lambda Power Tuning tool.
-1. The easiest way is to [deploy the app via the AWS Serverless Application Repository (SAR)](#option1)
-1. Manually [using the AWS SAM CLI](#option2)
-1. Manually [using the AWS CDK](#option3)
+1. The easiest way is to [deploy the app via the AWS Serverless Application Repository (SAR)](#option1). 
+1. [Using the AWS SAM CLI](#option2)
+1. [Using the AWS CDK](#option3)
+1. [Using Terraform by Hashicorp and SAR](#option4)
+1. [Using native Terraform](#option5)
 
-You can also [deploy manually with Terraform](#option5) by Hashicorp.
-
-If you want to use Terraform natively (which circumvents Cloudformation), see [Option 6](#option6)
-
-If you don't want to deal with any Infrastructure as Code tool, you can use one of the following:
-1. The [Lumigo CLI](https://www.npmjs.com/package/lumigo-cli#lumigo-cli-powertune-lambda) (WARNING: deprecated)
-1.  The [Lambda Power Tuner UI](#option4)
-
-Read more about the [deployment parameters here](README-INPUT-OUTPUT.md#state-machine-configuration-at-deployment-time).
+Read more about the [deployment parameters here](README.md#state-machine-configuration-at-deployment-time).
 
 ## Option 1: AWS Serverless Application Repository<a name="option1"></a>
 
@@ -28,12 +20,15 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
 
 ## Option 2: Build and deploy with the AWS SAM CLI<a name="option2"></a>
 
+**Note**: This method requires Docker.
+
 1. Install the [AWS SAM CLI in your local environment](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html).
 
 1. Configure your [AWS credentials (requires AWS CLI installed)](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-quick-configuration):
     ```bash
     $ aws configure
     ```
+1. Install [Docker](https://docs.docker.com/get-docker/).
 1. Clone this git repository: 
     ```bash
     $ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
@@ -45,24 +40,40 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
     ```
     [`sam build -u`](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-build.html) will run SAM build using a Docker container image that provides an environment similar to that which your function would run in. SAM build in-turn looks at your AWS SAM template file for information about Lambda functions and layers in this project.
     
-    Once the build has completed you should see output that states `Build Succeeded`. If not there will be error messages providing guidance on what went wrong.
-1.  Deploy the application using the SAM deploy "guided" mode:
+    Once the build completes successfully you will see output stating `Build Succeeded`. If the build is not successful, there will be error messages providing guidance on what went wrong.
+1.  Deploy the application using the guided SAM deploy mode:
     ```bash
     $ sam deploy -g
     ```
-    [`sam deploy -g`](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-deploy.html) will provide simple prompts to walk you through the process of deploying the tool. Provide a unique name for the 'Stack Name' and supply the [AWS Region](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions) you want to run the tool in and then you can select the defaults for testing of this tool. After accepting the prompted questions with a "Y" you can optionally save your application configuration. 
-
-    After that the SAM CLI will run the required commands to create the resources for the Lambda Power Tuning tool. The CloudFormation outputs shown will highlight any issues or failures.
+    * For **Stack Name**, enter a unique name for the stack.
+    * For **AWS Region**, enter the region you want to deploy in. 
     
-    If there are no issues, once complete you will see the stack outputs and a `Successfully created/updated stack` message.
+    Accept the defaults for all other prompts.
+    
+    [`sam deploy -g`](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-deploy.html)  provides simple prompts to walk you through the process of deploying the tool. The responses are saved in a configuration file, `samconfig.toml`, to be reused during subsequent deployments.
+
+    SAM CLI will run the required commands to create the resources for the Lambda Power Tuning tool. 
+    
+    A successful deployment displays the message `Successfully created/updated stack`. 
+1. To delete Lambda Power Tuning, run
+    ```bash
+    sam delete
+    ```
+    Answer `Y` to the prompts.
   
 
 ## Option 3: Deploy the AWS SAR app with AWS CDK<a name="option3"></a>
 
-1. [Install AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html) and [configure your AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-quick-configuration):
-
+1. [Install AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html).
     ```bash
     $ npm install -g aws-cdk
+    ```
+
+1. [Bootstrap](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_bootstrap) your account.
+
+1. [Configure your AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-quick-configuration):
+
+    ```bash
     $ aws configure
     ```
 
@@ -83,34 +94,21 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
     })
     ```
 
-    Alternatively, you can use [CDK Patterns](https://github.com/cdk-patterns/serverless) to give you a pre configured project in either TypeScript or Python:
+Alternatively, you can build and deploy the solution from the source in this repo. See the following pages for language-specific instructions.
     
-    ```bash
-    # For the TypeScript CDK version
-    npx cdkp init the-lambda-power-tuner
+  ### TypeScript
+See the [Typescript instructions](cdk/typescript/README.md)
     
-    # or for the Python CDK version
-    npx cdkp init the-lambda-power-tuner --lang=python
-    ```
+  ### Python
+See the [Python instructions](cdk/python/README.md)
+  
+  ### go
+See the [go instructions](cdk/go/README.md)
 
-1. To deploy the TypeScript version you just need to:
+### C\#
+See the [Csharp instructions](cdk/csharp/README.md)
 
-    ```bash
-    cd the-lambda-power-tuner
-    npm run deploy
-    ```
-
-    For Python deployment, see the instructions [here](https://github.com/cdk-patterns/serverless#2-download-pattern-in-python-or-typescript-cdk).
-
-## Option 4: Deploy via AWS Lambda Power Tuner UI<a name="option4"></a>
-
-You can deploy and interact with Lambda Power Tuning with an ad-hoc web interface. This UI will deploy everything you need to power-tune your functions and also simplify the input/output management for Step Functions via API Gateway.
-
-You can find the open-source project and the instructions to deploy it here: [mattymoomoo/aws-power-tuner-ui](https://github.com/mattymoomoo/aws-power-tuner-ui).
-
-![Power Tuner UI](https://github.com/mattymoomoo/aws-power-tuner-ui/blob/master/imgs/website.png?raw=true)
-
-## Option 5: Deploy the SAR app with Terraform<a name="option5"></a>
+## Option 4: Deploy the SAR app with Terraform<a name="option4"></a>
 
 Simply add the `aws_serverlessapplicationrepository_cloudformation_stack` resource below to your Terraform code and deploy as usual through `terraform apply`.
 
@@ -137,11 +135,11 @@ See the [Terraform documentation](https://registry.terraform.io/providers/hashic
 
 If you don't yet have a Terraform project, check out the [Terraform introduction](https://www.terraform.io/intro/index.html).
 
-## Option 6: deploy natively with Terraform<a name="option6"></a>
+## Option 5: Deploy natively with Terraform<a name="option5"></a>
 
-Please see the documentation [here](terraform/Readme.md).
+The Terraform modules are located in the [terraform](terraform) directory. Deployment documentation is [here](terraform/Readme.md).
 
 
-## How to execute the state machine once deployed?
+## How to execute the state machine once deployed
 
-See [here](README-EXECUTE.md).
+See the [execution](README-EXECUTE.md) instructions to run the state machine.

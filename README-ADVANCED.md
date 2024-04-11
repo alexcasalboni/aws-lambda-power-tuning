@@ -59,3 +59,79 @@ The AWS Step Functions state machine is composed of five Lambda functions:
 
 Initializer, cleaner, analyzer, and optimizer are executed only once, while the executor is used by N parallel branches of the state machine - one for each configured power value. By default, the executor will execute the given Lambda function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`.
 
+## Weighted Payloads
+
+> [!IMPORTANT]
+> Your payload will only be treated as a weighted payload if it adheres to the JSON structure that follows. Otherwise, it's assumed to be an array-shaped payload.
+
+Weighted payloads can be used in scenarios where the payload structure and the corresponding performance/speed could vary a lot in production and you'd like to include multiple payloads in the tuning process.
+
+You may want to use weighted payloads also in case of functions with side effects that would be hard or impossible to test with the very same payload (for example, a function that deletes records from a database).
+
+You configure weighted payloads as follows:
+
+```json
+{
+    ...
+    "num": 50,
+    "payload": [
+        { "payload": {...}, "weight": 5 },
+        { "payload": {...}, "weight": 15 },
+        { "payload": {...}, "weight": 30 }
+    ]
+}
+```
+
+In the example above, the weights `5`, `15`, and `30` are used as relative weights. They will correspond to `10%` (5 out of 50), `30%` (15 out of 50), and `60%` (30 out of 50) respectively - meaning that the corresponding payload will be used 10%, 30% and 60% of the time.
+
+For example, if `num=100` the first payload will be used 10 times, the second 30 times, and the third 60 times.
+
+To simplify these calculations, you could use weights that sum up to 100.
+
+Note: the number of weighted payloads must always be smaller or equal than `num` (or `num >= count(payloads)`). For example, if you have 50 weighted payloads, you'll need to set at least `num: 50` so that each payload will be used at least once.
+
+
+## Pre/Post-processing functions
+
+Sometimes you need to power-tune Lambda functions that have side effects such as creating or deleting records in a database. In these cases, you may need to execute some pre-processing or post-processing logic before and/or after each function invocation.
+
+For example, imagine that you are power-tuning a function that deletes one record from a downstream database. Since you want to execute this function `num` times you'd need to insert some records in advance and then find a way to delete all of them with a dynamic payload. Or you could simply configure a pre-processing function (using the `preProcessorARN` input parameter) that will create a brand new record before the actual function is executed.
+
+Here's the flow in pseudo-code:
+
+```
+function Executor:
+  iterate from 0 to num:
+    [payload = execute Pre-processor (payload)]
+    results = execute Main Function (payload)
+    [execute Post-processor (results)]
+```
+
+Please also keep in mind the following:
+
+* You can configure a pre-processor and/or a post-processor independently
+* The pre-processor will receive the original payload
+* If the pre-processor returns a non-empty output, it will overwrite the original payload
+* The post-processor will receive the main function's output as payload
+* If a pre-processor or post-processor fails, the whole power-tuning state machine will fail
+* Pre/post-processors don't have to be in the same region of the main function
+* Pre/post-processors don't alter the statistics related to cost and performance
+
+## S3 payloads
+
+In case of very large payloads above 256KB, you can provide an S3 object reference (`s3://bucket/key`) instead of an inline payload.
+
+Your state machine input will look like this:
+
+```json
+{
+    "lambdaARN": "your-lambda-function-arn",
+    "powerValues": [128, 256, 512, 1024],
+    "num": 50,
+    "payloadS3": "s3://your-bucket/your-object.json"
+}
+```
+
+Please note that the state machine will require IAM access to your S3 bucket, so you might need to redeploy the Lambda Power Tuning application and configure the `payloadS3Bucket` parameter at deployment time. This will automatically generate a custom IAM managed policy to grant read-only access to that bucket. If you want to narrow down the read-only policy to a specific object or pattern, use the `payloadS3Key` parameter (which is `*` by default).
+
+S3 payloads work fine with weighted payloads too.
