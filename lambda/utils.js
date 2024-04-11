@@ -558,6 +558,7 @@ module.exports.extractDurationFromJSON = (log) => {
          try {
               return JSON.parse(line);
          } catch (e) {
+            console.error(`Detected invalid JSON line: ${line}`);
              return '';
        }
     });
