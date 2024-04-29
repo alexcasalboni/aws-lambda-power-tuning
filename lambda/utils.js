@@ -3,6 +3,7 @@
 const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
 const { GetObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 const url = require('url');
+const { Buffer } = require('node:buffer');
 
 
 // local reference to this module
@@ -254,10 +255,12 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
 module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 'Pre', disablePayloadLogs = false) => {
     const processorData = await utils.invokeLambda(processorARN, null, payload, disablePayloadLogs);
     if (processorData.FunctionError) {
-        let errorMessage = `${preOrPost}Processor ${processorARN} failed with error ${processorData.Payload}`;
+        const parsedResults = JSON.parse(Buffer.from(processorData.Payload));
+        let errorMessage = `${preOrPost}Processor ${processorARN} failed`;
         if (!disablePayloadLogs) {
-            errorMessage += ` and payload ${JSON.stringify(payload)}`;
+            errorMessage += ` with payload ${JSON.stringify(payload)}`;
         }
+        errorMessage += ` - original error type: "${parsedResults.errorType}", original error message: "${parsedResults.errorMessage}", trace: "${parsedResults.stackTrace}"`;
         throw new Error(errorMessage);
     }
     return processorData.Payload;

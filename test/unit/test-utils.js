@@ -48,6 +48,12 @@ s3Mock.on(GetObjectCommand).resolves({
     }
 });
 
+// utility to create a UInt8Array from a string
+const toByteArray = (inputString) => {
+    const textEncoder = new TextEncoder();
+    return textEncoder.encode(inputString);
+};
+
 
 describe('Lambda Utils', () => {
 
@@ -531,7 +537,9 @@ describe('Lambda Utils', () => {
                 .callsFake(async () => {
                     invokeLambdaCounter++;
                     return {
-                        Payload: '{"KO": "KO"}',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "Exception", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
                         FunctionError: 'Unhandled',
                     };
                 });
@@ -539,8 +547,11 @@ describe('Lambda Utils', () => {
                 const data = await utils.invokeLambdaProcessor('arnOK', payload, 'Pre', disablePayloadLogs);
                 expect(data).to.be(null);
             } catch (ex) {
-                expect(ex.message).to.contain('failed with error');
-                expect(ex.message.includes('and payload')).to.be(isPayloadInErrorMessage);
+                expect(ex.message).to.contain('failed');
+                expect(ex.message).to.contain('Exception raised during execution.');
+                expect(ex.message).to.contain('Exception');
+                expect(ex.message).to.contain('"File "/var/task/lambda_function.py", line 9, in lambda_handler, raise Exception("Exception raised during execution.")"');
+                expect(ex.message.includes('with payload')).to.be(isPayloadInErrorMessage);
             }
 
             expect(invokeLambdaCounter).to.be(1);

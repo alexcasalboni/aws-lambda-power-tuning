@@ -140,11 +140,7 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
         const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
-            let errorMessage = `Invocation error (running in parallel): ${invocationResults.Payload}`;
-            if (!disablePayloadLogs) {
-                errorMessage += ` with payload ${JSON.stringify(actualPayload)}`;
-            }
-            throw new Error(errorMessage);
+            handleLambdaInvocationError(invocationResults, 'parallel', actualPayload, disablePayloadLogs);
         }
         results.push(invocationResults);
     });
@@ -160,11 +156,7 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
         const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
-            let errorMessage = `Invocation error (running in series): ${invocationResults.Payload}`;
-            if (!disablePayloadLogs) {
-                errorMessage += ` with payload ${JSON.stringify(actualPayload)}`;
-            }
-            throw new Error(errorMessage);
+            handleLambdaInvocationError(invocationResults, 'series', actualPayload, disablePayloadLogs);
         }
         if (sleepBetweenRunsMs > 0) {
             await utils.sleep(sleepBetweenRunsMs);
@@ -172,6 +164,16 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
         results.push(invocationResults);
     }
     return results;
+};
+
+const handleLambdaInvocationError = (invocationResults, invocationMode, actualPayload, disablePayloadLogs) => {
+    const parsedResults = JSON.parse(Buffer.from(invocationResults.Payload));
+    let errorMessage = `Invocation error (running in ${invocationMode})`;
+    if (!disablePayloadLogs) {
+        errorMessage += ` with payload ${JSON.stringify(actualPayload)}`;
+    }
+    errorMessage += ` - original error type: "${parsedResults.errorType}", original error message: "${parsedResults.errorMessage}", trace: "${parsedResults.stackTrace}"`;
+    throw new Error(errorMessage);
 };
 
 const computeStatistics = (baseCost, results, value, discardTopBottom) => {
