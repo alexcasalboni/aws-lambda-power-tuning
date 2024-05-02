@@ -1,6 +1,11 @@
 'use strict';
 
-const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException } = require('@aws-sdk/client-lambda');
+const {
+    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand,
+    GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand,
+    UpdateAliasCommand, UpdateFunctionConfigurationCommand,
+    waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException,
+} = require('@aws-sdk/client-lambda');
 const { GetObjectCommand, S3Client } = require('@aws-sdk/client-s3');
 const url = require('url');
 

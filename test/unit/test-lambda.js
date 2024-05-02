@@ -4,7 +4,11 @@ const sinon = require('sinon');
 const expect = require('expect.js');
 
 var awsV3Mock = require('aws-sdk-client-mock');
-const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, ResourceNotFoundException } = require('@aws-sdk/client-lambda');
+const {
+    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand,
+    InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand,
+    UpdateFunctionConfigurationCommand, ResourceNotFoundException,
+} = require('@aws-sdk/client-lambda');
 
 const utils = require('../../lambda/utils');
 
