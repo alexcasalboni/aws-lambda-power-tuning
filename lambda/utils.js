@@ -254,11 +254,8 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
 module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 'Pre', disablePayloadLogs = false) => {
     const processorData = await utils.invokeLambda(processorARN, null, payload, disablePayloadLogs);
     if (processorData.FunctionError) {
-        let errorMessage = `${preOrPost}Processor ${processorARN} failed with error ${processorData.Payload}`;
-        if (!disablePayloadLogs) {
-            errorMessage += ` and payload ${JSON.stringify(payload)}`;
-        }
-        throw new Error(errorMessage);
+        let errorMessage = `${preOrPost}Processor ${processorARN} failed`;
+        utils.handleLambdaInvocationError(errorMessage, processorData, payload, disablePayloadLogs);
     }
     return processorData.Payload;
 };
@@ -313,6 +310,20 @@ module.exports.invokeLambda = (lambdaARN, alias, payload, disablePayloadLogs) =>
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.send(new InvokeCommand(params));
+};
+
+/**
+ * Handle a Lambda invocation error and generate an error message containing original error type, message and trace.
+ */
+module.exports.handleLambdaInvocationError = (errorMessageToDisplay, invocationResults, actualPayload, disablePayloadLogs) => {
+    const parsedResults = JSON.parse(Buffer.from(invocationResults.Payload));
+    if (!disablePayloadLogs) {
+        errorMessageToDisplay += ` with payload ${JSON.stringify(actualPayload)}`;
+    }
+    errorMessageToDisplay += ` - original error type: "${parsedResults.errorType}", ` +
+        `original error message: "${parsedResults.errorMessage}",` +
+        `trace: "${JSON.stringify(parsedResults.stackTrace)}"`;
+    throw new Error(errorMessageToDisplay);
 };
 
 /**

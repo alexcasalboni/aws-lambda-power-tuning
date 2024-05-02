@@ -48,6 +48,12 @@ s3Mock.on(GetObjectCommand).resolves({
     }
 });
 
+// utility to create a UInt8Array from a string
+const toByteArray = (inputString) => {
+    const textEncoder = new TextEncoder();
+    return textEncoder.encode(inputString);
+};
+
 
 describe('Lambda Utils', () => {
 
@@ -531,7 +537,9 @@ describe('Lambda Utils', () => {
                 .callsFake(async () => {
                     invokeLambdaCounter++;
                     return {
-                        Payload: '{"KO": "KO"}',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "Exception", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
                         FunctionError: 'Unhandled',
                     };
                 });
@@ -539,8 +547,8 @@ describe('Lambda Utils', () => {
                 const data = await utils.invokeLambdaProcessor('arnOK', payload, 'Pre', disablePayloadLogs);
                 expect(data).to.be(null);
             } catch (ex) {
-                expect(ex.message).to.contain('failed with error');
-                expect(ex.message.includes('and payload')).to.be(isPayloadInErrorMessage);
+                expect(ex.message).to.contain('failed');
+                expect(ex.message.includes('with payload')).to.be(isPayloadInErrorMessage);
             }
 
             expect(invokeLambdaCounter).to.be(1);
@@ -568,6 +576,48 @@ describe('Lambda Utils', () => {
         }
         return true;
     };
+
+    describe('handleLambdaInvocationError', () => {
+
+        const invokeLambdaForInvocationErrorAndAssertOnErrorMessage = async({disablePayloadLogs, isPayloadInErrorMessage}) => {
+            const errorMessage = 'Encountered invocation error';
+            const originalErrorMessage = 'Exception raised during execution.';
+            const originalErrorType = 'Exception';
+            const originalStackTrace = '["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]';
+            const invocationResults = {
+                Payload: toByteArray(`{"errorMessage": "${originalErrorMessage}", ` +
+                    `"errorType": "${originalErrorType}", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ` +
+                    `"stackTrace": ${originalStackTrace}}`),
+                FunctionError: 'Unhandled',
+            };
+            const actualPayload = 'TEST_PAYLOAD';
+
+            try {
+                utils.handleLambdaInvocationError(errorMessage, invocationResults, actualPayload, disablePayloadLogs);
+            } catch (error) {
+                expect(error.message).to.contain(errorMessage);
+                expect(error.message).to.contain(originalErrorMessage);
+                expect(error.message).to.contain(originalErrorType);
+                expect(error.message).to.contain(originalStackTrace);
+                expect(error.message.includes(actualPayload)).to.be(isPayloadInErrorMessage);
+            }
+        };
+
+        it('should NOT contain not payload in error message if display payload logging is disabled', async() => invokeLambdaForInvocationErrorAndAssertOnErrorMessage({
+            disablePayloadLogs: true,
+            isPayloadInErrorMessage: false,
+        }));
+
+        it('should contain payload in error message if display payload logging is NOT disabled', async() => invokeLambdaForInvocationErrorAndAssertOnErrorMessage({
+            disablePayloadLogs: false,
+            isPayloadInErrorMessage: true,
+        }));
+
+        it('should contain payload in error message if disablePayloadLogs is undefined', async() => invokeLambdaForInvocationErrorAndAssertOnErrorMessage({
+            disablePayloadLogs: undefined,
+            isPayloadInErrorMessage: true,
+        }));
+    });
 
     describe('convertPayload', () => {
 
