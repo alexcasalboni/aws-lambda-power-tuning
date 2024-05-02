@@ -27,7 +27,7 @@ module.exports.handler = async(event, context) => {
 
     const result = findOptimalConfiguration(event);
 
-    if (!!event.includeOutputResults) {
+    if (event.includeOutputResults) {
         // add stats to final result
         result.stats = event.stats.map(stat => ({
             value: stat.value,

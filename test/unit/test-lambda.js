@@ -4,7 +4,7 @@ const sinon = require('sinon');
 const expect = require('expect.js');
 
 var awsV3Mock = require('aws-sdk-client-mock');
-const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
+const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, ResourceNotFoundException } = require('@aws-sdk/client-lambda');
 
 const utils = require('../../lambda/utils');
 
@@ -1687,7 +1687,7 @@ describe('Lambda Functions', async() => {
             expect(result.stats).to.eql(event.stats.map(stat => ({
                 value: stat.value,
                 averagePrice: stat.averagePrice,
-                averageDuration: stat.averageDuration
+                averageDuration: stat.averageDuration,
             })));
 
             expect(result.stats[0]).to.not.have.property('totalCost');

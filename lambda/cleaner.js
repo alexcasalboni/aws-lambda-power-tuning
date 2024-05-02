@@ -1,6 +1,6 @@
 'use strict';
 
-const { ResourceNotFoundException } = require("@aws-sdk/client-lambda");
+const { ResourceNotFoundException } = require('@aws-sdk/client-lambda');
 const utils = require('./utils');
 
 /**

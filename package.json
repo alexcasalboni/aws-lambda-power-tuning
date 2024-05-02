@@ -21,8 +21,6 @@
   ],
   "licence": "Apache",
   "scripts": {
-    "deploy": "bash deploy.sh",
-    "execute": "bash execute.sh",
     "lint": "eslint --ignore-path .gitignore .",
     "test": "mocha",
     "coverage": "c8 --reporter=lcov --reporter=cobertura --reporter=text-summary mocha"
