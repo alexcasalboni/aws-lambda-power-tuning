@@ -14,7 +14,7 @@ public class JavaTest {
     @Test
     public void testStack() throws IOException {
         App app = new App();
-        JavaStack stack = new JavaStack(app, "test");
+        TheLambdaPowerTunerStack stack = new TheLambdaPowerTunerStack(app, "test");
 
         Template template = Template.fromStack(stack);
         Map<String, String> child = new HashMap<>();

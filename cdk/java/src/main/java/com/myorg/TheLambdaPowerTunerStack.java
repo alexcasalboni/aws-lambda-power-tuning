@@ -9,17 +9,17 @@ import software.amazon.awscdk.services.sam.CfnApplication.ApplicationLocationPro
 import java.util.HashMap;
 import java.util.Map;
 
-public class JavaStack extends Stack {
+public class TheLambdaPowerTunerStack extends Stack {
 
     //Set constants
     private static final String SAR_APPLICATION_ID = "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning";
     private static final String SAR_SEMANTIC_VERSION = "4.3.4";
 
-    public JavaStack(final Construct scope, final String id) {
+    public TheLambdaPowerTunerStack(final Construct scope, final String id) {
         this(scope, id, null);
     }
 
-    public JavaStack(final Construct scope, final String id, final StackProps props) {
+    public TheLambdaPowerTunerStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
 
         //create an empty Map
