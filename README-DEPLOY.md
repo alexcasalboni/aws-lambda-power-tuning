@@ -9,8 +9,7 @@ There are 5 deployment options for deploying the tool using Infrastructure as Co
 1. [Using Terraform by Hashicorp and SAR](#option4)
 1. [Using native Terraform](#option5)
 
-
-Read more about the [deployment parameters here](README-INPUT-OUTPUT.md#state-machine-configuration-at-deployment-time).
+Read more about the [deployment parameters here](README.md#state-machine-configuration-at-deployment-time).
 
 ## Option 1: AWS Serverless Application Repository<a name="option1"></a>
 

@@ -1,7 +1,8 @@
+'use strict';
 module.exports = {
-  roots: ['<rootDir>/test'],
-  testMatch: ['**/*.test.ts'],
-  transform: {
-    '^.+\\.tsx?$': 'ts-jest'
-  }
+    roots: ['<rootDir>/test'],
+    testMatch: ['**/*.test.ts'],
+    transform: {
+        '^.+\\.tsx?$': 'ts-jest',
+    },
 };

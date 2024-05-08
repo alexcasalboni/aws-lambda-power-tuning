@@ -1,7 +1,12 @@
 'use strict';
 
-const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
-const { GetObjectCommand, S3Client } = require("@aws-sdk/client-s3");
+const {
+    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand,
+    GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand,
+    UpdateAliasCommand, UpdateFunctionConfigurationCommand,
+    waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException,
+} = require('@aws-sdk/client-lambda');
+const { GetObjectCommand, S3Client } = require('@aws-sdk/client-s3');
 const url = require('url');
 
 
@@ -64,7 +69,7 @@ module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
         await utils.getLambdaAlias(lambdaARN, alias);
         return true;
     } catch (error) {
-        console.log("Error during verifyAlias (probably OK!)")
+        console.log('Error during verifyAlias (probably OK!)');
         if (error instanceof ResourceNotFoundException) {
             // OK, the alias isn't supposed to exist
             console.log('OK, even if missing alias ');
@@ -98,8 +103,13 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias, envVars
             await utils.createLambdaAlias(lambdaARN, alias, Version);
         }
     } catch (error) {
-        console.log('error during config creation for value ' + value);
-        throw error; // a real error :)
+        if (error.message && error.message.includes('Alias already exists')) {
+            // shouldn't happen, but nothing we can do in that case
+            console.log('OK, even if: ', error);
+        } else {
+            console.log('error during config creation for value ' + value);
+            throw error; // a real error :)
+        }
     }
 };
 
@@ -257,7 +267,7 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
         Name: alias,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
-    return lambda.send( new DeleteAliasCommand(params));
+    return lambda.send(new DeleteAliasCommand(params));
 };
 
 /**
@@ -266,11 +276,8 @@ module.exports.deleteLambdaAlias = (lambdaARN, alias) => {
 module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 'Pre', disablePayloadLogs = false) => {
     const processorData = await utils.invokeLambda(processorARN, null, payload, disablePayloadLogs);
     if (processorData.FunctionError) {
-        let errorMessage = `${preOrPost}Processor ${processorARN} failed with error ${processorData.Payload}`;
-        if (!disablePayloadLogs) {
-            errorMessage += ` and payload ${JSON.stringify(payload)}`;
-        }
-        throw new Error(errorMessage);
+        let errorMessage = `${preOrPost}Processor ${processorARN} failed`;
+        utils.handleLambdaInvocationError(errorMessage, processorData, payload, disablePayloadLogs);
     }
     return processorData.Payload;
 };
@@ -328,6 +335,20 @@ module.exports.invokeLambda = (lambdaARN, alias, payload, disablePayloadLogs) =>
 };
 
 /**
+ * Handle a Lambda invocation error and generate an error message containing original error type, message and trace.
+ */
+module.exports.handleLambdaInvocationError = (errorMessageToDisplay, invocationResults, actualPayload, disablePayloadLogs) => {
+    const parsedResults = JSON.parse(Buffer.from(invocationResults.Payload));
+    if (!disablePayloadLogs) {
+        errorMessageToDisplay += ` with payload ${JSON.stringify(actualPayload)}`;
+    }
+    errorMessageToDisplay += ` - original error type: "${parsedResults.errorType}", ` +
+        `original error message: "${parsedResults.errorMessage}",` +
+        `trace: "${JSON.stringify(parsedResults.stackTrace)}"`;
+    throw new Error(errorMessageToDisplay);
+};
+
+/**
  * Fetch the body of an S3 object, given an S3 path such as s3://BUCKET/KEY
  */
 module.exports.fetchPayloadFromS3 = async(s3Path) => {
@@ -367,13 +388,12 @@ module.exports._fetchS3Object = async(bucket, key) => {
             Bucket: bucket,
             Key: key,
         };
-        var response = undefined;
-        response = await s3Client.send(new GetObjectCommand(input));
+        var response = await s3Client.send(new GetObjectCommand(input));
         return await response.Body.transformToString('utf-8');
     } catch (err) {
-        var statusCode = err.statusCode
+        var statusCode = err.statusCode;
         if (err.$response && err.$response.statusCode) {
-            statusCode = err.$response.statusCode
+            statusCode = err.$response.statusCode;
         }
         if (statusCode === 403) {
             throw new Error(
@@ -566,8 +586,14 @@ module.exports.extractDurationFromText = (log) => {
  */
 module.exports.extractDurationFromJSON = (log) => {
     // extract each line and parse it to JSON object
-    const lines = log.split('\n').map((line) => JSON.parse(line));
-
+    const lines = log.split('\n').filter((line) => line.startsWith('{')).map((line) => {
+        try {
+            return JSON.parse(line);
+        } catch (e) {
+            console.error(`Detected invalid JSON line: ${line}`);
+            return '';
+        }
+    });
     // find the log corresponding to the invocation report
     const durationLine = lines.find((line) => line.type === 'platform.report');
     if (durationLine){
@@ -612,7 +638,7 @@ module.exports.lambdaClientFromARN = (lambdaARN) => {
             maxAttempts: 20,
             requestTimeout: 15 * 60 * 1000
         })
-          
+
     }
     return client;
 };

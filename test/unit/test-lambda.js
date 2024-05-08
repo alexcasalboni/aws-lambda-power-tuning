@@ -4,7 +4,11 @@ const sinon = require('sinon');
 const expect = require('expect.js');
 
 var awsV3Mock = require('aws-sdk-client-mock');
-const { CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand, InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand, UpdateFunctionConfigurationCommand, ResourceNotFoundException } = require("@aws-sdk/client-lambda");
+const {
+    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand,
+    InvokeCommand, LambdaClient, PublishVersionCommand, UpdateAliasCommand,
+    UpdateFunctionConfigurationCommand, ResourceNotFoundException,
+} = require('@aws-sdk/client-lambda');
 
 const utils = require('../../lambda/utils');
 
@@ -63,6 +67,12 @@ const invokeForFailure = async(handler, event) => {
 
     expect(result).to.be(null);
 
+};
+
+// utility to create a UInt8Array from a string
+const toByteArray = (inputString) => {
+    const textEncoder = new TextEncoder();
+    return textEncoder.encode(inputString);
 };
 
 // Stub stuff
@@ -922,7 +932,9 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn, _alias, payload) => {
                     return {
                         FunctionError: 'Unhandled',
-                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "Exception", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
                     };
                 });
             await invokeForFailure(handler, {
@@ -943,7 +955,9 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn, _alias, payload) => {
                     return {
                         FunctionError: 'Unhandled',
-                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "Exception", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
                     };
                 });
             const error = await invokeForFailure(handler, {
@@ -984,7 +998,9 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn, _alias, payload) => {
                     return {
                         FunctionError: 'Unhandled',
-                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "Exception", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
                     };
                 });
             const error = await invokeForFailure(handler, {
@@ -1026,7 +1042,9 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn, _alias, payload) => {
                     return {
                         FunctionError: 'Unhandled',
-                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "Exception", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
                     };
                 });
             const error = await invokeForFailure(handler, {
@@ -1054,7 +1072,9 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn, _alias, payload) => {
                     return {
                         FunctionError: 'Unhandled',
-                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "Exception", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
                     };
                 });
             const error = await invokeForFailure(handler, {
@@ -1083,7 +1103,9 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn, _alias, payload) => {
                     return {
                         FunctionError: 'Unhandled',
-                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "Exception", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
                     };
                 });
             await invokeForFailure(handler, {
@@ -1277,7 +1299,9 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn, _alias, payload) => {
                     return {
                         FunctionError: 'Unhandled',
-                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "Exception", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
                     };
                 });
 
@@ -1313,7 +1337,9 @@ describe('Lambda Functions', async() => {
                 .callsFake(async(_arn, _alias, payload) => {
                     return {
                         FunctionError: 'Unhandled',
-                        Payload: '{"errorType": "MemoryError", "stackTrace": [["/var/task/lambda_function.py", 11, "lambda_handler", "blabla"], ["/var/task/lambda_function.py", 7, "blabla]]}',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "Exception", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
                     };
                 });
 
@@ -1878,7 +1904,7 @@ describe('Lambda Functions', async() => {
             expect(result.stats).to.eql(event.stats.map(stat => ({
                 value: stat.value,
                 averagePrice: stat.averagePrice,
-                averageDuration: stat.averageDuration
+                averageDuration: stat.averageDuration,
             })));
 
             expect(result.stats[0]).to.not.have.property('totalCost');
