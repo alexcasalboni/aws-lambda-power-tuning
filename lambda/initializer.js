@@ -20,31 +20,31 @@ module.exports.handler = async(event, context) => {
     // fetch initial $LATEST value so we can reset it later
     const {power} = await utils.getLambdaPower(lambdaARN);
 
-    let lambdaFunctionsToSet = [];
+    let initConfigurations = [];
 
     // reminder: configuration updates must run sequentially
     // (otherwise you get a ResourceConflictException)
     for (let powerValue of powerValues){
         const baseAlias = 'RAM' + powerValue;
         if (!onlyColdStarts){
-            lambdaFunctionsToSet.push({powerValue: powerValue, alias: baseAlias});
+            initConfigurations.push({powerValue: powerValue, alias: baseAlias});
         } else {
             for (let n of utils.range(num)){
                 let alias = utils.buildAliasString(baseAlias, onlyColdStarts, n);
                 // here we inject a custom env variable to force the creation of a new version
                 // even if the power is the same, which will force a cold start
-                lambdaFunctionsToSet.push({powerValue: powerValue, alias: alias});
+                initConfigurations.push({powerValue: powerValue, alias: alias});
             }
         }
     }
     // Publish another version to revert the Lambda Function to its original configuration
-    lambdaFunctionsToSet.push({powerValue: power});
+    initConfigurations.push({powerValue: power});
 
     const returnObj = {
-        initConfigurations: lambdaFunctionsToSet,
+        initConfigurations: initConfigurations,
         iterator: {
             index: 0,
-            count: lambdaFunctionsToSet.length,
+            count: initConfigurations.length,
             continue: true,
         },
         powerValues: powerValues,
