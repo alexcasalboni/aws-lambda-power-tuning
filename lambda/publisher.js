@@ -6,7 +6,7 @@ const utils = require('./utils');
 module.exports.handler = async(event, context) => {
     const {lambdaConfigurations, currConfig, lambdaARN} = validateInputs(event);
     const currentIterator = lambdaConfigurations.iterator;
-    const aliases = lambdaConfigurations.aliases;
+    const aliases = lambdaConfigurations.aliases || [];
 
     const {envVars} = await utils.getLambdaPower(lambdaARN);
     // Alias may not exist when we are reverting the Lambda function to its original configuration

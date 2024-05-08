@@ -246,9 +246,9 @@ describe('Lambda Functions', async() => {
         const invalidEvents = [
             { },
             {lambdaARN: 'arnOK'},
-            {lambdaARN: 'arnOK', powerValues: {}},
+            {lambdaARN: 'arnOK', lambdaConfigurations: {}},
             {lambdaARN: 'arnOK',
-                powerValues: {
+                lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 512,
                         alias: 'RAM512',
@@ -256,7 +256,7 @@ describe('Lambda Functions', async() => {
                 },
             },
             {lambdaARN: 'arnOK',
-                powerValues: {
+                lambdaConfigurations: {
                     iterator: {
                         index: 1,
                         count: 1,
@@ -264,7 +264,7 @@ describe('Lambda Functions', async() => {
                 },
             },
             {lambdaARN: 'arnOK',
-                powerValues: {
+                lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 512,
                         alias: 'RAM512',
@@ -279,7 +279,7 @@ describe('Lambda Functions', async() => {
                 },
             },
             {lambdaARN: 'arnOK',
-                powerValues: {
+                lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 512,
                         alias: 'RAM512',
@@ -307,7 +307,7 @@ describe('Lambda Functions', async() => {
             const originalIndex = 0;
             const generatedValues = await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
-                powerValues: {
+                lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 512,
                         alias: aliasValue,
@@ -330,7 +330,7 @@ describe('Lambda Functions', async() => {
         it('should publish the version even if an alias is not specified', async() => {
             await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
-                powerValues: {
+                lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 512,
                     }],
@@ -353,7 +353,7 @@ describe('Lambda Functions', async() => {
                 });
             await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
-                powerValues: {
+                lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 128,
                         alias: 'RAM128',
@@ -376,7 +376,7 @@ describe('Lambda Functions', async() => {
                 });
             await invokeForFailure(handler, {
                 lambdaARN: 'arnOK',
-                powerValues: {
+                lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 128,
                         alias: 'RAM128',
@@ -398,7 +398,7 @@ describe('Lambda Functions', async() => {
                 });
             await invokeForFailure(handler, {
                 lambdaARN: 'arnOK',
-                powerValues: {
+                lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 128,
                         alias: 'RAM128',
@@ -419,11 +419,11 @@ describe('Lambda Functions', async() => {
         let invalidEvents = [
             null,
             {},
-            { lambdaARN: null, powerValues: { aliases: ['RAM128']}},
-            { lambdaARN: '', powerValues: { aliases: ['RAM128']}},
-            { lambdaARN: false, powerValues: { aliases: ['RAM128']}},
-            { lambdaARN: 0, powerValues: { aliases: ['RAM128']}},
-            { lambdaARN: '', powerValues: { aliases: ['RAM128']}},
+            { lambdaARN: null, lambdaConfigurations: { aliases: ['RAM128']}},
+            { lambdaARN: '', lambdaConfigurations: { aliases: ['RAM128']}},
+            { lambdaARN: false, lambdaConfigurations: { aliases: ['RAM128']}},
+            { lambdaARN: 0, lambdaConfigurations: { aliases: ['RAM128']}},
+            { lambdaARN: '', lambdaConfigurations: { aliases: ['RAM128']}},
         ];
 
         invalidEvents.forEach(async(event) => {
@@ -434,8 +434,8 @@ describe('Lambda Functions', async() => {
 
         invalidEvents = [
             { lambdaARN: 'arnOK'},
-            { lambdaARN: 'arnOK', powerValues: {}},
-            { lambdaARN: 'arnOK', powerValues: { aliases: []}},
+            { lambdaARN: 'arnOK', lambdaConfigurations: {}},
+            { lambdaARN: 'arnOK', lambdaConfigurations: { aliases: []}},
         ];
 
         invalidEvents.forEach(async(event) => {
@@ -444,7 +444,7 @@ describe('Lambda Functions', async() => {
             });
         });
 
-        it('should explode if invoked without powerValues', async() => {
+        it('should explode if invoked without lambdaConfigurations', async() => {
             await invokeForFailure(handler, {lambdaARN: 'arnOK'});
         });
 
@@ -466,7 +466,7 @@ describe('Lambda Functions', async() => {
                 });
         });
 
-        const eventOK = { lambdaARN: 'arnOK', powerValues: {aliases: ['RAM128', 'RAM256', 'RAM512'] }};
+        const eventOK = { lambdaARN: 'arnOK', lambdaConfigurations: {aliases: ['RAM128', 'RAM256', 'RAM512'] }};
 
         it('should invoke the given cb, when done', async() => {
             await invokeForSuccess(handler, eventOK);
