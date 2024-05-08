@@ -295,6 +295,7 @@ Resources:
       DefinitionUri: statemachine/statemachine.asl.json
       DefinitionSubstitutions:
         initializerArn: !GetAtt initializer.Arn
+        versionPublisherArn: !GetAtt versionPublisher.Arn
         executorArn: !GetAtt executor.Arn
         cleanerArn: !GetAtt cleaner.Arn
         analyzerArn: !GetAtt analyzer.Arn

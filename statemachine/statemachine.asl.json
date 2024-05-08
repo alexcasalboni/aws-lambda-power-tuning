@@ -5,7 +5,7 @@
     "Initializer": {
       "Type": "Task",
       "Resource": "${initializerArn}",
-      "Next": "Branching",
+      "Next": "versionPublisher",
       "ResultPath": "$.powerValues",
       "TimeoutSeconds": ${totalExecutionTimeout},
       "Catch": [
@@ -16,10 +16,33 @@
         }
       ]
     },
+    "versionPublisher": {
+      "Type": "Task",
+      "Resource": "${versionPublisherArn}",
+      "Next": "IsCountReached",
+      "ResultPath": "$.powerValues",
+      "TimeoutSeconds": ${totalExecutionTimeout},
+      "Catch": [{
+        "ErrorEquals": [ "States.ALL" ],
+        "Next": "CleanUpOnError",
+        "ResultPath": "$.error"
+      }]
+    },
+    "IsCountReached": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.powerValues.iterator.continue",
+          "BooleanEquals": true,
+          "Next": "versionPublisher"
+        }
+      ],
+      "Default": "Branching"
+    },
     "Branching": {
       "Type": "Map",
       "Next": "Cleaner",
-      "ItemsPath": "$.powerValues",
+      "ItemsPath": "$.powerValues.powerValues",
       "ResultPath": "$.stats",
       "ItemSelector": {
         "input.$": "$",
