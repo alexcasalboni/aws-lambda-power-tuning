@@ -35,18 +35,18 @@ function validateInputs(event) {
     }
     const lambdaARN = event.lambdaARN;
     if (!(event.powerValues && event.powerValues.iterator && event.powerValues.initConfigurations)){
-        throw new Error('Invalid input');
+        throw new Error('Invalid iterator for initialization');
     }
     const iterator = event.powerValues.iterator;
     if (!(iterator.index >= 0 && iterator.index < iterator.count)){
-        throw new Error('Invalid iterator input');
+        throw new Error(`Invalid iterator index: ${iterator.index}`);
     }
     const initConfigurations = event.powerValues.initConfigurations;
     const aliases = event.powerValues.aliases || [];
     const currIdx = iterator.index;
     const currConfig = initConfigurations[currIdx];
     if (!(currConfig && currConfig.powerValue)){
-        throw new Error('Invalid configuration');
+        throw new Error(`Invalid init configuration: ${currConfig}`);
     }
     return {iterator, aliases, currConfig, lambdaARN};
 }
