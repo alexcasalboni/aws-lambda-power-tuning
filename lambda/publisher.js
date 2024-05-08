@@ -4,7 +4,10 @@ const utils = require('./utils');
 
 
 module.exports.handler = async(event, context) => {
-    const {iterator, aliases, currConfig, lambdaARN} = validateInputs(event);
+    const {lambdaConfigurations, currConfig, lambdaARN} = validateInputs(event);
+    const currentIterator = lambdaConfigurations.iterator;
+    const aliases = lambdaConfigurations.aliases;
+
     const {envVars} = await utils.getLambdaPower(lambdaARN);
     // Alias may not exist when we are reverting the Lambda function to its original configuration
     if (typeof currConfig.alias !== 'undefined'){
@@ -21,32 +24,36 @@ module.exports.handler = async(event, context) => {
     }
 
     // update iterator
-    iterator.index++;
-    iterator.continue = (iterator.index < iterator.count);
-    if (!iterator.continue) {
-        delete event.powerValues.initConfigurations;
-    }
-    event.powerValues.aliases = aliases;
-    return event.powerValues;
+    const updatedIterator = {
+        index: (currentIterator.index + 1),
+        count: currentIterator.count,
+        continue: ((currentIterator.index + 1) < currentIterator.count),
+    };
+    const updatedLambdaConfigurations = {
+        initConfigurations: ((updatedIterator.continue) ? lambdaConfigurations.initConfigurations : undefined),
+        iterator: updatedIterator,
+        aliases: aliases,
+        powerValues: lambdaConfigurations.powerValues,
+    };
+    return updatedLambdaConfigurations;
 };
 function validateInputs(event) {
     if (!event.lambdaARN) {
         throw new Error('Missing or empty lambdaARN');
     }
     const lambdaARN = event.lambdaARN;
-    if (!(event.powerValues && event.powerValues.iterator && event.powerValues.initConfigurations)){
+    if (!(event.lambdaConfigurations && event.lambdaConfigurations.iterator && event.lambdaConfigurations.initConfigurations)){
         throw new Error('Invalid iterator for initialization');
     }
-    const iterator = event.powerValues.iterator;
+    const iterator = event.lambdaConfigurations.iterator;
     if (!(iterator.index >= 0 && iterator.index < iterator.count)){
         throw new Error(`Invalid iterator index: ${iterator.index}`);
     }
-    const initConfigurations = event.powerValues.initConfigurations;
-    const aliases = event.powerValues.aliases || [];
+    const lambdaConfigurations = event.lambdaConfigurations;
     const currIdx = iterator.index;
-    const currConfig = initConfigurations[currIdx];
+    const currConfig = lambdaConfigurations.initConfigurations[currIdx];
     if (!(currConfig && currConfig.powerValue)){
         throw new Error(`Invalid init configuration: ${currConfig}`);
     }
-    return {iterator, aliases, currConfig, lambdaARN};
+    return {lambdaConfigurations, currConfig, lambdaARN};
 }

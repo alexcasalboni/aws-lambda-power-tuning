@@ -6,7 +6,7 @@
       "Type": "Task",
       "Resource": "${initializerArn}",
       "Next": "versionPublisher",
-      "ResultPath": "$.powerValues",
+      "ResultPath": "$.lambdaConfigurations",
       "TimeoutSeconds": ${totalExecutionTimeout},
       "Catch": [
         {
@@ -20,7 +20,7 @@
       "Type": "Task",
       "Resource": "${versionPublisherArn}",
       "Next": "IsCountReached",
-      "ResultPath": "$.powerValues",
+      "ResultPath": "$.lambdaConfigurations",
       "TimeoutSeconds": ${totalExecutionTimeout},
       "Catch": [{
         "ErrorEquals": [ "States.ALL" ],
@@ -32,7 +32,7 @@
       "Type": "Choice",
       "Choices": [
         {
-          "Variable": "$.powerValues.iterator.continue",
+          "Variable": "$.lambdaConfigurations.iterator.continue",
           "BooleanEquals": true,
           "Next": "versionPublisher"
         }
@@ -42,7 +42,7 @@
     "Branching": {
       "Type": "Map",
       "Next": "Cleaner",
-      "ItemsPath": "$.powerValues.powerValues",
+      "ItemsPath": "$.lambdaConfigurations.powerValues",
       "ResultPath": "$.stats",
       "ItemSelector": {
         "input.$": "$",
