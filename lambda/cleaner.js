@@ -28,7 +28,7 @@ module.exports.handler = async(event, context) => {
 const extractDataFromInput = (event) => {
     return {
         lambdaARN: event.lambdaARN,
-        aliases: event.powerValues.aliases,
+        aliases: event.lambdaConfigurations.aliases,
     };
 };
 
