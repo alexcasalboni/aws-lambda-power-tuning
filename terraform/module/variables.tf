@@ -1,10 +1,12 @@
 variable "account_id" {
   description = "Your AWS account id."
+  type        = string
 }
 
 variable "lambda_function_prefix" {
-  default = "lambda_power_tuning"
+  default     = "lambda_power_tuning"
   description = "Prefix used for the names of Lambda functions, Step Functions state machines, IAM roles, and IAM policies."
+  type        = string
 }
 
 variable "role_path_override" {
@@ -16,6 +18,7 @@ variable "role_path_override" {
 variable "permissions_boundary" {
   default     = null
   description = "ARN of the policy that is used to set the permissions boundary for the role."
+  type        = string
 }
 
 variable "vpc_subnet_ids" {

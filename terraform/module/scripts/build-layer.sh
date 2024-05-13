@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # make sure we're working on the layer folder
-cd ../layer-sdk
+cd ../../../layer-sdk
 
 # create subfolders
 ## ./src is referenced by the LayerVersion resource (.gitignored)
