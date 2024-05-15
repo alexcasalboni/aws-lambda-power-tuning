@@ -5,7 +5,7 @@
     "Initializer": {
       "Type": "Task",
       "Resource": "${initializerArn}",
-      "Next": "versionPublisher",
+      "Next": "Publisher",
       "ResultPath": "$.lambdaConfigurations",
       "TimeoutSeconds": ${totalExecutionTimeout},
       "Catch": [
@@ -16,9 +16,9 @@
         }
       ]
     },
-    "versionPublisher": {
+    "Publisher": {
       "Type": "Task",
-      "Resource": "${versionPublisherArn}",
+      "Resource": "${publisherArn}",
       "Next": "IsCountReached",
       "ResultPath": "$.lambdaConfigurations",
       "TimeoutSeconds": ${totalExecutionTimeout},
@@ -34,7 +34,7 @@
         {
           "Variable": "$.lambdaConfigurations.iterator.continue",
           "BooleanEquals": true,
-          "Next": "versionPublisher"
+          "Next": "Publisher"
         }
       ],
       "Default": "Branching"

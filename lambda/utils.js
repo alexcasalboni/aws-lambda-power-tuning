@@ -84,9 +84,9 @@ module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
 /**
  * Update power, publish new version, and create/update alias.
  */
-module.exports.createPowerConfiguration = async(lambdaARN, value, alias, envVars) => {
+module.exports.createPowerConfiguration = async(lambdaARN, value, alias, description) => {
     try {
-        await utils.setLambdaPower(lambdaARN, value, envVars);
+        await utils.setLambdaPower(lambdaARN, value, description);
 
         // wait for function update to complete
         await utils.waitForFunctionUpdate(lambdaARN);
@@ -157,7 +157,7 @@ module.exports.getLambdaPower = async(lambdaARN) => {
     return {
         power: config.MemorySize,
         // we need to fetch env vars only to add a new one and force a cold start
-        envVars: (config.Environment || {}).Variables || {},
+        description: config.Description,
     };
 };
 
@@ -193,12 +193,12 @@ module.exports.getLambdaConfig = async(lambdaARN, alias) => {
 /**
  * Update a given Lambda Function's memory size (always $LATEST version).
  */
-module.exports.setLambdaPower = (lambdaARN, value, envVars) => {
+module.exports.setLambdaPower = (lambdaARN, value, description) => {
     console.log('Setting power to ', value);
     const params = {
         FunctionName: lambdaARN,
         MemorySize: parseInt(value, 10),
-        Environment: {Variables: envVars},
+        Description: description,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.send(new UpdateFunctionConfigurationCommand(params));

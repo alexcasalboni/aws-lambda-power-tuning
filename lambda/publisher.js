@@ -8,16 +8,16 @@ module.exports.handler = async(event, context) => {
     const currentIterator = lambdaConfigurations.iterator;
     const aliases = lambdaConfigurations.aliases || [];
 
-    const {envVars} = await utils.getLambdaPower(lambdaARN);
+    let description;
     // Alias may not exist when we are reverting the Lambda function to its original configuration
     if (typeof currConfig.alias !== 'undefined'){
-        envVars.LambdaPowerTuningForceColdStart = currConfig.alias;
+        description = currConfig.alias;
     } else {
-        delete envVars.LambdaPowerTuningForceColdStart;
+        description = currConfig.description;
     }
 
     // publish version & assign alias (if present)
-    await utils.createPowerConfiguration(lambdaARN, currConfig.powerValue, currConfig.alias, envVars);
+    await utils.createPowerConfiguration(lambdaARN, currConfig.powerValue, currConfig.alias, description);
     if (typeof currConfig.alias !== 'undefined') {
         // keep track of all aliases
         aliases.push(currConfig.alias);
@@ -53,7 +53,7 @@ function validateInputs(event) {
     const currIdx = iterator.index;
     const currConfig = lambdaConfigurations.initConfigurations[currIdx];
     if (!(currConfig && currConfig.powerValue)){
-        throw new Error(`Invalid init configuration: ${currConfig}`);
+        throw new Error(`Invalid init configuration: ${JSON.stringify(currConfig)}`);
     }
     return {lambdaConfigurations, currConfig, lambdaARN};
 }

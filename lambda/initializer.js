@@ -18,7 +18,8 @@ module.exports.handler = async(event, context) => {
     validateInput(lambdaARN, num); // may throw
 
     // fetch initial $LATEST value so we can reset it later
-    const {power} = await utils.getLambdaPower(lambdaARN);
+    const {power, description} = await utils.getLambdaPower(lambdaARN);
+    console.log(power, description);
 
     let initConfigurations = [];
 
@@ -38,7 +39,7 @@ module.exports.handler = async(event, context) => {
         }
     }
     // Publish another version to revert the Lambda Function to its original configuration
-    initConfigurations.push({powerValue: power});
+    initConfigurations.push({powerValue: power, description: description});
 
     const returnObj = {
         initConfigurations: initConfigurations,

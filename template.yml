@@ -134,7 +134,7 @@ Resources:
                 - lambda:GetAlias
                 - lambda:GetFunctionConfiguration
               Resource: !Ref lambdaResource
-  versionPublisher:
+  publisher:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: lambda
@@ -295,7 +295,7 @@ Resources:
       DefinitionUri: statemachine/statemachine.asl.json
       DefinitionSubstitutions:
         initializerArn: !GetAtt initializer.Arn
-        versionPublisherArn: !GetAtt versionPublisher.Arn
+        publisherArn: !GetAtt publisher.Arn
         executorArn: !GetAtt executor.Arn
         cleanerArn: !GetAtt cleaner.Arn
         analyzerArn: !GetAtt analyzer.Arn
