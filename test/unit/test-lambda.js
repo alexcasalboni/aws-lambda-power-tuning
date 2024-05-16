@@ -33,7 +33,6 @@ const fakeContext = {};
 
 // variables used during tests
 var setLambdaPowerCounter,
-    getLambdaPowerCounter,
     publishLambdaVersionCounter,
     createLambdaAliasCounter,
     updateLambdaAliasCounter,
@@ -91,11 +90,11 @@ var getLambdaAliasStub,
 
 /** unit tests below **/
 
+const singleAliasConfig = { aliases: ['RAM128']};
 describe('Lambda Functions', async() => {
 
     beforeEach('mock utilities', () => {
         setLambdaPowerCounter = 0;
-        getLambdaPowerCounter = 0;
         publishLambdaVersionCounter = 0;
         createLambdaAliasCounter = 0;
         updateLambdaAliasCounter = 0;
@@ -115,14 +114,6 @@ describe('Lambda Functions', async() => {
             .callsFake(async() => {
                 const error = new ResourceNotFoundException('alias is not defined');
                 throw error;
-            });
-        sandBox.stub(utils, 'getLambdaPower')
-            .callsFake(async() => {
-                getLambdaPowerCounter++;
-                return {
-                    power: 1024,
-                    envVars: {},
-                };
             });
         setLambdaPowerStub = sandBox.stub(utils, 'setLambdaPower')
             .callsFake(async() => {
@@ -217,13 +208,13 @@ describe('Lambda Functions', async() => {
             expect(generatedValues.initConfigurations.length).to.be(47); // 46 power values plus the previous Lambda power configuration
         });
 
-        it('should generate N aliases and versions', async() => {
+        it('should generate N configurations', async() => {
             const generatedValues = await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
 
             // +1 because it will also reset power to its initial value
             expect(generatedValues.initConfigurations.length).to.be(powerValues.length + 1);
         });
-        it('should generate N aliases and versions', async() => {
+        it('should generate N configurations', async() => {
             const generatedValues = await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
 
             // +1 because it will also reset power to its initial value
@@ -317,15 +308,12 @@ describe('Lambda Functions', async() => {
                         count: 1,
                     },
                 }});
-            expect(getLambdaPowerCounter).to.be(1);
             expect(setLambdaPowerCounter).to.be(1);
             expect(waitForFunctionUpdateCounter).to.be(1);
             expect(publishLambdaVersionCounter).to.be(1);
             expect(createLambdaAliasCounter).to.be(1);
             expect(generatedValues.iterator.index).to.be(originalIndex + 1); // index should be incremented by 1
             expect(generatedValues.iterator.continue).to.be(false); // the iterator should be set to continue=false
-            expect(generatedValues.aliases.length).to.be(1);
-            expect(generatedValues.aliases[0]).to.be(aliasValue);
         });
         it('should publish the version even if an alias is not specified', async() => {
             await invokeForSuccess(handler, {
@@ -419,11 +407,11 @@ describe('Lambda Functions', async() => {
         let invalidEvents = [
             null,
             {},
-            { lambdaARN: null, lambdaConfigurations: { aliases: ['RAM128']}},
-            { lambdaARN: '', lambdaConfigurations: { aliases: ['RAM128']}},
-            { lambdaARN: false, lambdaConfigurations: { aliases: ['RAM128']}},
-            { lambdaARN: 0, lambdaConfigurations: { aliases: ['RAM128']}},
-            { lambdaARN: '', lambdaConfigurations: { aliases: ['RAM128']}},
+            { lambdaARN: null, lambdaConfigurations: singleAliasConfig},
+            { lambdaARN: '', lambdaConfigurations: singleAliasConfig},
+            { lambdaARN: false, lambdaConfigurations: singleAliasConfig},
+            { lambdaARN: 0, lambdaConfigurations: singleAliasConfig},
+            { lambdaARN: '', lambdaConfigurations: singleAliasConfig},
         ];
 
         invalidEvents.forEach(async(event) => {
@@ -435,11 +423,11 @@ describe('Lambda Functions', async() => {
         invalidEvents = [
             { lambdaARN: 'arnOK'},
             { lambdaARN: 'arnOK', lambdaConfigurations: {}},
-            { lambdaARN: 'arnOK', lambdaConfigurations: { aliases: []}},
+            { lambdaARN: 'arnOK', lambdaConfigurations: { powerValues: []}},
         ];
 
         invalidEvents.forEach(async(event) => {
-            it('should explode if invoked without valid aliases - ' + JSON.stringify(event), async() => {
+            it('should explode if invoked without valid powerValues - ' + JSON.stringify(event), async() => {
                 await invokeForFailure(handler, event);
             });
         });
@@ -466,7 +454,7 @@ describe('Lambda Functions', async() => {
                 });
         });
 
-        const eventOK = { lambdaARN: 'arnOK', lambdaConfigurations: {aliases: ['RAM128', 'RAM256', 'RAM512'] }};
+        const eventOK = { lambdaARN: 'arnOK', lambdaConfigurations: {powerValues: ['128', '256', '512'] }};
 
         it('should invoke the given cb, when done', async() => {
             await invokeForSuccess(handler, eventOK);

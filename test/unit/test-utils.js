@@ -38,7 +38,7 @@ lambdaMock.on(GetFunctionConfigurationCommand).resolves({
     State: 'Active',
     LastUpdateStatus: 'Successful',
     Architectures: ['x86_64'],
-    Environment: {Variables: {TEST: 'OK'}},
+    Description: 'Sample Description',
 });
 lambdaMock.on(UpdateFunctionConfigurationCommand).resolves({});
 lambdaMock.on(PublishVersionCommand).resolves({});
@@ -134,26 +134,31 @@ describe('Lambda Utils', () => {
     });
 
     describe('getLambdaPower', () => {
-        it('should return the power value and env vars', async() => {
-            const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
-            expect(value.power).to.be(1024);
-            expect(value.envVars).to.be.an('object');
-            expect(value.envVars.TEST).to.be('OK');
-        });
-
-        it('should return the power value and env vars even when empty env', async() => {
+        it('should return the power value and description', async() => {
             lambdaMock.on(GetFunctionConfigurationCommand).resolves({
                 MemorySize: 1024,
                 State: 'Active',
                 LastUpdateStatus: 'Successful',
                 Architectures: ['x86_64'],
-                Environment: null, // this is null if no vars are set
+                Description: 'Sample Description', // this is null if no vars are set
+            });
+            const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
+            expect(value.power).to.be(1024);
+            expect(value.description).to.be('Sample Description');
+        });
+
+        it('should return the power value and description, even if empty', async() => {
+            lambdaMock.on(GetFunctionConfigurationCommand).resolves({
+                MemorySize: 1024,
+                State: 'Active',
+                LastUpdateStatus: 'Successful',
+                Architectures: ['x86_64'],
+                Description: '', // this is null if no vars are set
             });
 
             const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
             expect(value.power).to.be(1024);
-            expect(value.envVars).to.be.an('object');
-            expect(value.envVars.TEST).to.be(undefined);
+            expect(value.description).to.be('');
         });
     });
 
