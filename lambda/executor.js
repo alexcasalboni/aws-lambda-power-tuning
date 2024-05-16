@@ -175,6 +175,7 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
         // run invocations in series
         if (onlyColdStarts){
             await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
+            console.log(`${aliasToInvoke} is active`);
         }
         const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload

@@ -26,8 +26,7 @@ module.exports.handler = async(event, context) => {
         await utils.setLambdaPower(lambdaARN, optimalValue);
     } else {
         // create/update alias
-        const {envVars} = await utils.getLambdaPower(lambdaARN);
-        await utils.createPowerConfiguration(lambdaARN, optimalValue, autoOptimizeAlias, envVars);
+        await utils.createPowerConfiguration(lambdaARN, optimalValue, autoOptimizeAlias);
     }
 
     return 'OK';

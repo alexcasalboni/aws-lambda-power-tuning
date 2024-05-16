@@ -31,14 +31,16 @@ module.exports.handler = async(event, context) => {
 };
 
 const buildAliasListForCleanup = (lambdaARN, onlyColdStarts, powerValues, num) => {
-    let aliases;
     if (onlyColdStarts){
-        aliases = powerValues.map((powerValue) => utils.range(num).map((value) => utils.buildAliasString(`RAM${powerValue}`, onlyColdStarts, value))).flat();
-    } else {
-        aliases = powerValues.map((powerValue) => utils.buildAliasString(`RAM${powerValue}`));
+        return powerValues.map((powerValue) => {
+            return utils.range(num).map((index) => {
+                return utils.buildAliasString(`RAM${powerValue}`, onlyColdStarts, index);
+            });
+        }).flat();
     }
-    return aliases;
+    return powerValues.map((powerValue) => utils.buildAliasString(`RAM${powerValue}`));
 };
+
 const extractDataFromInput = (event) => {
     return {
         lambdaARN: event.lambdaARN,
