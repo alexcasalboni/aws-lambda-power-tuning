@@ -6,22 +6,8 @@ const utils = require('./utils');
 module.exports.handler = async(event, context) => {
     const {lambdaConfigurations, currConfig, lambdaARN} = validateInputs(event);
     const currentIterator = lambdaConfigurations.iterator;
-    const aliases = lambdaConfigurations.aliases || [];
-
-    let description;
-    // Alias may not exist when we are reverting the Lambda function to its original configuration
-    if (typeof currConfig.alias !== 'undefined'){
-        description = currConfig.alias;
-    } else {
-        description = currConfig.description;
-    }
-
     // publish version & assign alias (if present)
-    await utils.createPowerConfiguration(lambdaARN, currConfig.powerValue, currConfig.alias, description);
-    if (typeof currConfig.alias !== 'undefined') {
-        // keep track of all aliases
-        aliases.push(currConfig.alias);
-    }
+    await utils.createPowerConfiguration(lambdaARN, currConfig.powerValue, currConfig.alias, currConfig.description);
 
     // update iterator
     const updatedIterator = {
@@ -29,13 +15,11 @@ module.exports.handler = async(event, context) => {
         count: currentIterator.count,
         continue: ((currentIterator.index + 1) < currentIterator.count),
     };
-    const updatedLambdaConfigurations = {
+    return {
         initConfigurations: ((updatedIterator.continue) ? lambdaConfigurations.initConfigurations : undefined),
         iterator: updatedIterator,
-        aliases: aliases,
         powerValues: lambdaConfigurations.powerValues,
     };
-    return updatedLambdaConfigurations;
 };
 function validateInputs(event) {
     if (!event.lambdaARN) {

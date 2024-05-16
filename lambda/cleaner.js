@@ -10,10 +10,15 @@ module.exports.handler = async(event, context) => {
 
     const {
         lambdaARN,
-        aliases,
+        powerValues,
+        onlyColdStarts,
+        num,
     } = extractDataFromInput(event);
 
-    validateInput(lambdaARN, aliases); // may throw
+    validateInput(lambdaARN, powerValues); // may throw
+
+    // build list of aliases to clean up
+    const aliases = buildAliasListForCleanup(lambdaARN, onlyColdStarts, powerValues, num);
 
     const ops = aliases.map(async(alias) => {
         await cleanup(lambdaARN, alias);
@@ -25,19 +30,30 @@ module.exports.handler = async(event, context) => {
     return 'OK';
 };
 
+const buildAliasListForCleanup = (lambdaARN, onlyColdStarts, powerValues, num) => {
+    let aliases;
+    if (onlyColdStarts){
+        aliases = powerValues.map((powerValue) => utils.range(num).map((value) => utils.buildAliasString(`RAM${powerValue}`, onlyColdStarts, value))).flat();
+    } else {
+        aliases = powerValues.map((powerValue) => utils.buildAliasString(`RAM${powerValue}`));
+    }
+    return aliases;
+};
 const extractDataFromInput = (event) => {
     return {
         lambdaARN: event.lambdaARN,
-        aliases: event.lambdaConfigurations.aliases,
+        powerValues: event.lambdaConfigurations.powerValues,
+        onlyColdStarts: event.onlyColdStarts,
+        num: parseInt(event.num, 10), // use the default in case it was not defined
     };
 };
 
-const validateInput = (lambdaARN, aliases) => {
+const validateInput = (lambdaARN, powerValues) => {
     if (!lambdaARN) {
         throw new Error('Missing or empty lambdaARN');
     }
-    if (!aliases || !aliases.length) {
-        throw new Error('Missing or empty alias values');
+    if (!powerValues || !powerValues.length) {
+        throw new Error('Missing or empty powerValues values');
     }
 };
 

@@ -36,7 +36,9 @@ module.exports.handler = async(event, context) => {
     const lambdaAlias = 'RAM' + value;
     let results;
 
+    // defaulting the index to 0 as the index is required for onlyColdStarts
     let aliasToInvoke = utils.buildAliasString(lambdaAlias, onlyColdStarts, 0);
+    // We need the architecture, regardless of onlyColdStarts or not
     const {architecture, isPending} = await utils.getLambdaConfig(lambdaARN, aliasToInvoke);
 
     console.log(`Detected architecture type: ${architecture}, isPending: ${isPending}`);
@@ -57,6 +59,7 @@ module.exports.handler = async(event, context) => {
     };
 
     // wait if the function/alias state is Pending
+    // in the case of onlyColdStarts, we will verify each alias in the runInParallel or runInSeries
     if (isPending && !onlyColdStarts) {
         await utils.waitForAliasActive(lambdaARN, lambdaAlias);
         console.log('Alias active');
@@ -100,11 +103,13 @@ const extractDiscardTopBottomValue = (event) => {
     // extract discardTopBottom used to trim values from average duration
     let discardTopBottom = event.discardTopBottom;
     if (typeof discardTopBottom === 'undefined') {
-        if (event.onlyColdStarts){
-            discardTopBottom = 0;
-        } else {
-            discardTopBottom = 0.2;
-        }
+        // default value for discardTopBottom
+        discardTopBottom = 0.2;
+    }
+    // In case of onlyColdStarts, we only have 1 invocation per alias, therefore we shouldn't discard any execution
+    if (event.onlyColdStarts){
+        discardTopBottom = 0;
+        console.log('Setting discardTopBottom to 0, every invocation should be accounted when onlyColdStarts');
     }
     // discardTopBottom must be between 0 and 0.4
     return Math.min(Math.max(discardTopBottom, 0.0), 0.4);
