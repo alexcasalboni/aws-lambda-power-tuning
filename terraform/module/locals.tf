@@ -11,7 +11,7 @@ locals {
     "${path.module}/json_files/state_machine.json",
     {
       initializerArn = aws_lambda_function.initializer.arn,
-      versionPublisherArn = aws_lambda_function.publisher.arn,
+      publisherArn = aws_lambda_function.publisher.arn,
       executorArn    = aws_lambda_function.executor.arn,
       cleanerArn     = aws_lambda_function.cleaner.arn,
       analyzerArn    = aws_lambda_function.analyzer.arn,
