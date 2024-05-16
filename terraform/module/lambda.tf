@@ -161,7 +161,7 @@ resource "aws_lambda_function" "publisher" {
   # source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
   source_code_hash = data.archive_file.app.output_base64sha256
 
-  runtime = "nodejs16.x"
+  runtime = "nodejs20.x"
 
   dynamic "vpc_config" {
     for_each = var.vpc_subnet_ids != null && var.vpc_security_group_ids != null ? [true] : []
