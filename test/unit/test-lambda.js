@@ -238,7 +238,8 @@ describe('Lambda Functions', async() => {
             { },
             {lambdaARN: 'arnOK'},
             {lambdaARN: 'arnOK', lambdaConfigurations: {}},
-            {lambdaARN: 'arnOK',
+            {
+                lambdaARN: 'arnOK',
                 lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 512,
@@ -246,7 +247,8 @@ describe('Lambda Functions', async() => {
                     }],
                 },
             },
-            {lambdaARN: 'arnOK',
+            {
+                lambdaARN: 'arnOK',
                 lambdaConfigurations: {
                     iterator: {
                         index: 1,
@@ -254,7 +256,8 @@ describe('Lambda Functions', async() => {
                     },
                 },
             },
-            {lambdaARN: 'arnOK',
+            {
+                lambdaARN: 'arnOK',
                 lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 512,
@@ -269,7 +272,8 @@ describe('Lambda Functions', async() => {
                     },
                 },
             },
-            {lambdaARN: 'arnOK',
+            {
+                lambdaARN: 'arnOK',
                 lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 512,
@@ -292,28 +296,54 @@ describe('Lambda Functions', async() => {
             });
         });
 
-        it('should publish the given lambda version', async() => {
-
-            const aliasValue = 'RAM512';
-            const originalIndex = 0;
+        it('should publish the given lambda version (first iteration)', async() => {
             const generatedValues = await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
                 lambdaConfigurations: {
                     initConfigurations: [{
                         powerValue: 512,
-                        alias: aliasValue,
+                        alias: 'RAM512',
+                    }, {
+                        powerValue: 1024,
+                        alias: 'RAM1024',
                     }],
                     iterator: {
-                        index: originalIndex,
-                        count: 1,
+                        index: 0,
+                        count: 2,
                     },
                 }});
             expect(setLambdaPowerCounter).to.be(1);
             expect(waitForFunctionUpdateCounter).to.be(1);
             expect(publishLambdaVersionCounter).to.be(1);
             expect(createLambdaAliasCounter).to.be(1);
-            expect(generatedValues.iterator.index).to.be(originalIndex + 1); // index should be incremented by 1
+            expect(generatedValues.iterator.index).to.be(1); // index should be incremented by 1
+            expect(generatedValues.iterator.continue).to.be(true); // the iterator should be set to continue=false
+            expect(generatedValues.initConfigurations).to.be.a('array'); // initConfigurations should be a list
+        });
+
+        it('should publish the given lambda version (last iteration)', async() => {
+            const generatedValues = await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 512,
+                        alias: 'RAM512',
+                    }, {
+                        powerValue: 1024,
+                        alias: 'RAM1024',
+                    }],
+                    iterator: {
+                        index: 1,
+                        count: 2,
+                    },
+                }});
+            expect(setLambdaPowerCounter).to.be(1);
+            expect(waitForFunctionUpdateCounter).to.be(1);
+            expect(publishLambdaVersionCounter).to.be(1);
+            expect(createLambdaAliasCounter).to.be(1);
+            expect(generatedValues.iterator.index).to.be(2); // index should be incremented by 1
             expect(generatedValues.iterator.continue).to.be(false); // the iterator should be set to continue=false
+            expect(generatedValues.initConfigurations).to.be(undefined); // initConfigurations should be unset
         });
 
         it('should publish the version even if an alias is not specified', async() => {

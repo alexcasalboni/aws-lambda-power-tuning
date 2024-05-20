@@ -9,17 +9,22 @@ module.exports.handler = async(event, context) => {
     // publish version & assign alias (if present)
     await utils.createPowerConfiguration(lambdaARN, currConfig.powerValue, currConfig.alias, currConfig.description);
 
-    // update iterator
-    const updatedIterator = {
-        index: (currentIterator.index + 1),
-        count: currentIterator.count,
-        continue: ((currentIterator.index + 1) < currentIterator.count),
-    };
-    return {
-        initConfigurations: ((updatedIterator.continue) ? lambdaConfigurations.initConfigurations : undefined),
-        iterator: updatedIterator,
+    const result = {
         powerValues: lambdaConfigurations.powerValues,
+        initConfigurations: lambdaConfigurations.initConfigurations,
+        iterator: {
+            index: (currentIterator.index + 1),
+            count: currentIterator.count,
+            continue: ((currentIterator.index + 1) < currentIterator.count),
+        },
     };
+
+    if (!result.iterator.continue) {
+        // clean the list of configuration if we're done iterating
+        delete result.initConfigurations;
+    }
+
+    return result;
 };
 function validateInputs(event) {
     if (!event.lambdaARN) {
