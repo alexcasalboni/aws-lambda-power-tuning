@@ -7,14 +7,7 @@
       "Resource": "${initializerArn}",
       "Next": "Publisher",
       "ResultPath": "$.lambdaConfigurations",
-      "TimeoutSeconds": ${totalExecutionTimeout},
-      "Catch": [
-        {
-          "ErrorEquals": ["States.ALL"],
-          "Next": "CleanUpOnError",
-          "ResultPath": "$.error"
-        }
-      ]
+      "TimeoutSeconds": ${totalExecutionTimeout}
     },
     "Publisher": {
       "Type": "Task",
