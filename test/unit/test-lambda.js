@@ -315,6 +315,7 @@ describe('Lambda Functions', async() => {
             expect(generatedValues.iterator.index).to.be(originalIndex + 1); // index should be incremented by 1
             expect(generatedValues.iterator.continue).to.be(false); // the iterator should be set to continue=false
         });
+
         it('should publish the version even if an alias is not specified', async() => {
             await invokeForSuccess(handler, {
                 lambdaARN: 'arnOK',
@@ -328,6 +329,7 @@ describe('Lambda Functions', async() => {
                     },
                 }});
         });
+
         it('should update an alias if it already exists', async() => {
             getLambdaAliasStub && getLambdaAliasStub.restore();
             getLambdaAliasStub = sandBox.stub(utils, 'getLambdaAlias')
@@ -375,6 +377,26 @@ describe('Lambda Functions', async() => {
                     },
                 }});
             expect(waitForFunctionUpdateCounter).to.be(0);
+        });
+
+        it('should NOT explode if something goes wrong during alias creation but it already exists', async() => {
+            createLambdaAliasStub && createLambdaAliasStub.restore();
+            createLambdaAliasStub = sandBox.stub(utils, 'createLambdaAlias')
+                .callsFake(async() => {
+                    throw new Error('Alias already exists');
+                });
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 128,
+                        alias: 'RAM128',
+                    }],
+                    iterator: {
+                        index: 0,
+                        count: 1,
+                    },
+                }});
         });
 
         it('should fail is something goes wrong with the initialization API calls', async() => {
@@ -454,7 +476,11 @@ describe('Lambda Functions', async() => {
                 });
         });
 
-        const eventOK = { lambdaARN: 'arnOK', lambdaConfigurations: {powerValues: ['128', '256', '512'] }};
+        const eventOK = {
+            num:10,
+            lambdaARN: 'arnOK',
+            lambdaConfigurations: {powerValues: ['128', '256', '512'] },
+        };
 
         it('should invoke the given cb, when done', async() => {
             await invokeForSuccess(handler, eventOK);
@@ -488,6 +514,15 @@ describe('Lambda Functions', async() => {
                     throw error;
                 });
             await invokeForFailure(handler, eventOK);
+        });
+
+        it('should work fine even with onlyColdStarts=true', async() => {
+            await invokeForSuccess(handler, {
+                num: 10,
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {powerValues: ['128', '256', '512'] },
+                onlyColdStarts: true,
+            });
         });
 
     });
@@ -1556,7 +1591,7 @@ describe('Lambda Functions', async() => {
 
             console.log('response', response);
 
-            expect(response.averageDuration).to.be(27.7);
+            expect(response.averageDuration).to.be(27.71);
         });
 
         it('should waitForAliasActive for each Alias when onlyColdStarts is set', async() => {

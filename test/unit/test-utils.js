@@ -107,7 +107,7 @@ describe('Lambda Utils', () => {
         sandBox.restore();
     });
 
-    describe('stepFunctionsCost', () => {
+    describe('stepFunctionsBaseCost', () => {
         it('should return expected step base cost', () => {
             process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
             process.env.AWS_REGION = 'us-gov-west-1';
@@ -122,13 +122,21 @@ describe('Lambda Utils', () => {
         });
     });
 
-    describe('stepFunctionsBaseCost', () => {
+    describe('stepFunctionsCost', () => {
         it('should return expected step total cost', () => {
             process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
             process.env.AWS_REGION = 'us-gov-west-1';
             const nPower = 10;
-            const expectedCost = +(0.00003 * (6 + nPower)).toFixed(5);
-            const result = utils.stepFunctionsCost(nPower);
+            const expectedCost = 0.00108;
+            const result = utils.stepFunctionsCost(nPower, false, 10);
+            expect(result).to.be.equal(expectedCost);
+        });
+        it('should return expected step total cost when onlyColdStarts=true', () => {
+            process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
+            process.env.AWS_REGION = 'us-gov-west-1';
+            const nPower = 10;
+            const expectedCost = 0.00648;
+            const result = utils.stepFunctionsCost(nPower, true, 10);
             expect(result).to.be.equal(expectedCost);
         });
     });
@@ -202,36 +210,40 @@ describe('Lambda Utils', () => {
 
     });
 
+    const textLog =
+        'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n' +
+        'END RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\n' +
+        'REPORT RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\tDuration: 469.40 ms\tBilled Duration: 500 ms\tMemory Size: 1024 MB\tMax Memory Used: 21 MB\tInit Duration: 100.99 ms'
+        ;
+
+    // JSON logs contain multiple objects, seperated by a newline
+    const jsonLog =
+        '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
+        '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
+        '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
+        '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":2,"memorySizeMB":1024,"maxMemoryUsedMB":68,"initDurationMs": 10}}}'
+        ;
+
+    const jsonMixedLog =
+        '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
+        '[AWS Parameters and Secrets Lambda Extension] 2024/04/11 02:14:17 PARAMETERS_SECRETS_EXTENSION_LOG_LEVEL is info. Log level set to info.' +
+        '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
+        '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
+        '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":4,"memorySizeMB":1024,"maxMemoryUsedMB":68,"initDurationMs": 20}}}'
+        ;
+
+    const jsonMixedLogWithInvalidJSON =
+        '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"\n' + // missing } here
+        '[AWS Parameters and Secrets Lambda Extension] 2024/04/11 02:14:17 PARAMETERS_SECRETS_EXTENSION_LOG_LEVEL is info. Log level set to info.' +
+        '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
+        '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
+        '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":8,"memorySizeMB":1024,"maxMemoryUsedMB":68,"initDurationMs": 30}}}'
+        ;
+
+    const invalidJSONLog = '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}';
+
+
     describe('extractDuration', () => {
-        const textLog =
-            'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n' +
-            'END RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\n' +
-            'REPORT RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\tDuration: 469.40 ms\tBilled Duration: 500 ms\tMemory Size: 1024 MB\tMax Memory Used: 21 MB'
-            ;
-
-        // JSON logs contain multiple objects, seperated by a newline
-        const jsonLog =
-            '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
-            '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
-            '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
-            '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":2,"memorySizeMB":1024,"maxMemoryUsedMB":68}}}'
-            ;
-
-        const jsonMixedLog =
-            '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
-            '[AWS Parameters and Secrets Lambda Extension] 2024/04/11 02:14:17 PARAMETERS_SECRETS_EXTENSION_LOG_LEVEL is info. Log level set to info.' +
-            '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
-            '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
-            '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":4,"memorySizeMB":1024,"maxMemoryUsedMB":68}}}'
-            ;
-
-        const jsonMixedLogWithInvalidJSON =
-            '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"\n' + // missing } here
-            '[AWS Parameters and Secrets Lambda Extension] 2024/04/11 02:14:17 PARAMETERS_SECRETS_EXTENSION_LOG_LEVEL is info. Log level set to info.' +
-            '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
-            '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
-            '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":8,"memorySizeMB":1024,"maxMemoryUsedMB":68}}}'
-            ;
 
         it('should extract the duration from a Lambda log (text format)', () => {
             expect(utils.extractDuration(textLog)).to.be(500);
@@ -256,8 +268,37 @@ describe('Lambda Utils', () => {
         });
 
         it('should explode if invalid json format document is provided', () => {
-            const invalidJSONLog = '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}';
             expect(() => utils.extractDuration(invalidJSONLog)).to.throwError();
+        });
+
+    });
+
+    describe('extractInitDuration', () => {
+
+        it('should extract the init duration from a Lambda log (text format)', () => {
+            expect(utils.extractInitDuration(textLog)).to.be(100.99);
+        });
+
+        it('should return 0 if init duration is not found', () => {
+            expect(utils.extractInitDuration('hello world')).to.be(0);
+            const partialLog = 'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n';
+            expect(utils.extractInitDuration(partialLog)).to.be(0);
+        });
+
+        it('should extract the init duration from a Lambda log (json format)', () => {
+            expect(utils.extractInitDuration(jsonLog)).to.be(10);
+        });
+
+        it('should extract the init duration from a Lambda log (json text mixed format)', () => {
+            expect(utils.extractInitDuration(jsonMixedLog)).to.be(20);
+        });
+
+        it('should extract the init duration from a Lambda log (json text mixed format with invalid JSON)', () => {
+            expect(utils.extractInitDuration(jsonMixedLogWithInvalidJSON)).to.be(30);
+        });
+
+        it('should explode if invalid json format document is provided', () => {
+            expect(() => utils.extractInitDuration(invalidJSONLog)).to.throwError();
         });
 
     });
@@ -303,6 +344,41 @@ describe('Lambda Utils', () => {
 
         it('should not explode if missing logs', () => {
             const durations = utils.parseLogAndExtractDurations([
+                { StatusCode: 200, Payload: 'null' },
+            ]);
+            expect(durations).to.be.an('array');
+            expect(durations).to.eql([0]);
+        });
+    });
+
+    describe('parseLogAndExtractInitDurations', () => {
+        const results = [
+            // 300.00 ms
+            { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCUluaXQgRHVyYXRpb246IDMwMC4wMCBtcw==', Payload: 'null' },
+            // 100.99ms
+            { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCUluaXQgRHVyYXRpb246IDEwMC45OSBtcw==', Payload: 'null' },
+            // 500.55 ms
+            { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCUluaXQgRHVyYXRpb246IDUwMC41NSBtcw==', Payload: 'null' },
+            // 700.77 ms
+            { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCUluaXQgRHVyYXRpb246IDcwMC43NyBtcw==', Payload: 'null' },
+            // 900.50 ms
+            { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCUluaXQgRHVyYXRpb246IDkwMC41MCBtcw==', Payload: 'null' },
+        ];
+
+        it('should return the list of init durations', () => {
+            const durations = utils.parseLogAndExtractInitDurations(results);
+            expect(durations).to.be.a('array');
+            expect(durations.length).to.be(5);
+            expect(durations).to.eql([300.00, 100.99, 500.55, 700.77, 900.50]);
+        });
+        it('should return empty list if empty results', () => {
+            const durations = utils.parseLogAndExtractInitDurations([]);
+            expect(durations).to.be.an('array');
+            expect(durations.length).to.be(0);
+        });
+
+        it('should not explode if missing logs', () => {
+            const durations = utils.parseLogAndExtractInitDurations([
                 { StatusCode: 200, Payload: 'null' },
             ]);
             expect(durations).to.be.an('array');
