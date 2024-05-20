@@ -477,7 +477,7 @@ describe('Lambda Functions', async() => {
         });
 
         const eventOK = {
-            num:10,
+            num: 10,
             lambdaARN: 'arnOK',
             lambdaConfigurations: {powerValues: ['128', '256', '512'] },
         };

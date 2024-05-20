@@ -32,7 +32,7 @@ module.exports.stepFunctionsCost = (nPower, onlyColdStarts, num) => {
     }
 
     return +(baseCostPerTransition * multiplier).toFixed(5);
-}
+};
 
 module.exports.stepFunctionsBaseCost = () => {
     const prices = JSON.parse(process.env.sfCosts);
@@ -598,7 +598,7 @@ module.exports.extractDuration = (log) => {
 /**
  * Extract duration (in ms) from a given text log.
  */
-module.exports.extractDurationFromText = (log, init=false) => {
+module.exports.extractDurationFromText = (log, init = false) => {
     let regex = /\tBilled Duration: (\d+) ms/m;
     if (init) {
         regex = /\tInit Duration: (\d+\.\d+) ms/m;
@@ -613,7 +613,7 @@ module.exports.extractDurationFromText = (log, init=false) => {
 /**
  * Extract duration (in ms) from a given JSON log (multi-line).
  */
-module.exports.extractDurationFromJSON = (log, init=false) => {
+module.exports.extractDurationFromJSON = (log, init = false) => {
     // extract each line and parse it to JSON object
     const lines = log.split('\n').filter((line) => line.startsWith('{')).map((line) => {
         try {
