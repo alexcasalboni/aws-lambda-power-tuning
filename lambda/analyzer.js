@@ -61,10 +61,12 @@ const findOptimalConfiguration = (event) => {
     const balancedWeight = getBalancedWeight(event);
     const optimizationFunction = optimizationStrategies[strategy]();
     const optimal = optimizationFunction(stats, balancedWeight);
+    const onlyColdStarts = event.onlyColdStarts;
+    const num = event.num;
 
     // also compute total cost of optimization state machine & lambda
     optimal.stateMachine = {};
-    optimal.stateMachine.executionCost = utils.stepFunctionsCost(event.stats.length);
+    optimal.stateMachine.executionCost = utils.stepFunctionsCost(event.stats.length, onlyColdStarts, num);
     optimal.stateMachine.lambdaCost = stats
         .map((p) => p.totalCost)
         .reduce((a, b) => a + b, 0);

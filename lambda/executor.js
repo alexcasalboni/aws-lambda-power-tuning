@@ -74,7 +74,7 @@ module.exports.handler = async(event, context) => {
     // get base cost for Lambda
     const baseCost = utils.lambdaBaseCost(utils.regionFromARN(lambdaARN), architecture);
 
-    return computeStatistics(baseCost, results, value, discardTopBottom);
+    return computeStatistics(baseCost, results, value, discardTopBottom, onlyColdStarts);
 };
 
 const validateInput = (lambdaARN, value, num) => {
@@ -191,10 +191,18 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
     return results;
 };
 
-const computeStatistics = (baseCost, results, value, discardTopBottom) => {
+const computeStatistics = (baseCost, results, value, discardTopBottom, onlyColdStarts) => {
     // use results (which include logs) to compute average duration ...
 
     const durations = utils.parseLogAndExtractDurations(results);
+    if (onlyColdStarts) {
+        // we care about the init duration in this case
+        const initDurations = utils.parseLogAndExtractInitDurations(results);
+        // add init duration to total duration
+        initDurations.forEach((value, index) => {
+            durations[index] += value;
+        });
+    }
 
     const averageDuration = utils.computeAverageDuration(durations, discardTopBottom);
     console.log('Average duration: ', averageDuration);

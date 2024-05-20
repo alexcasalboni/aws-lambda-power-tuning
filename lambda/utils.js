@@ -14,7 +14,25 @@ const url = require('url');
 const utils = module.exports;
 
 // cost of 6+N state transitions (AWS Step Functions)
-module.exports.stepFunctionsCost = (nPower) => +(this.stepFunctionsBaseCost() * (6 + nPower)).toFixed(5);
+/**
+ * Computes the cost for all state transitions in this state machine execution
+ */
+module.exports.stepFunctionsCost = (nPower, onlyColdStarts, num) => {
+    const baseCostPerTransition = this.stepFunctionsBaseCost();
+
+    // 6 -> number of default state transition (no matter what)
+    // nPower * 3 -> these are invoked nPower times: Executor + Publisher + IsCountReached
+    var multiplier = 6 + nPower * 3;
+
+    if (onlyColdStarts) {
+        // 6 -> number of default state transition (no matter what)
+        // nPower -> number of Executor branches happening in parallel
+        // 2 * nPower * num -> number of loops (Publisher + IsCountReached)
+        multiplier = 6 + nPower + 2 * nPower * num;
+    }
+
+    return +(baseCostPerTransition * multiplier).toFixed(5);
+}
 
 module.exports.stepFunctionsBaseCost = () => {
     const prices = JSON.parse(process.env.sfCosts);
@@ -511,6 +529,13 @@ module.exports.parseLogAndExtractDurations = (data) => {
     });
 };
 
+module.exports.parseLogAndExtractInitDurations = (data) => {
+    return data.map(log => {
+        const logString = utils.base64decode(log.LogResult || '');
+        return utils.extractInitDuration(logString);
+    });
+};
+
 /**
  * Compute total cost
  */
@@ -573,18 +598,22 @@ module.exports.extractDuration = (log) => {
 /**
  * Extract duration (in ms) from a given text log.
  */
-module.exports.extractDurationFromText = (log) => {
-    const regex = /\tBilled Duration: (\d+) ms/m;
+module.exports.extractDurationFromText = (log, init=false) => {
+    let regex = /\tBilled Duration: (\d+) ms/m;
+    if (init) {
+        regex = /\tInit Duration: (\d+\.\d+) ms/m;
+    }
+
     const match = regex.exec(log);
 
     if (match == null) return 0;
-    return parseInt(match[1], 10);
+    return parseFloat(match[1], 10);
 };
 
 /**
  * Extract duration (in ms) from a given JSON log (multi-line).
  */
-module.exports.extractDurationFromJSON = (log) => {
+module.exports.extractDurationFromJSON = (log, init=false) => {
     // extract each line and parse it to JSON object
     const lines = log.split('\n').filter((line) => line.startsWith('{')).map((line) => {
         try {
@@ -597,11 +626,29 @@ module.exports.extractDurationFromJSON = (log) => {
     // find the log corresponding to the invocation report
     const durationLine = lines.find((line) => line.type === 'platform.report');
     if (durationLine){
-        return durationLine.record.metrics.billedDurationMs;
+        let field = 'billedDurationMs';
+        if (init) {
+            field = 'initDurationMs';
+        }
+        return durationLine.record.metrics[field];
     }
 
     throw new Error('Unrecognized JSON log');
 };
+
+/**
+ * Extract init duration (in ms) from a given Lambda's CloudWatch log.
+ */
+module.exports.extractInitDuration = (log) => {
+    if (log.charAt(0) === '{') {
+        // extract from JSON (multi-line)
+        return utils.extractDurationFromJSON(log, true);
+    } else {
+        // extract from text
+        return utils.extractDurationFromText(log, true);
+    }
+};
+
 
 /**
  * Encode a given string to base64.
