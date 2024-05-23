@@ -110,6 +110,7 @@ module.exports.createPowerConfiguration = async(lambdaARN, value, alias, descrip
         await utils.waitForFunctionUpdate(lambdaARN);
 
         const {Version} = await utils.publishLambdaVersion(lambdaARN);
+        // alias is not passed in when restoring to the original Lambda configuration
         if (typeof alias === 'undefined'){
             console.log('No alias defined');
             return;

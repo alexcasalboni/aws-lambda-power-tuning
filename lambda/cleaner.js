@@ -46,7 +46,7 @@ const extractDataFromInput = (event) => {
         lambdaARN: event.lambdaARN,
         powerValues: event.lambdaConfigurations.powerValues,
         onlyColdStarts: event.onlyColdStarts,
-        num: parseInt(event.num, 10), // use the default in case it was not defined
+        num: parseInt(event.num, 10), // parse as we do in the initializer
     };
 };
 

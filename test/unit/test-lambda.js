@@ -555,6 +555,42 @@ describe('Lambda Functions', async() => {
             });
         });
 
+        it('should clean the right aliases with onlyColdStarts=false', async() => {
+            const cleanedAliases = [];
+            const expectedAliases = ['RAM128', 'RAM256', 'RAM512'];
+            deleteLambdaAliasStub && deleteLambdaAliasStub.restore();
+            deleteLambdaAliasStub = sandBox.stub(utils, 'deleteLambdaAlias')
+                .callsFake(async(lambdaARN, alias) => {
+                    cleanedAliases.push(alias);
+                    return 'OK';
+                });
+            await invokeForSuccess(handler, {
+                num: 10,
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {powerValues: ['128', '256', '512']},
+                onlyColdStarts: false,
+            });
+            expect(cleanedAliases).to.eql(expectedAliases);
+        });
+
+        it('should clean the right aliases with onlyColdStarts=true', async() => {
+            const cleanedAliases = [];
+            const expectedAliases = ['RAM128-0', 'RAM128-1', 'RAM256-0', 'RAM256-1', 'RAM512-0', 'RAM512-1'];
+            deleteLambdaAliasStub && deleteLambdaAliasStub.restore();
+            deleteLambdaAliasStub = sandBox.stub(utils, 'deleteLambdaAlias')
+                .callsFake(async(lambdaARN, alias) => {
+                    cleanedAliases.push(alias);
+                    return 'OK';
+                });
+            await invokeForSuccess(handler, {
+                num: 2,
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {powerValues: ['128', '256', '512']},
+                onlyColdStarts: true,
+            });
+            expect(cleanedAliases).to.eql(expectedAliases);
+        });
+
     });
 
     describe('executor', () => {

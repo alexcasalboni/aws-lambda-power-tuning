@@ -28,11 +28,11 @@ module.exports.handler = async(event, context) => {
     for (let powerValue of powerValues){
         const baseAlias = 'RAM' + powerValue;
         if (!onlyColdStarts){
-            initConfigurations.push({powerValue: powerValue, alias: baseAlias, description: `${description} - ${baseAlias}`});
+            initConfigurations.push({powerValue: powerValue, alias: baseAlias});
         } else {
             for (let n of utils.range(num)){
                 let alias = utils.buildAliasString(baseAlias, onlyColdStarts, n);
-                // here we inject a custom env variable to force the creation of a new version
+                // here we inject a custom description to force the creation of a new version
                 // even if the power is the same, which will force a cold start
                 initConfigurations.push({powerValue: powerValue, alias: alias, description: `${description} - ${alias}`});
             }

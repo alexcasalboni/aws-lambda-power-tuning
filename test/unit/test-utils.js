@@ -1250,4 +1250,20 @@ describe('Lambda Utils', () => {
             isPayloadInConsoleLog: false,
         }));
     });
+
+    describe('buildAliasString', () => {
+
+        it('should return baseAlias if onlyColdStarts=false', async() => {
+            const value = utils.buildAliasString('RAM128', false, 0);
+            expect(value).to.be('RAM128');
+        });
+        it('should only require baseAlias', async() => {
+            const value = utils.buildAliasString('RAM128');
+            expect(value).to.be('RAM128');
+        });
+        it('should append index to baseAlias if onlyColdStarts=true', async() => {
+            const value = utils.buildAliasString('RAM128', true, 1);
+            expect(value).to.be('RAM128-1');
+        });
+    });
 });
