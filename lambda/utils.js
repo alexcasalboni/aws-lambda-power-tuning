@@ -217,6 +217,8 @@ module.exports.setLambdaPower = (lambdaARN, value, description) => {
     const params = {
         FunctionName: lambdaARN,
         MemorySize: parseInt(value, 10),
+        // the Description field is used as a way to force new versions being published.
+        // this is required when using Power Tuning with the onlyColdStart flag
         Description: description,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
