@@ -4,7 +4,6 @@
         {
             "Effect": "Allow",
             "Action": [
-                "lambda:GetAlias",
                 "lambda:GetFunctionConfiguration"
             ],
             "Resource": "arn:aws:lambda:*:${account_id}:function:*"

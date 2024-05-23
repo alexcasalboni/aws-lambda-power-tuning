@@ -131,7 +131,6 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - lambda:GetAlias
                 - lambda:GetFunctionConfiguration
               Resource: !Ref lambdaResource
   publisher:
