@@ -74,7 +74,7 @@ module.exports.handler = async(event, context) => {
     // get base cost for Lambda
     const baseCost = utils.lambdaBaseCost(utils.regionFromARN(lambdaARN), architecture);
 
-    return computeStatistics(baseCost, results, value, discardTopBottom, onlyColdStarts);
+    return computeStatistics(baseCost, results, value, discardTopBottom);
 };
 
 const validateInput = (lambdaARN, value, num) => {
@@ -191,27 +191,20 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
     return results;
 };
 
-const computeStatistics = (baseCost, results, value, discardTopBottom, onlyColdStarts) => {
+const computeStatistics = (baseCost, results, value, discardTopBottom) => {
+
     // use results (which include logs) to compute average duration ...
-
-    const durations = utils.parseLogAndExtractDurations(results);
-    if (onlyColdStarts) {
-        // we care about the init duration in this case
-        const initDurations = utils.parseLogAndExtractInitDurations(results);
-        // add init duration to total duration
-        initDurations.forEach((value, index) => {
-            durations[index] += value;
-        });
-    }
-
-    const averageDuration = utils.computeAverageDuration(durations, discardTopBottom);
+    const totalDurations = utils.parseLogAndExtractDurations(results);
+    const averageDuration = utils.computeAverageDuration(totalDurations, discardTopBottom);
     console.log('Average duration: ', averageDuration);
 
-    // ... and overall statistics
-    const averagePrice = utils.computePrice(baseCost, minRAM, value, averageDuration);
-
+    // ... and overall cost statistics
+    const billedDurations = utils.parseLogAndExtractBilledDurations(results);
+    const averageBilledDuration = utils.computeAverageDuration(billedDurations, discardTopBottom);
+    console.log('Average Billed duration: ', averageBilledDuration);
+    const averagePrice = utils.computePrice(baseCost, minRAM, value, averageBilledDuration);
     // .. and total cost (exact $)
-    const totalCost = utils.computeTotalCost(baseCost, minRAM, value, durations);
+    const totalCost = utils.computeTotalCost(baseCost, minRAM, value, billedDurations);
 
     const stats = {
         averagePrice,

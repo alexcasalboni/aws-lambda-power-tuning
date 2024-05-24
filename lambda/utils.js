@@ -528,14 +528,24 @@ module.exports.computePrice = (minCost, minRAM, value, duration) => {
 module.exports.parseLogAndExtractDurations = (data) => {
     return data.map(log => {
         const logString = utils.base64decode(log.LogResult || '');
-        return utils.extractDuration(logString);
+        // Total duration = duration + (initDuration or restoreDuration)
+        // restoreDuration is present for SnapStart-enabled Lambda functions
+        // initDuration is present for non-SnapStart Lambda functions
+        // if either is missing, we assume it's 0
+        return utils.extractDuration(logString, 'durationMs') +
+          utils.extractDuration(logString, 'initDurationMs') +
+          utils.extractDuration(logString, 'restoreDurationMs');
     });
 };
-
-module.exports.parseLogAndExtractInitDurations = (data) => {
+module.exports.parseLogAndExtractBilledDurations = (data) => {
     return data.map(log => {
         const logString = utils.base64decode(log.LogResult || '');
-        return utils.extractInitDuration(logString);
+        // Total billed duration = billedDuration + billedRestoreDuration
+        // billedDuration is present for all Lambda functions
+        // billedRestoreDuration is present for SnapStart-enabled Lambda functions
+        // if billedRestoreDuration is missing, we assume it's 0
+        return utils.extractDuration(logString, 'billedDurationMs') +
+          utils.extractDuration(logString, 'billedRestoreDurationMs');
     });
 };
 
@@ -588,35 +598,49 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
 /**
  * Extract duration (in ms) from a given Lambda's CloudWatch log.
  */
-module.exports.extractDuration = (log) => {
+module.exports.extractDuration = (log, durationType) => {
     if (log.charAt(0) === '{') {
         // extract from JSON (multi-line)
-        return utils.extractDurationFromJSON(log);
+        return utils.extractDurationFromJSON(log, durationType);
     } else {
         // extract from text
-        return utils.extractDurationFromText(log);
+        return utils.extractDurationFromText(log, durationType);
     }
 };
 
-/**
- * Extract duration (in ms) from a given text log.
- */
-module.exports.extractDurationFromText = (log, init = false) => {
-    let regex = /\tBilled Duration: (\d+) ms/m;
-    if (init) {
-        regex = /\tInit Duration: (\d+\.\d+) ms/m;
+function getRegex(durationType) {
+    switch (durationType) {
+    case 'billedDurationMs':
+        return /\tBilled Duration: (\d+) ms/m;
+    case 'initDurationMs':
+        return /\tInit Duration: (\d+\.\d+) ms/m;
+    case 'durationMs':
+        return /\tDuration: (\d+\.\d+) ms/m;
+    case 'restoreDurationMs':
+        return /\tRestore Duration: (\d+\.\d+) ms/m;
+    case 'billedRestoreDurationMs':
+        return /\tBilled Restore Duration: (\d+\.\d+) ms/m;
+    default:
+        throw new Error(`Unknown duration type: ${durationType}`);
     }
+}
+
+/**
+ * Extract duration (in ms) from a given text log and duration type.
+ */
+module.exports.extractDurationFromText = (log, durationType) => {
+    let regex = getRegex(durationType);
 
     const match = regex.exec(log);
-
+    // Default to 0 if the specific duration is not found in the log line
     if (match == null) return 0;
     return parseFloat(match[1], 10);
 };
 
 /**
- * Extract duration (in ms) from a given JSON log (multi-line).
+ * Extract duration (in ms) from a given JSON log (multi-line)  and duration type.
  */
-module.exports.extractDurationFromJSON = (log, init = false) => {
+module.exports.extractDurationFromJSON = (log, durationType) => {
     // extract each line and parse it to JSON object
     const lines = log.split('\n').filter((line) => line.startsWith('{')).map((line) => {
         try {
@@ -629,27 +653,12 @@ module.exports.extractDurationFromJSON = (log, init = false) => {
     // find the log corresponding to the invocation report
     const durationLine = lines.find((line) => line.type === 'platform.report');
     if (durationLine){
-        let field = 'billedDurationMs';
-        if (init) {
-            field = 'initDurationMs';
-        }
-        return durationLine.record.metrics[field];
+        let field = durationType;
+        // Default to 0 if the specific duration is not found in the log line
+        return durationLine.record.metrics[field] || 0;
     }
 
     throw new Error('Unrecognized JSON log');
-};
-
-/**
- * Extract init duration (in ms) from a given Lambda's CloudWatch log.
- */
-module.exports.extractInitDuration = (log) => {
-    if (log.charAt(0) === '{') {
-        // extract from JSON (multi-line)
-        return utils.extractDurationFromJSON(log, true);
-    } else {
-        // extract from text
-        return utils.extractDurationFromText(log, true);
-    }
 };
 
 
