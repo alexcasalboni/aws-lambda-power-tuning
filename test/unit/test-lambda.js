@@ -1538,7 +1538,7 @@ describe('Lambda Functions', async() => {
         const trimmedDurationsValues = [
             3.5,
             3.5,
-            4.333333333333333,
+            4.416666666666667,
             27.72,
         ];
 

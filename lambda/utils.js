@@ -599,6 +599,9 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
  * Extract duration (in ms) from a given Lambda's CloudWatch log.
  */
 module.exports.extractDuration = (log, durationType) => {
+    if (!durationType){
+        durationType = 'durationMs'; // default to `durationMs`
+    }
     if (log.charAt(0) === '{') {
         // extract from JSON (multi-line)
         return utils.extractDurationFromJSON(log, durationType);
