@@ -321,7 +321,12 @@ describe('Lambda Utils', () => {
             expect(durations).to.be.an('array');
             expect(durations).to.eql([0]);
         });
+
+        // TODO add test to verify it adds initDuration + duration
+        // TODO add test to verify it adds restoreDuration + duration
     });
+
+    // TODO add tests for parseLogAndExtractBilledDurations
 
     describe('computeAverageDuration', () => {
         const durations = [
