@@ -51,13 +51,15 @@ There are three main costs associated with AWS Lambda Power Tuning:
 
 The AWS Step Functions state machine is composed of five Lambda functions:
 
-* **initializer**: create N versions and aliases corresponding to the power values provided as input (e.g. 128MB, 256MB, etc.)
-* **executor**: execute the given Lambda function `num` times, extract execution time from logs, and compute average cost per invocation
-* **cleaner**: delete all the previously generated aliases and versions
-* **analyzer**: compute the optimal power value (current logic: lowest average cost per invocation)
-* **optimizer**: automatically set the power to its optimal value (only if `autoOptimize` is `true`)
+* **Initializer**: define all the versions and aliases that need to be created (see Publisher below)
+* **Publisher**: create a new version and aliases corresponding to one of the power values provided as input (e.g. 128MB, 256MB, etc.)
+* **IsCountReached**: go back to Publisher until all the versiona and aliases have been created
+* **Executor**: execute the given Lambda function `num` times, extract execution time from logs, and compute average cost per invocation
+* **Cleaner**: delete all the previously generated aliases and versions
+* **Analyzer**: compute the optimal power value (current logic: lowest average cost per invocation)
+* **Optimizer**: automatically set the power to its optimal value (only if `autoOptimize` is `true`)
 
-Initializer, cleaner, analyzer, and optimizer are executed only once, while the executor is used by N parallel branches of the state machine - one for each configured power value. By default, the executor will execute the given Lambda function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`.
+Initializer, Cleaner, Analyzer, and Optimizer are invoked only once, while the Publisher and Executor are invoked multiple times. Publisher is used in a loop to create all the required versions and aliases, which depend on the values of `num`, `powerValues`, and `onlyColdStarts`. Executor is used by N parallel branches - one for each configured power value. By default, the Executor will invike the given Lambda function `num` consecutive times, but you can enable parallel invocation by setting `parallelInvocation` to `true`.
 
 ## Weighted Payloads
 

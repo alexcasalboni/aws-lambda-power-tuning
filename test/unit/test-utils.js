@@ -33,7 +33,13 @@ const sandBox = sinon.createSandbox();
 const lambdaMock = awsV3Mock.mockClient(LambdaClient);
 lambdaMock.reset();
 lambdaMock.on(GetAliasCommand).resolves({});
-lambdaMock.on(GetFunctionConfigurationCommand).resolves({ MemorySize: 1024, State: 'Active', LastUpdateStatus: 'Successful', Architectures: ['x86_64'] });
+lambdaMock.on(GetFunctionConfigurationCommand).resolves({
+    MemorySize: 1024,
+    State: 'Active',
+    LastUpdateStatus: 'Successful',
+    Architectures: ['x86_64'],
+    Description: 'Sample Description',
+});
 lambdaMock.on(UpdateFunctionConfigurationCommand).resolves({});
 lambdaMock.on(PublishVersionCommand).resolves({});
 lambdaMock.on(DeleteFunctionCommand).resolves({});
@@ -101,7 +107,7 @@ describe('Lambda Utils', () => {
         sandBox.restore();
     });
 
-    describe('stepFunctionsCost', () => {
+    describe('stepFunctionsBaseCost', () => {
         it('should return expected step base cost', () => {
             process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
             process.env.AWS_REGION = 'us-gov-west-1';
@@ -116,21 +122,51 @@ describe('Lambda Utils', () => {
         });
     });
 
-    describe('stepFunctionsBaseCost', () => {
+    describe('stepFunctionsCost', () => {
         it('should return expected step total cost', () => {
             process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
             process.env.AWS_REGION = 'us-gov-west-1';
             const nPower = 10;
-            const expectedCost = +(0.00003 * (6 + nPower)).toFixed(5);
-            const result = utils.stepFunctionsCost(nPower);
+            const expectedCost = 0.00108;
+            const result = utils.stepFunctionsCost(nPower, false, 10);
+            expect(result).to.be.equal(expectedCost);
+        });
+        it('should return expected step total cost when onlyColdStarts=true', () => {
+            process.env.sfCosts = '{"us-gov-west-1": 0.00003, "default": 0.000025}';
+            process.env.AWS_REGION = 'us-gov-west-1';
+            const nPower = 10;
+            const expectedCost = 0.00648;
+            const result = utils.stepFunctionsCost(nPower, true, 10);
             expect(result).to.be.equal(expectedCost);
         });
     });
 
     describe('getLambdaPower', () => {
-        it('should return the memory value', async() => {
+        it('should return the power value and description', async() => {
+            lambdaMock.on(GetFunctionConfigurationCommand).resolves({
+                MemorySize: 1024,
+                State: 'Active',
+                LastUpdateStatus: 'Successful',
+                Architectures: ['x86_64'],
+                Description: 'Sample Description', // this is null if no vars are set
+            });
             const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
-            expect(value).to.be(1024);
+            expect(value.power).to.be(1024);
+            expect(value.description).to.be('Sample Description');
+        });
+
+        it('should return the power value and description, even if empty', async() => {
+            lambdaMock.on(GetFunctionConfigurationCommand).resolves({
+                MemorySize: 1024,
+                State: 'Active',
+                LastUpdateStatus: 'Successful',
+                Architectures: ['x86_64'],
+                Description: '', // this is null if no vars are set
+            });
+
+            const value = await utils.getLambdaPower('arn:aws:lambda:us-east-1:XXX:function:YYY');
+            expect(value.power).to.be(1024);
+            expect(value.description).to.be('');
         });
     });
 
@@ -174,39 +210,69 @@ describe('Lambda Utils', () => {
 
     });
 
+    const textLog =
+        'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n' +
+        'END RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\n' +
+        'REPORT RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\tDuration: 469.40 ms\tBilled Duration: 500 ms\tMemory Size: 1024 MB\tMax Memory Used: 21 MB\tInit Duration: 100.99 ms'
+        ;
+    const textLogSnapStart =
+        'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n' +
+        'END RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\n' +
+        'REPORT RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\tDuration: 469.40 ms\tBilled Duration: 500 ms\tMemory Size: 1024 MB\tMax Memory Used: 21 MB\tRestore Duration: 474.16 ms\tBilled Restore Duration: 75 ms'
+        ;
+
+    // JSON logs contain multiple objects, seperated by a newline
+    const jsonLog =
+        '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
+        '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
+        '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
+        '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":2,"memorySizeMB":1024,"maxMemoryUsedMB":68,"initDurationMs": 10}}}'
+        ;
+
+    const jsonLogSnapStart =
+        '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
+        '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
+        '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
+        '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs": 147.156,"billedDurationMs": 201, "memorySizeMB": 512,"maxMemoryUsedMB": 91,"restoreDurationMs": 500.795,"billedRestoreDurationMs": 53 }}}'
+        ;
+
+    const jsonMixedLog =
+        '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
+        '[AWS Parameters and Secrets Lambda Extension] 2024/04/11 02:14:17 PARAMETERS_SECRETS_EXTENSION_LOG_LEVEL is info. Log level set to info.' +
+        '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
+        '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
+        '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":4,"memorySizeMB":1024,"maxMemoryUsedMB":68,"initDurationMs": 20}}}'
+        ;
+
+    const jsonMixedLogWithInvalidJSON =
+        '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"\n' + // missing } here
+        '[AWS Parameters and Secrets Lambda Extension] 2024/04/11 02:14:17 PARAMETERS_SECRETS_EXTENSION_LOG_LEVEL is info. Log level set to info.' +
+        '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
+        '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
+        '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":8,"memorySizeMB":1024,"maxMemoryUsedMB":68,"initDurationMs": 30}}}'
+        ;
+
+    const invalidJSONLog = '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}';
+
     describe('extractDuration', () => {
-        const textLog =
-            'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n' +
-            'END RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\n' +
-            'REPORT RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc\tDuration: 469.40 ms\tBilled Duration: 500 ms\tMemory Size: 1024 MB\tMax Memory Used: 21 MB'
-            ;
-
-        // JSON logs contain multiple objects, seperated by a newline
-        const jsonLog =
-            '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
-            '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
-            '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
-            '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":2,"memorySizeMB":1024,"maxMemoryUsedMB":68}}}'
-            ;
-
-        const jsonMixedLog =
-            '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}\n' +
-            '[AWS Parameters and Secrets Lambda Extension] 2024/04/11 02:14:17 PARAMETERS_SECRETS_EXTENSION_LOG_LEVEL is info. Log level set to info.' +
-            '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
-            '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
-            '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":4,"memorySizeMB":1024,"maxMemoryUsedMB":68}}}'
-            ;
-
-        const jsonMixedLogWithInvalidJSON =
-            '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"\n' + // missing } here
-            '[AWS Parameters and Secrets Lambda Extension] 2024/04/11 02:14:17 PARAMETERS_SECRETS_EXTENSION_LOG_LEVEL is info. Log level set to info.' +
-            '{"time":"2024-02-09T08:42:44.078Z","type":"platform.start","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","version":"8"}}\n' +
-            '{"time":"2024-02-09T08:42:44.079Z","type":"platform.runtimeDone","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","spans":[{"name":"responseLatency","start":"2024-02-09T08:42:44.078Z","durationMs":0.677},{"name":"responseDuration","start":"2024-02-09T08:42:44.079Z","durationMs":0.035},{"name":"runtimeOverhead","start":"2024-02-09T08:42:44.079Z","durationMs":0.211}],"metrics":{"durationMs":1.056,"producedBytes":50}}}\n' +
-            '{"time":"2024-02-09T08:42:44.080Z","type":"platform.report","record":{"requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","status":"success","metrics":{"durationMs":1.317,"billedDurationMs":8,"memorySizeMB":1024,"maxMemoryUsedMB":68}}}'
-            ;
 
         it('should extract the duration from a Lambda log (text format)', () => {
-            expect(utils.extractDuration(textLog)).to.be(500);
+            expect(utils.extractDuration(textLog)).to.be(469.4);
+        });
+
+        it('should retrieve the Init Duration from a Lambda log (text format)', () => {
+            expect(utils.extractDuration(textLog, utils.DURATIONS.initDurationMs)).to.be(100.99);
+        });
+
+        it('should retrieve the Billed Duration from a Lambda log (text format)', () => {
+            expect(utils.extractDuration(textLog, utils.DURATIONS.billedDurationMs)).to.be(500);
+        });
+
+        it('should retrieve the Restore Duration from a SnapStart Lambda log (text format)', () => {
+            expect(utils.extractDuration(textLogSnapStart, utils.DURATIONS.restoreDurationMs)).to.be(474.16);
+        });
+        it('should retrieve the Billed Restore Duration from a SnapStart Lambda log (text format)', () => {
+            expect(utils.extractDuration(textLogSnapStart, utils.DURATIONS.billedRestoreDurationMs)).to.be(75);
         });
 
         it('should return 0 if duration is not found', () => {
@@ -215,20 +281,55 @@ describe('Lambda Utils', () => {
             expect(utils.extractDuration(partialLog)).to.be(0);
         });
 
+        it('should return 0 if Init Duration is not found', () => {
+            expect(utils.extractDuration('hello world', utils.DURATIONS.initDurationMs)).to.be(0);
+            const partialLog = 'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n';
+            expect(utils.extractDuration(partialLog, utils.DURATIONS.initDurationMs)).to.be(0);
+        });
+
+        it('should return 0 if Restore Duration is not found', () => {
+            expect(utils.extractDuration('hello world', utils.DURATIONS.restoreDurationMs)).to.be(0);
+            const partialLog = 'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n';
+            expect(utils.extractDuration(partialLog, utils.DURATIONS.restoreDurationMs)).to.be(0);
+        });
+
+        it('should return 0 if Billed Duration is not found', () => {
+            expect(utils.extractDuration('hello world', utils.DURATIONS.billedDurationMs)).to.be(0);
+            const partialLog = 'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n';
+            expect(utils.extractDuration(partialLog, utils.DURATIONS.billedDurationMs)).to.be(0);
+        });
+
+        it('should return 0 if Billed Restore Duration is not found', () => {
+            expect(utils.extractDuration('hello world', utils.DURATIONS.billedRestoreDurationMs)).to.be(0);
+            const partialLog = 'START RequestId: 55bc566d-1e2c-11e7-93e6-6705ceb4c1cc Version: $LATEST\n';
+            expect(utils.extractDuration(partialLog, utils.DURATIONS.billedRestoreDurationMs)).to.be(0);
+        });
+
         it('should extract the duration from a Lambda log (json format)', () => {
-            expect(utils.extractDuration(jsonLog)).to.be(2);
+            expect(utils.extractDuration(jsonLog, utils.DURATIONS.durationMs)).to.be(1.317);
+        });
+
+        it('should extract the Init duration from a Lambda log (json format)', () => {
+            expect(utils.extractDuration(jsonLog, utils.DURATIONS.initDurationMs)).to.be(10);
+        });
+
+        it('should extract the Restore duration from a Lambda log (json format)', () => {
+            expect(utils.extractDuration(jsonLogSnapStart, utils.DURATIONS.restoreDurationMs)).to.be(500.795);
+        });
+
+        it('should extract the Billed Restore duration from a Lambda log (json format)', () => {
+            expect(utils.extractDuration(jsonLogSnapStart, utils.DURATIONS.billedRestoreDurationMs)).to.be(53);
         });
 
         it('should extract the duration from a Lambda log (json text mixed format)', () => {
-            expect(utils.extractDuration(jsonMixedLog)).to.be(4);
+            expect(utils.extractDuration(jsonMixedLog)).to.be(1.317);
         });
 
         it('should extract the duration from a Lambda log (json text mixed format with invalid JSON)', () => {
-            expect(utils.extractDuration(jsonMixedLogWithInvalidJSON)).to.be(8);
+            expect(utils.extractDuration(jsonMixedLogWithInvalidJSON)).to.be(1.317);
         });
 
         it('should explode if invalid json format document is provided', () => {
-            const invalidJSONLog = '{"timestamp":"2024-02-09T08:42:44.078Z","level":"INFO","requestId":"d661f7cf-9208-46b9-85b0-213b04a91065","message":"Just some logs here =)"}';
             expect(() => utils.extractDuration(invalidJSONLog)).to.throwError();
         });
 
@@ -249,15 +350,15 @@ describe('Lambda Utils', () => {
 
     describe('parseLogAndExtractDurations', () => {
         const results = [
-            // 1s (will be discarded)
+            // Duration 1ms
             { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1C', Payload: 'null' },
-            // 1s
+            // Duration 1ms
             { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1C', Payload: 'null' },
-            // 2s -> avg!
+            // Duration 2ms
             { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMi4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMiBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1C', Payload: 'null' },
-            // 3s
+            // Duration 3ms
             { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMy4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMyBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1C', Payload: 'null' },
-            // 3s (will be discarded)
+            // Duration 3ms
             { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMy4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMyBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1C', Payload: 'null' },
         ];
 
@@ -279,6 +380,80 @@ describe('Lambda Utils', () => {
             ]);
             expect(durations).to.be.an('array');
             expect(durations).to.eql([0]);
+        });
+
+        it('should give duration as initDuration + duration', () => {
+            const resultWithInitDuration =
+              {
+                  StatusCode: 200,
+                  // Duration: 469.40 ms Init Duration: 100.99 ms
+                  LogResult: Buffer.from(textLog).toString('base64'),
+              };
+            const durations = utils.parseLogAndExtractDurations([resultWithInitDuration]);
+            expect(durations).to.be.a('array');
+            expect(durations.length).to.be(1);
+            expect(durations).to.eql([570.39]);
+        });
+
+        it('should give duration as restoreDuration + duration (for SnapStart)', () => {
+            const resultWithInitDuration =
+              {
+                  StatusCode: 200,
+                  // Duration: 469.40 ms - Restore Duration: 474.16 ms
+                  LogResult: Buffer.from(textLogSnapStart).toString('base64'),
+              };
+            const durations = utils.parseLogAndExtractDurations([resultWithInitDuration]);
+            expect(durations).to.be.a('array');
+            expect(durations.length).to.be(1);
+            expect(durations).to.eql([943.56]);
+        });
+    });
+    describe('parseLogAndExtractBilledDurations', () => {
+        const results = [
+            // Billed Duration 1ms
+            { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1C', Payload: 'null' },
+            // Billed Duration 1ms
+            { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMS4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1C', Payload: 'null' },
+            // Billed Duration 2ms
+            { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMi4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMiBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1C', Payload: 'null' },
+            // Billed Duration 3ms
+            { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMy4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMyBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1C', Payload: 'null' },
+            // Billed Duration 3ms
+            { StatusCode: 200, LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMy4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMyBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1C', Payload: 'null' },
+        ];
+
+        it('should return the list of billed durations', () => {
+            const durations = utils.parseLogAndExtractBilledDurations(results);
+            expect(durations).to.be.a('array');
+            expect(durations.length).to.be(5);
+            expect(durations).to.eql([1, 1, 2, 3, 3]);
+        });
+        it('should return empty list if empty results', () => {
+            const durations = utils.parseLogAndExtractBilledDurations([]);
+            expect(durations).to.be.an('array');
+            expect(durations.length).to.be(0);
+        });
+
+        it('should not explode if missing logs', () => {
+            const durations = utils.parseLogAndExtractBilledDurations([
+                { StatusCode: 200, Payload: 'null' },
+            ]);
+            expect(durations).to.be.an('array');
+            expect(durations).to.eql([0]);
+        });
+
+
+        it('should give duration as billedDuration + restoreDuration (for SnapStart)', () => {
+            const resultWithInitDuration =
+              {
+                  StatusCode: 200,
+                  // Billed Duration: 500 ms Billed Restore Duration: 75 ms
+                  LogResult: Buffer.from(textLogSnapStart).toString('base64'),
+              };
+            const durations = utils.parseLogAndExtractBilledDurations([resultWithInitDuration]);
+            expect(durations).to.be.a('array');
+            expect(durations.length).to.be(1);
+            expect(durations).to.eql([575]);
         });
     });
 
@@ -1145,5 +1320,21 @@ describe('Lambda Utils', () => {
             disablePayloadLogs: true,
             isPayloadInConsoleLog: false,
         }));
+    });
+
+    describe('buildAliasString', () => {
+
+        it('should return baseAlias if onlyColdStarts=false', async() => {
+            const value = utils.buildAliasString('RAM128', false, 0);
+            expect(value).to.be('RAM128');
+        });
+        it('should only require baseAlias', async() => {
+            const value = utils.buildAliasString('RAM128');
+            expect(value).to.be('RAM128');
+        });
+        it('should append index to baseAlias if onlyColdStarts=true', async() => {
+            const value = utils.buildAliasString('RAM128', true, 1);
+            expect(value).to.be('RAM128-1');
+        });
     });
 });
