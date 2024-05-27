@@ -13,6 +13,15 @@ const url = require('url');
 // local reference to this module
 const utils = module.exports;
 
+const DURATIONS = {
+    durationMs: 'durationMs',
+    initDurationMs: 'initDurationMs',
+    restoreDurationMs: 'restoreDurationMs',
+    billedDurationMs: 'billedDurationMs',
+    billedRestoreDurationMs: 'billedRestoreDurationMs',
+};
+module.exports.DURATIONS = DURATIONS;
+
 // cost of 6+N state transitions (AWS Step Functions)
 /**
  * Computes the cost for all state transitions in this state machine execution
@@ -532,9 +541,9 @@ module.exports.parseLogAndExtractDurations = (data) => {
         // restoreDuration is present for SnapStart-enabled Lambda functions
         // initDuration is present for non-SnapStart Lambda functions
         // if either is missing, we assume it's 0
-        return utils.extractDuration(logString, 'durationMs') +
-          utils.extractDuration(logString, 'initDurationMs') +
-          utils.extractDuration(logString, 'restoreDurationMs');
+        return utils.extractDuration(logString, DURATIONS.durationMs) +
+          utils.extractDuration(logString, DURATIONS.initDurationMs) +
+          utils.extractDuration(logString, DURATIONS.restoreDurationMs);
     });
 };
 module.exports.parseLogAndExtractBilledDurations = (data) => {
@@ -544,8 +553,8 @@ module.exports.parseLogAndExtractBilledDurations = (data) => {
         // billedDuration is present for all Lambda functions
         // billedRestoreDuration is present for SnapStart-enabled Lambda functions
         // if billedRestoreDuration is missing, we assume it's 0
-        return utils.extractDuration(logString, 'billedDurationMs') +
-          utils.extractDuration(logString, 'billedRestoreDurationMs');
+        return utils.extractDuration(logString, DURATIONS.billedDurationMs) +
+          utils.extractDuration(logString, DURATIONS.billedRestoreDurationMs);
     });
 };
 
@@ -600,7 +609,7 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
  */
 module.exports.extractDuration = (log, durationType) => {
     if (!durationType){
-        durationType = 'durationMs'; // default to `durationMs`
+        durationType = DURATIONS.durationMs; // default to `durationMs`
     }
     if (log.charAt(0) === '{') {
         // extract from JSON (multi-line)
@@ -613,16 +622,16 @@ module.exports.extractDuration = (log, durationType) => {
 
 function getRegex(durationType) {
     switch (durationType) {
-    case 'billedDurationMs':
+    case DURATIONS.billedDurationMs:
         return /\tBilled Duration: (\d+) ms/m;
-    case 'initDurationMs':
+    case DURATIONS.initDurationMs:
         return /\tInit Duration: (\d+\.\d+) ms/m;
-    case 'durationMs':
+    case DURATIONS.durationMs:
         return /\tDuration: (\d+\.\d+) ms/m;
-    case 'restoreDurationMs':
+    case DURATIONS.restoreDurationMs:
         return /\tRestore Duration: (\d+\.\d+) ms/m;
-    case 'billedRestoreDurationMs':
-        return /\tBilled Restore Duration: (\d+\.\d+) ms/m;
+    case DURATIONS.billedRestoreDurationMs:
+        return /\tBilled Restore Duration: (\d+) ms/m;
     default:
         throw new Error(`Unknown duration type: ${durationType}`);
     }
