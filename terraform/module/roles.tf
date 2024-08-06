@@ -26,6 +26,13 @@ resource "aws_iam_role" "initializer_role" {
   assume_role_policy   = file("${path.module}/json_files/lambda.json")
 }
 
+resource "aws_iam_role" "publisher_role" {
+  name                 = "${var.lambda_function_prefix}-publisher_role"
+  permissions_boundary = var.permissions_boundary
+  path                 = local.role_path
+  assume_role_policy   = file("${path.module}/json_files/lambda.json")
+}
+
 resource "aws_iam_role" "cleaner_role" {
   name                 = "${var.lambda_function_prefix}-cleaner_role"
   permissions_boundary = var.permissions_boundary

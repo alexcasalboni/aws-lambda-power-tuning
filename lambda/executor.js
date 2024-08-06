@@ -20,6 +20,7 @@ module.exports.handler = async(event, context) => {
         preProcessorARN,
         postProcessorARN,
         discardTopBottom,
+        onlyColdStarts,
         sleepBetweenRunsMs,
         disablePayloadLogs,
     } = await extractDataFromInput(event);
@@ -35,8 +36,11 @@ module.exports.handler = async(event, context) => {
     const lambdaAlias = 'RAM' + value;
     let results;
 
-    // fetch architecture from $LATEST
-    const {architecture, isPending} = await utils.getLambdaConfig(lambdaARN, lambdaAlias);
+    // defaulting the index to 0 as the index is required for onlyColdStarts
+    let aliasToInvoke = utils.buildAliasString(lambdaAlias, onlyColdStarts, 0);
+    // We need the architecture, regardless of onlyColdStarts or not
+    const {architecture, isPending} = await utils.getLambdaConfig(lambdaARN, aliasToInvoke);
+
     console.log(`Detected architecture type: ${architecture}, isPending: ${isPending}`);
 
     // pre-generate an array of N payloads
@@ -49,12 +53,14 @@ module.exports.handler = async(event, context) => {
         payloads: payloads,
         preARN: preProcessorARN,
         postARN: postProcessorARN,
+        onlyColdStarts: onlyColdStarts,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
         disablePayloadLogs: disablePayloadLogs,
     };
 
     // wait if the function/alias state is Pending
-    if (isPending) {
+    // in the case of onlyColdStarts, we will verify each alias in the runInParallel or runInSeries
+    if (isPending && !onlyColdStarts) {
         await utils.waitForAliasActive(lambdaARN, lambdaAlias);
         console.log('Alias active');
     }
@@ -97,7 +103,13 @@ const extractDiscardTopBottomValue = (event) => {
     // extract discardTopBottom used to trim values from average duration
     let discardTopBottom = event.discardTopBottom;
     if (typeof discardTopBottom === 'undefined') {
+        // default value for discardTopBottom
         discardTopBottom = 0.2;
+    }
+    // In case of onlyColdStarts, we only have 1 invocation per alias, therefore we shouldn't discard any execution
+    if (event.onlyColdStarts){
+        discardTopBottom = 0;
+        console.log('Setting discardTopBottom to 0, every invocation should be accounted when onlyColdStarts');
     }
     // discardTopBottom must be between 0 and 0.4
     return Math.min(Math.max(discardTopBottom, 0.0), 0.4);
@@ -128,16 +140,22 @@ const extractDataFromInput = async(event) => {
         preProcessorARN: input.preProcessorARN,
         postProcessorARN: input.postProcessorARN,
         discardTopBottom: discardTopBottom,
+        onlyColdStarts: !!input.onlyColdStarts,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
         disablePayloadLogs: !!input.disablePayloadLogs,
     };
 };
 
-const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, disablePayloadLogs}) => {
+const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, disablePayloadLogs, onlyColdStarts}) => {
     const results = [];
     // run all invocations in parallel ...
     const invocations = utils.range(num).map(async(_, i) => {
-        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN, disablePayloadLogs);
+        let aliasToInvoke = utils.buildAliasString(lambdaAlias, onlyColdStarts, i);
+        if (onlyColdStarts){
+            await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
+            console.log(`${aliasToInvoke} is active`);
+        }
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
             let errorMessage = 'Invocation error (running in parallel)';
@@ -150,11 +168,16 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
     return results;
 };
 
-const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs, disablePayloadLogs}) => {
+const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs, disablePayloadLogs, onlyColdStarts}) => {
     const results = [];
     for (let i = 0; i < num; i++) {
+        let aliasToInvoke = utils.buildAliasString(lambdaAlias, onlyColdStarts, i);
         // run invocations in series
-        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, lambdaAlias, payloads[i], preARN, postARN, disablePayloadLogs);
+        if (onlyColdStarts){
+            await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
+            console.log(`${aliasToInvoke} is active`);
+        }
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
             let errorMessage = 'Invocation error (running in series)';
@@ -169,18 +192,19 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
 };
 
 const computeStatistics = (baseCost, results, value, discardTopBottom) => {
+
     // use results (which include logs) to compute average duration ...
-
-    const durations = utils.parseLogAndExtractDurations(results);
-
-    const averageDuration = utils.computeAverageDuration(durations, discardTopBottom);
+    const totalDurations = utils.parseLogAndExtractDurations(results);
+    const averageDuration = utils.computeAverageDuration(totalDurations, discardTopBottom);
     console.log('Average duration: ', averageDuration);
 
-    // ... and overall statistics
-    const averagePrice = utils.computePrice(baseCost, minRAM, value, averageDuration);
-
+    // ... and overall cost statistics
+    const billedDurations = utils.parseLogAndExtractBilledDurations(results);
+    const averageBilledDuration = utils.computeAverageDuration(billedDurations, discardTopBottom);
+    console.log('Average Billed duration: ', averageBilledDuration);
+    const averagePrice = utils.computePrice(baseCost, minRAM, value, averageBilledDuration);
     // .. and total cost (exact $)
-    const totalCost = utils.computeTotalCost(baseCost, minRAM, value, durations);
+    const totalCost = utils.computeTotalCost(baseCost, minRAM, value, billedDurations);
 
     const stats = {
         averagePrice,
