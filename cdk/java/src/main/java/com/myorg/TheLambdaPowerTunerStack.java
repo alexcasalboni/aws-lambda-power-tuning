@@ -13,7 +13,7 @@ public class TheLambdaPowerTunerStack extends Stack {
 
     //Set constants
     private static final String SAR_APPLICATION_ID = "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning";
-    private static final String SAR_SEMANTIC_VERSION = "4.3.4";
+    private static final String SAR_SEMANTIC_VERSION = "4.3.5";
 
     public TheLambdaPowerTunerStack(final Construct scope, final String id) {
         this(scope, id, null);

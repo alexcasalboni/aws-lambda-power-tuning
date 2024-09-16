@@ -21,7 +21,7 @@ func NewLambdaPowerTunerStack(scope constructs.Construct, id string, props *Lamb
 	awssam.NewCfnApplication(stack, jsii.String("powerTuner"), &awssam.CfnApplicationProps{
 		Location: map[string]string{
 			"applicationId":   "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning",
-			"semanticVersion": "4.3.4",
+			"semanticVersion": "4.3.5",
 		},
 		Parameters: map[string]string{
 			// "lambdaResource": "*",

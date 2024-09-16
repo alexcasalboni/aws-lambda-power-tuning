@@ -2,6 +2,7 @@
 
 From most recent to oldest, with major releases in bold:
 
+* *4.3.5* (2024-09-16): array-shape input support, JSON logging bugfix, externalized ASL, updated dependencies
 * *4.3.4* (2024-02-26): upgrade to Nodejs20, custom state machine prefix, SDKv3 migration, new includeOutputResults input parameter, JSON loggin support
 * *4.3.3* (2023-10-30): parametrized currency for visualization URL (USD|CNY)
 * *4.3.2* (2023-08-16): new disablePayloadLogs flag, updated documentation
