@@ -7,7 +7,7 @@
   "scripts": {},
   "private": true,
   "dependencies": {
-    "@aws-sdk/client-lambda": "^3.485.0",
-    "@aws-sdk/client-s3": "^3.485.0"
+    "@aws-sdk/client-lambda": "^3.651.1",
+    "@aws-sdk/client-s3": "^3.651.1"
   }
 }
