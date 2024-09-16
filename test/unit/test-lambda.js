@@ -33,7 +33,6 @@ const fakeContext = {};
 
 // variables used during tests
 var setLambdaPowerCounter,
-    getLambdaPowerCounter,
     publishLambdaVersionCounter,
     createLambdaAliasCounter,
     updateLambdaAliasCounter,
@@ -91,11 +90,11 @@ var getLambdaAliasStub,
 
 /** unit tests below **/
 
+const singleAliasConfig = { aliases: ['RAM128']};
 describe('Lambda Functions', async() => {
 
     beforeEach('mock utilities', () => {
         setLambdaPowerCounter = 0;
-        getLambdaPowerCounter = 0;
         publishLambdaVersionCounter = 0;
         createLambdaAliasCounter = 0;
         updateLambdaAliasCounter = 0;
@@ -115,11 +114,6 @@ describe('Lambda Functions', async() => {
             .callsFake(async() => {
                 const error = new ResourceNotFoundException('alias is not defined');
                 throw error;
-            });
-        sandBox.stub(utils, 'getLambdaPower')
-            .callsFake(async() => {
-                getLambdaPowerCounter++;
-                return 1024;
             });
         setLambdaPowerStub = sandBox.stub(utils, 'setLambdaPower')
             .callsFake(async() => {
@@ -211,19 +205,159 @@ describe('Lambda Functions', async() => {
 
         it('should invoke the given cb with powerValues=ALL as input', async() => {
             const generatedValues = await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5, powerValues: 'ALL' });
-            expect(generatedValues.length).to.be(46);
+            expect(generatedValues.initConfigurations.length).to.be(47); // 46 power values plus the previous Lambda power configuration
         });
 
-        it('should create N aliases and versions', async() => {
-            await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
+        it('should generate N configurations', async() => {
+            const generatedValues = await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
 
             // +1 because it will also reset power to its initial value
-            expect(setLambdaPowerCounter).to.be(powerValues.length + 1);
+            expect(generatedValues.initConfigurations.length).to.be(powerValues.length + 1);
+        });
+        it('should generate N configurations', async() => {
+            const generatedValues = await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
 
-            expect(getLambdaPowerCounter).to.be(1);
-            expect(publishLambdaVersionCounter).to.be(powerValues.length);
-            expect(createLambdaAliasCounter).to.be(powerValues.length);
-            expect(waitForFunctionUpdateCounter).to.be(powerValues.length);
+            // +1 because it will also reset power to its initial value
+            expect(generatedValues.initConfigurations.length).to.be(powerValues.length + 1);
+        });
+        it('should generate an alias for each `num` and `powerValue` when `onlyColdStarts` is set', async() => {
+
+            const generatedValues = await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5, onlyColdStarts: true});
+
+            // +1 because it will also reset power to its initial value
+            expect(generatedValues.initConfigurations.length).to.be((powerValues.length * 5) + 1);
+        });
+
+    });
+
+    describe('publisher', async() => {
+
+        const handler = require('../../lambda/publisher').handler;
+
+        const invalidEvents = [
+            { },
+            {lambdaARN: 'arnOK'},
+            {lambdaARN: 'arnOK', lambdaConfigurations: {}},
+            {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 512,
+                        alias: 'RAM512',
+                    }],
+                },
+            },
+            {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    iterator: {
+                        index: 1,
+                        count: 1,
+                    },
+                },
+            },
+            {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 512,
+                        alias: 'RAM512',
+                    }, {
+                        powerValue: 1024,
+                        alias: 'RAM1024',
+                    }],
+                    iterator: {
+                        index: 2,
+                        count: 3,
+                    },
+                },
+            },
+            {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 512,
+                        alias: 'RAM512',
+                    }, {
+                        powerValue: 1024,
+                        alias: 'RAM1024',
+                    }],
+                    iterator: {
+                        index: 3,
+                        count: 2,
+                    },
+                },
+            },
+        ];
+
+        invalidEvents.forEach(async(event) => {
+            it('should explode if invoked with invalid payload - ' + JSON.stringify(event), async() => {
+                await invokeForFailure(handler, event);
+            });
+        });
+
+        it('should publish the given lambda version (first iteration)', async() => {
+            const generatedValues = await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 512,
+                        alias: 'RAM512',
+                    }, {
+                        powerValue: 1024,
+                        alias: 'RAM1024',
+                    }],
+                    iterator: {
+                        index: 0,
+                        count: 2,
+                    },
+                }});
+            expect(setLambdaPowerCounter).to.be(1);
+            expect(waitForFunctionUpdateCounter).to.be(1);
+            expect(publishLambdaVersionCounter).to.be(1);
+            expect(createLambdaAliasCounter).to.be(1);
+            expect(generatedValues.iterator.index).to.be(1); // index should be incremented by 1
+            expect(generatedValues.iterator.continue).to.be(true); // the iterator should be set to continue=false
+            expect(generatedValues.initConfigurations).to.be.a('array'); // initConfigurations should be a list
+        });
+
+        it('should publish the given lambda version (last iteration)', async() => {
+            const generatedValues = await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 512,
+                        alias: 'RAM512',
+                    }, {
+                        powerValue: 1024,
+                        alias: 'RAM1024',
+                    }],
+                    iterator: {
+                        index: 1,
+                        count: 2,
+                    },
+                }});
+            expect(setLambdaPowerCounter).to.be(1);
+            expect(waitForFunctionUpdateCounter).to.be(1);
+            expect(publishLambdaVersionCounter).to.be(1);
+            expect(createLambdaAliasCounter).to.be(1);
+            expect(generatedValues.iterator.index).to.be(2); // index should be incremented by 1
+            expect(generatedValues.iterator.continue).to.be(false); // the iterator should be set to continue=false
+            expect(generatedValues.initConfigurations).to.be(undefined); // initConfigurations should be unset
+        });
+
+        it('should publish the version even if an alias is not specified', async() => {
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 512,
+                    }],
+                    iterator: {
+                        index: 0,
+                        count: 1,
+                    },
+                }});
         });
 
         it('should update an alias if it already exists', async() => {
@@ -237,22 +371,21 @@ describe('Lambda Functions', async() => {
                         throw error;
                     }
                 });
-            await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 128,
+                        alias: 'RAM128',
+                    }],
+                    iterator: {
+                        index: 0,
+                        count: 1,
+                    },
+                }});
             expect(updateLambdaAliasCounter).to.be(1);
-            expect(createLambdaAliasCounter).to.be(powerValues.length - 1);
-            expect(waitForFunctionUpdateCounter).to.be(powerValues.length);
-        });
-
-        it('should update an alias if it already exists (2)', async() => {
-            createLambdaAliasStub && createLambdaAliasStub.restore();
-            createLambdaAliasStub = sandBox.stub(utils, 'createLambdaAlias')
-                .callsFake(async() => {
-                    createLambdaAliasCounter += 10;
-                    throw new Error('Alias already exists');
-                });
-            await invokeForSuccess(handler, { lambdaARN: 'arnOK', num: 5 });
-            expect(createLambdaAliasCounter).to.be(powerValues.length * 10);
-            expect(waitForFunctionUpdateCounter).to.be(powerValues.length);
+            expect(createLambdaAliasCounter).to.be(0);
+            expect(waitForFunctionUpdateCounter).to.be(1);
         });
 
         it('should explode if something goes wrong during power set', async() => {
@@ -261,8 +394,39 @@ describe('Lambda Functions', async() => {
                 .callsFake(async() => {
                     throw new Error('Something went wrong');
                 });
-            await invokeForFailure(handler, { lambdaARN: 'arnOK', num: 5 });
+            await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 128,
+                        alias: 'RAM128',
+                    }],
+                    iterator: {
+                        index: 0,
+                        count: 1,
+                    },
+                }});
             expect(waitForFunctionUpdateCounter).to.be(0);
+        });
+
+        it('should NOT explode if something goes wrong during alias creation but it already exists', async() => {
+            createLambdaAliasStub && createLambdaAliasStub.restore();
+            createLambdaAliasStub = sandBox.stub(utils, 'createLambdaAlias')
+                .callsFake(async() => {
+                    throw new Error('Alias already exists');
+                });
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 128,
+                        alias: 'RAM128',
+                    }],
+                    iterator: {
+                        index: 0,
+                        count: 1,
+                    },
+                }});
         });
 
         it('should fail is something goes wrong with the initialization API calls', async() => {
@@ -272,10 +436,20 @@ describe('Lambda Functions', async() => {
                     const error = new Error('very bad error');
                     throw error;
                 });
-            await invokeForFailure(handler, { lambdaARN: 'arnOK', num: 5 });
+            await invokeForFailure(handler, {
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {
+                    initConfigurations: [{
+                        powerValue: 128,
+                        alias: 'RAM128',
+                    }],
+                    iterator: {
+                        index: 0,
+                        count: 1,
+                    },
+                }});
             expect(waitForFunctionUpdateCounter).to.be(1);
         });
-
     });
 
     describe('cleaner', async() => {
@@ -285,10 +459,11 @@ describe('Lambda Functions', async() => {
         let invalidEvents = [
             null,
             {},
-            { lambdaARN: null },
-            { lambdaARN: '' },
-            { lambdaARN: false },
-            { lambdaARN: 0 },
+            { lambdaARN: null, lambdaConfigurations: singleAliasConfig},
+            { lambdaARN: '', lambdaConfigurations: singleAliasConfig},
+            { lambdaARN: false, lambdaConfigurations: singleAliasConfig},
+            { lambdaARN: 0, lambdaConfigurations: singleAliasConfig},
+            { lambdaARN: '', lambdaConfigurations: singleAliasConfig},
         ];
 
         invalidEvents.forEach(async(event) => {
@@ -297,7 +472,19 @@ describe('Lambda Functions', async() => {
             });
         });
 
-        it('should explode if invoked without powerValues', async() => {
+        invalidEvents = [
+            { lambdaARN: 'arnOK'},
+            { lambdaARN: 'arnOK', lambdaConfigurations: {}},
+            { lambdaARN: 'arnOK', lambdaConfigurations: { powerValues: []}},
+        ];
+
+        invalidEvents.forEach(async(event) => {
+            it('should explode if invoked without valid powerValues - ' + JSON.stringify(event), async() => {
+                await invokeForFailure(handler, event);
+            });
+        });
+
+        it('should explode if invoked without lambdaConfigurations', async() => {
             await invokeForFailure(handler, {lambdaARN: 'arnOK'});
         });
 
@@ -319,7 +506,11 @@ describe('Lambda Functions', async() => {
                 });
         });
 
-        const eventOK = { lambdaARN: 'arnOK', powerValues: ['128', '256', '512'] };
+        const eventOK = {
+            num: 10,
+            lambdaARN: 'arnOK',
+            lambdaConfigurations: {powerValues: ['128', '256', '512'] },
+        };
 
         it('should invoke the given cb, when done', async() => {
             await invokeForSuccess(handler, eventOK);
@@ -353,6 +544,51 @@ describe('Lambda Functions', async() => {
                     throw error;
                 });
             await invokeForFailure(handler, eventOK);
+        });
+
+        it('should work fine even with onlyColdStarts=true', async() => {
+            await invokeForSuccess(handler, {
+                num: 10,
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {powerValues: ['128', '256', '512'] },
+                onlyColdStarts: true,
+            });
+        });
+
+        it('should clean the right aliases with onlyColdStarts=false', async() => {
+            const cleanedAliases = [];
+            const expectedAliases = ['RAM128', 'RAM256', 'RAM512'];
+            deleteLambdaAliasStub && deleteLambdaAliasStub.restore();
+            deleteLambdaAliasStub = sandBox.stub(utils, 'deleteLambdaAlias')
+                .callsFake(async(lambdaARN, alias) => {
+                    cleanedAliases.push(alias);
+                    return 'OK';
+                });
+            await invokeForSuccess(handler, {
+                num: 10,
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {powerValues: ['128', '256', '512']},
+                onlyColdStarts: false,
+            });
+            expect(cleanedAliases).to.eql(expectedAliases);
+        });
+
+        it('should clean the right aliases with onlyColdStarts=true', async() => {
+            const cleanedAliases = [];
+            const expectedAliases = ['RAM128-0', 'RAM128-1', 'RAM256-0', 'RAM256-1', 'RAM512-0', 'RAM512-1'];
+            deleteLambdaAliasStub && deleteLambdaAliasStub.restore();
+            deleteLambdaAliasStub = sandBox.stub(utils, 'deleteLambdaAlias')
+                .callsFake(async(lambdaARN, alias) => {
+                    cleanedAliases.push(alias);
+                    return 'OK';
+                });
+            await invokeForSuccess(handler, {
+                num: 2,
+                lambdaARN: 'arnOK',
+                lambdaConfigurations: {powerValues: ['128', '256', '512']},
+                onlyColdStarts: true,
+            });
+            expect(cleanedAliases).to.eql(expectedAliases);
         });
 
     });
@@ -1302,76 +1538,76 @@ describe('Lambda Functions', async() => {
         const trimmedDurationsValues = [
             3.5,
             3.5,
-            4.333333333333333,
-            27.7,
+            4.416666666666667,
+            27.72,
+        ];
+
+        const logResults = [
+            // Duration 0.1ms - Init Duration 0.1ms - Billed 1ms
+            {
+                StatusCode: 200,
+                LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMC4xIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcwlJbml0IER1cmF0aW9uOiAwLjEgbXMgCU1lbW9yeSBTaXplOiAxMjggTUIJTWF4IE1lbW9yeSBVc2VkOiAxNSBNQgkK',
+                Payload: 'null',
+            },
+            // Duration 0.5ms - Billed 1ms
+            {
+                StatusCode: 200,
+                LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMC41IG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQo=',
+                Payload: 'null',
+            },
+            // Duration 2.0ms - Billed 2ms
+            {
+                StatusCode: 200,
+                LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkgMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQgMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQgMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQgRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkIFJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMi4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMiBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQ==',
+                Payload: 'null',
+            },
+            // Duration 3.0ms - Billed 3ms
+            {
+                StatusCode: 200,
+                LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMy4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMyBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQo=',
+                Payload: 'null',
+            },
+            // Duration 3.0ms - Billed 3ms
+            {
+                StatusCode: 200,
+                LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMy4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMyBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQo=',
+                Payload: 'null',
+            },
+            // Duration 4.0ms - Billed 4ms
+            {
+                StatusCode: 200,
+                LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogNC4wIG1zCUJpbGxlZCBEdXJhdGlvbjogNCBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQo=',
+                Payload: 'null',
+            },
+            // Duration 4.5ms - Billed 5ms
+            {
+                StatusCode: 200,
+                LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogNC41IG1zCUJpbGxlZCBEdXJhdGlvbjogNSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQo=',
+                Payload: 'null',
+            },
+            // Duration 10.0ms - Billed 10ms
+            {
+                StatusCode: 200,
+                LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMTAuMCBtcwlCaWxsZWQgRHVyYXRpb246IDEwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
+                Payload: 'null',
+            },
+            // Duration 50ms - Billed 50ms
+            {
+                StatusCode: 200,
+                LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogNTAuMCBtcwlCaWxsZWQgRHVyYXRpb246IDUwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
+                Payload: 'null',
+            },
+            // Duration 200ms - Billed 200ms
+            {
+                StatusCode: 200,
+                LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMjAwLjAgbXMJQmlsbGVkIER1cmF0aW9uOiAyMDAgbXMgCU1lbW9yeSBTaXplOiAxMjggTUIJTWF4IE1lbW9yeSBVc2VkOiAxNSBNQgkK',
+                Payload: 'null',
+            },
         ];
 
         discardTopBottomValues.forEach((discardTopBottomValue, forEachIndex) => {
             console.log('extractDiscardTopBottomValue', discardTopBottomValue);
             it(`should discard ${discardTopBottomValue * 100}% of durations`, async() => {
-                const logResults = [
-                    // Duration 0.1ms - Billed 1ms
-                    {
-                        StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMC4xIG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcwlJbml0IER1cmF0aW9uOiAwLjEgbXMgCU1lbW9yeSBTaXplOiAxMjggTUIJTWF4IE1lbW9yeSBVc2VkOiAxNSBNQgkK',
-                        Payload: 'null',
-                    },
-                    // Duration 0.5ms - Billed 1ms
-                    {
-                        StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMC41IG1zCUJpbGxlZCBEdXJhdGlvbjogMSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQo=',
-                        Payload: 'null',
-                    },
-                    // Duration 2.0ms - Billed 2ms
-                    {
-                        StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMi4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMm1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJ',
-                        Payload: 'null',
-                    },
-                    // Duration 3.0ms - Billed 3ms
-                    {
-                        StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMy4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMyBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQo=',
-                        Payload: 'null',
-                    },
-                    // Duration 3.0ms - Billed 3ms
-                    {
-                        StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMy4wIG1zCUJpbGxlZCBEdXJhdGlvbjogMyBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQo=',
-                        Payload: 'null',
-                    },
-                    // Duration 4.0ms - Billed 4ms
-                    {
-                        StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogNC4wIG1zCUJpbGxlZCBEdXJhdGlvbjogNCBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQo=',
-                        Payload: 'null',
-                    },
-                    // Duration 4.5ms - Billed 5ms
-                    {
-                        StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogNC41IG1zCUJpbGxlZCBEdXJhdGlvbjogNSBtcyAJTWVtb3J5IFNpemU6IDEyOCBNQglNYXggTWVtb3J5IFVzZWQ6IDE1IE1CCQo=',
-                        Payload: 'null',
-                    },
-                    // Duration 10.0ms - Billed 10ms
-                    {
-                        StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMTAuMCBtcwlCaWxsZWQgRHVyYXRpb246IDEwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
-                        Payload: 'null',
-                    },
-                    // Duration 50ms - Billed 50ms
-                    {
-                        StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogNTAuMCBtcwlCaWxsZWQgRHVyYXRpb246IDUwIG1zIAlNZW1vcnkgU2l6ZTogMTI4IE1CCU1heCBNZW1vcnkgVXNlZDogMTUgTUIJCg==',
-                        Payload: 'null',
-                    },
-                    // Duration 200ms - Billed 200ms
-                    {
-                        StatusCode: 200,
-                        LogResult: 'U1RBUlQgUmVxdWVzdElkOiA0NzlmYjUxYy0xZTM4LTExZTctOTljYS02N2JmMTYzNjA4ZWQgVmVyc2lvbjogOTkKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTEgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTIgPSB1bmRlZmluZWQKMjAxNy0wNC0xMFQyMTo1NDozMi42ODNaCTQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAl2YWx1ZTMgPSB1bmRlZmluZWQKRU5EIFJlcXVlc3RJZDogNDc5ZmI1MWMtMWUzOC0xMWU3LTk5Y2EtNjdiZjE2MzYwOGVkClJFUE9SVCBSZXF1ZXN0SWQ6IDQ3OWZiNTFjLTFlMzgtMTFlNy05OWNhLTY3YmYxNjM2MDhlZAlEdXJhdGlvbjogMjAwLjAgbXMJQmlsbGVkIER1cmF0aW9uOiAyMDAgbXMgCU1lbW9yeSBTaXplOiAxMjggTUIJTWF4IE1lbW9yeSBVc2VkOiAxNSBNQgkK',
-                        Payload: 'null',
-                    },
-                ];
-
                 let invokeCounter = 0;
                 invokeLambdaStub && invokeLambdaStub.restore();
                 invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
@@ -1396,6 +1632,72 @@ describe('Lambda Functions', async() => {
 
                 expect(response.averageDuration).to.be(trimmedDurationsValues[forEachIndex]);
             });
+        });
+
+        it('should default discardTopBottom to 0 when onlyColdStarts', async() => {
+            let invokeCounter = 0;
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    invokeLambdaPayloads.push(payload);
+                    const logResult = logResults[invokeCounter];
+                    invokeCounter++;
+
+                    return logResult;
+                });
+
+            const response = await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    onlyColdStarts: true,
+                },
+            });
+
+            console.log('response', response);
+
+            expect(response.averageDuration).to.be(27.72);
+        });
+
+        it('should waitForAliasActive for each Alias when onlyColdStarts is set', async() => {
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 10,
+                    onlyColdStarts: true,
+                    parallelInvocation: true,
+                },
+            });
+            expect(waitForAliasActiveCounter).to.be(10);
+        });
+
+        it('should invoke each Alias once when onlyColdStarts is set', async() => {
+            const aliasesToInvoke = ['RAM128-0', 'RAM128-1', 'RAM128-2', 'RAM128-3', 'RAM128-4'];
+            let invokedAliases = [];
+            let invokeCounter = 0;
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    invokedAliases.push(_alias);
+                    invokeLambdaPayloads.push(payload);
+                    const logResult = logResults[invokeCounter];
+                    invokeCounter++;
+
+                    return logResult;
+                });
+            await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 5,
+                    onlyColdStarts: true,
+                    parallelInvocation: true,
+                },
+            });
+            expect(waitForAliasActiveCounter).to.be(5);
+            expect(invokedAliases).to.eql(aliasesToInvoke);
         });
     });
 

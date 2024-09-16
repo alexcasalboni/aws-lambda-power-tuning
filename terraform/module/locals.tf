@@ -11,6 +11,7 @@ locals {
     "${path.module}/json_files/state_machine.json",
     {
       initializerArn = aws_lambda_function.initializer.arn,
+      publisherArn = aws_lambda_function.publisher.arn,
       executorArn    = aws_lambda_function.executor.arn,
       cleanerArn     = aws_lambda_function.cleaner.arn,
       analyzerArn    = aws_lambda_function.analyzer.arn,
@@ -34,6 +35,13 @@ locals {
 
   initializer_template = templatefile(
     "${path.module}/json_files/initializer.json",
+    {
+      account_id = var.account_id
+    }
+  )
+
+  publisher_template = templatefile(
+    "${path.module}/json_files/publisher.json",
     {
       account_id = var.account_id
     }

@@ -131,6 +131,21 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
+                - lambda:GetFunctionConfiguration
+              Resource: !Ref lambdaResource
+  publisher:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: publisher.handler
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole # Only logs
+        - Version: '2012-10-17' # allow Lambda actions
+          Statement:
+            - Effect: Allow
+              Action:
                 - lambda:GetAlias
                 - lambda:GetFunctionConfiguration
                 - lambda:PublishVersion
@@ -278,6 +293,7 @@ Resources:
       DefinitionUri: statemachine/statemachine.asl.json
       DefinitionSubstitutions:
         initializerArn: !GetAtt initializer.Arn
+        publisherArn: !GetAtt publisher.Arn
         executorArn: !GetAtt executor.Arn
         cleanerArn: !GetAtt cleaner.Arn
         analyzerArn: !GetAtt analyzer.Arn

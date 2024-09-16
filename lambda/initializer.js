@@ -8,24 +8,58 @@ const defaultPowerValues = process.env.defaultPowerValues.split(',');
  */
 module.exports.handler = async(event, context) => {
 
-    const {lambdaARN, num} = event;
-    const powerValues = extractPowerValues(event);
+    const {
+        lambdaARN,
+        num,
+        powerValues,
+        onlyColdStarts,
+    } = extractDataFromInput(event);
 
     validateInput(lambdaARN, num); // may throw
 
     // fetch initial $LATEST value so we can reset it later
-    const initialPower = await utils.getLambdaPower(lambdaARN);
+    const {power, description} = await utils.getLambdaPower(lambdaARN);
+    console.log(power, description);
+
+    let initConfigurations = [];
 
     // reminder: configuration updates must run sequentially
     // (otherwise you get a ResourceConflictException)
-    for (let value of powerValues){
-        const alias = 'RAM' + value;
-        await utils.createPowerConfiguration(lambdaARN, value, alias);
+    for (let powerValue of powerValues){
+        const baseAlias = 'RAM' + powerValue;
+        if (!onlyColdStarts){
+            initConfigurations.push({powerValue: powerValue, alias: baseAlias});
+        } else {
+            for (let n of utils.range(num)){
+                let alias = utils.buildAliasString(baseAlias, onlyColdStarts, n);
+                // here we inject a custom description to force the creation of a new version
+                // even if the power is the same, which will force a cold start
+                initConfigurations.push({powerValue: powerValue, alias: alias, description: `${description} - ${alias}`});
+            }
+        }
     }
+    // Publish another version to revert the Lambda Function to its original configuration
+    initConfigurations.push({powerValue: power, description: description});
 
-    await utils.setLambdaPower(lambdaARN, initialPower);
+    return {
+        initConfigurations: initConfigurations,
+        iterator: {
+            index: 0,
+            count: initConfigurations.length,
+            continue: true,
+        },
+        powerValues: powerValues,
+    };
+};
 
-    return powerValues;
+
+const extractDataFromInput = (event) => {
+    return {
+        lambdaARN: event.lambdaARN,
+        num: parseInt(event.num, 10),
+        powerValues: extractPowerValues(event),
+        onlyColdStarts: !!event.onlyColdStarts,
+    };
 };
 
 const extractPowerValues = (event) => {

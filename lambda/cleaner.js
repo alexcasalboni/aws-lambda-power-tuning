@@ -8,13 +8,20 @@ const utils = require('./utils');
  */
 module.exports.handler = async(event, context) => {
 
-    const {lambdaARN, powerValues} = event;
+    const {
+        lambdaARN,
+        powerValues,
+        onlyColdStarts,
+        num,
+    } = extractDataFromInput(event);
 
     validateInput(lambdaARN, powerValues); // may throw
 
-    const ops = powerValues.map(async(value) => {
-        const alias = 'RAM' + value;
-        await cleanup(lambdaARN, alias); // may throw
+    // build list of aliases to clean up
+    const aliases = buildAliasListForCleanup(lambdaARN, onlyColdStarts, powerValues, num);
+
+    const ops = aliases.map(async(alias) => {
+        await cleanup(lambdaARN, alias);
     });
 
     // run everything in parallel and wait until completed
@@ -23,12 +30,32 @@ module.exports.handler = async(event, context) => {
     return 'OK';
 };
 
+const buildAliasListForCleanup = (lambdaARN, onlyColdStarts, powerValues, num) => {
+    if (onlyColdStarts){
+        return powerValues.map((powerValue) => {
+            return utils.range(num).map((index) => {
+                return utils.buildAliasString(`RAM${powerValue}`, onlyColdStarts, index);
+            });
+        }).flat();
+    }
+    return powerValues.map((powerValue) => utils.buildAliasString(`RAM${powerValue}`));
+};
+
+const extractDataFromInput = (event) => {
+    return {
+        lambdaARN: event.lambdaARN,
+        powerValues: event.lambdaConfigurations.powerValues,
+        onlyColdStarts: event.onlyColdStarts,
+        num: parseInt(event.num, 10), // parse as we do in the initializer
+    };
+};
+
 const validateInput = (lambdaARN, powerValues) => {
     if (!lambdaARN) {
         throw new Error('Missing or empty lambdaARN');
     }
     if (!powerValues || !powerValues.length) {
-        throw new Error('Missing or empty power values');
+        throw new Error('Missing or empty powerValues values');
     }
 };
 

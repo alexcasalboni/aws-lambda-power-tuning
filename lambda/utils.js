@@ -13,8 +13,35 @@ const url = require('url');
 // local reference to this module
 const utils = module.exports;
 
+const DURATIONS = {
+    durationMs: 'durationMs',
+    initDurationMs: 'initDurationMs',
+    restoreDurationMs: 'restoreDurationMs',
+    billedDurationMs: 'billedDurationMs',
+    billedRestoreDurationMs: 'billedRestoreDurationMs',
+};
+module.exports.DURATIONS = DURATIONS;
+
 // cost of 6+N state transitions (AWS Step Functions)
-module.exports.stepFunctionsCost = (nPower) => +(this.stepFunctionsBaseCost() * (6 + nPower)).toFixed(5);
+/**
+ * Computes the cost for all state transitions in this state machine execution
+ */
+module.exports.stepFunctionsCost = (nPower, onlyColdStarts, num) => {
+    const baseCostPerTransition = this.stepFunctionsBaseCost();
+
+    // 6 -> number of default state transition (no matter what)
+    // nPower * 3 -> these are invoked nPower times: Executor + Publisher + IsCountReached
+    var multiplier = 6 + nPower * 3;
+
+    if (onlyColdStarts) {
+        // 6 -> number of default state transition (no matter what)
+        // nPower -> number of Executor branches happening in parallel
+        // 2 * nPower * num -> number of loops (Publisher + IsCountReached)
+        multiplier = 6 + nPower + 2 * nPower * num;
+    }
+
+    return +(baseCostPerTransition * multiplier).toFixed(5);
+};
 
 module.exports.stepFunctionsBaseCost = () => {
     const prices = JSON.parse(process.env.sfCosts);
@@ -29,6 +56,14 @@ module.exports.lambdaBaseCost = (region, architecture) => {
         throw new Error('Unsupported architecture: ' + architecture);
     }
     return this.baseCostForRegion(priceMap, region);
+};
+
+module.exports.buildAliasString = (baseAlias, onlyColdStarts, index) => {
+    let alias = baseAlias;
+    if (onlyColdStarts) {
+        alias += `-${index}`;
+    }
+    return alias;
 };
 
 module.exports.allPowerValues = () => {
@@ -76,14 +111,19 @@ module.exports.verifyAliasExistance = async(lambdaARN, alias) => {
 /**
  * Update power, publish new version, and create/update alias.
  */
-module.exports.createPowerConfiguration = async(lambdaARN, value, alias) => {
+module.exports.createPowerConfiguration = async(lambdaARN, value, alias, description) => {
     try {
-        await utils.setLambdaPower(lambdaARN, value);
+        await utils.setLambdaPower(lambdaARN, value, description);
 
-        // wait for functoin update to complete
+        // wait for function update to complete
         await utils.waitForFunctionUpdate(lambdaARN);
 
         const {Version} = await utils.publishLambdaVersion(lambdaARN);
+        // alias is not passed in when restoring to the original Lambda configuration
+        if (typeof alias === 'undefined'){
+            console.log('No alias defined');
+            return;
+        }
         const aliasExists = await utils.verifyAliasExistance(lambdaARN, alias);
         if (aliasExists) {
             await utils.updateLambdaAlias(lambdaARN, alias, Version);
@@ -142,7 +182,11 @@ module.exports.getLambdaPower = async(lambdaARN) => {
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     const config = await lambda.send(new GetFunctionConfigurationCommand(params));
-    return config.MemorySize;
+    return {
+        power: config.MemorySize,
+        // we need to fetch env vars only to add a new one and force a cold start
+        description: config.Description,
+    };
 };
 
 /**
@@ -177,11 +221,14 @@ module.exports.getLambdaConfig = async(lambdaARN, alias) => {
 /**
  * Update a given Lambda Function's memory size (always $LATEST version).
  */
-module.exports.setLambdaPower = (lambdaARN, value) => {
+module.exports.setLambdaPower = (lambdaARN, value, description) => {
     console.log('Setting power to ', value);
     const params = {
         FunctionName: lambdaARN,
         MemorySize: parseInt(value, 10),
+        // the Description field is used as a way to force new versions being published.
+        // this is required when using Power Tuning with the onlyColdStart flag
+        Description: description,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.send(new UpdateFunctionConfigurationCommand(params));
@@ -490,7 +537,24 @@ module.exports.computePrice = (minCost, minRAM, value, duration) => {
 module.exports.parseLogAndExtractDurations = (data) => {
     return data.map(log => {
         const logString = utils.base64decode(log.LogResult || '');
-        return utils.extractDuration(logString);
+        // Total duration = duration + (initDuration or restoreDuration)
+        // restoreDuration is present for SnapStart-enabled Lambda functions
+        // initDuration is present for non-SnapStart Lambda functions
+        // if either is missing, we assume it's 0
+        return utils.extractDuration(logString, DURATIONS.durationMs) +
+          utils.extractDuration(logString, DURATIONS.initDurationMs) +
+          utils.extractDuration(logString, DURATIONS.restoreDurationMs);
+    });
+};
+module.exports.parseLogAndExtractBilledDurations = (data) => {
+    return data.map(log => {
+        const logString = utils.base64decode(log.LogResult || '');
+        // Total billed duration = billedDuration + billedRestoreDuration
+        // billedDuration is present for all Lambda functions
+        // billedRestoreDuration is present for SnapStart-enabled Lambda functions
+        // if billedRestoreDuration is missing, we assume it's 0
+        return utils.extractDuration(logString, DURATIONS.billedDurationMs) +
+          utils.extractDuration(logString, DURATIONS.billedRestoreDurationMs);
     });
 };
 
@@ -543,31 +607,52 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
 /**
  * Extract duration (in ms) from a given Lambda's CloudWatch log.
  */
-module.exports.extractDuration = (log) => {
+module.exports.extractDuration = (log, durationType) => {
+    if (!durationType){
+        durationType = DURATIONS.durationMs; // default to `durationMs`
+    }
     if (log.charAt(0) === '{') {
         // extract from JSON (multi-line)
-        return utils.extractDurationFromJSON(log);
+        return utils.extractDurationFromJSON(log, durationType);
     } else {
         // extract from text
-        return utils.extractDurationFromText(log);
+        return utils.extractDurationFromText(log, durationType);
     }
 };
 
-/**
- * Extract duration (in ms) from a given text log.
- */
-module.exports.extractDurationFromText = (log) => {
-    const regex = /\tBilled Duration: (\d+) ms/m;
-    const match = regex.exec(log);
+function getRegex(durationType) {
+    switch (durationType) {
+    case DURATIONS.billedDurationMs:
+        return /\tBilled Duration: (\d+) ms/m;
+    case DURATIONS.initDurationMs:
+        return /\tInit Duration: (\d+\.\d+) ms/m;
+    case DURATIONS.durationMs:
+        return /\tDuration: (\d+\.\d+) ms/m;
+    case DURATIONS.restoreDurationMs:
+        return /\tRestore Duration: (\d+\.\d+) ms/m;
+    case DURATIONS.billedRestoreDurationMs:
+        return /\tBilled Restore Duration: (\d+) ms/m;
+    default:
+        throw new Error(`Unknown duration type: ${durationType}`);
+    }
+}
 
+/**
+ * Extract duration (in ms) from a given text log and duration type.
+ */
+module.exports.extractDurationFromText = (log, durationType) => {
+    let regex = getRegex(durationType);
+
+    const match = regex.exec(log);
+    // Default to 0 if the specific duration is not found in the log line
     if (match == null) return 0;
-    return parseInt(match[1], 10);
+    return parseFloat(match[1], 10);
 };
 
 /**
- * Extract duration (in ms) from a given JSON log (multi-line).
+ * Extract duration (in ms) from a given JSON log (multi-line)  and duration type.
  */
-module.exports.extractDurationFromJSON = (log) => {
+module.exports.extractDurationFromJSON = (log, durationType) => {
     // extract each line and parse it to JSON object
     const lines = log.split('\n').filter((line) => line.startsWith('{')).map((line) => {
         try {
@@ -580,11 +665,14 @@ module.exports.extractDurationFromJSON = (log) => {
     // find the log corresponding to the invocation report
     const durationLine = lines.find((line) => line.type === 'platform.report');
     if (durationLine){
-        return durationLine.record.metrics.billedDurationMs;
+        let field = durationType;
+        // Default to 0 if the specific duration is not found in the log line
+        return durationLine.record.metrics[field] || 0;
     }
 
     throw new Error('Unrecognized JSON log');
 };
+
 
 /**
  * Encode a given string to base64.
@@ -614,6 +702,7 @@ module.exports.lambdaClientFromARN = (lambdaARN) => {
     const region = this.regionFromARN(lambdaARN);
     return new LambdaClient({
         region,
+        maxAttempts: 20,
         requestTimeout: 15 * 60 * 1000,
     });
 };
