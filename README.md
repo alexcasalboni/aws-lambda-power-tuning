@@ -12,7 +12,8 @@ The state machine is designed to be easy to deploy and fast to execute. Also, it
 
 Basically, you can provide a Lambda function ARN as input and the state machine will invoke that function with multiple power configurations (from 128MB to 10GB, you decide which values). Then it will analyze all the execution logs and suggest you the best power configuration to minimize cost and/or maximize performance.
 
-Please note that the input function will be executed in your AWS account - performing real HTTP requests, SDK calls, cold starts, etc. The state machine also supports cross-region invocations and you can enable parallel execution to generate results in just a few seconds.
+> [!NOTE]
+> Please note that the input function will be executed in your AWS account and perform real HTTP requests, SDK calls, cold starts, etc. The state machine also supports cross-region invocations and you can enable parallel execution to generate results in just a few seconds.
 
 ## What does the state machine look like?
 
@@ -20,13 +21,19 @@ It's pretty simple and you can visually inspect each step in the AWS management 
 
 ![state-machine](imgs/state-machine-screenshot.png?raw=true)
 
-## What results can I expect from Lambda Power Tuning?
+## What can I expect from AWS Lambda Power Tuning?
 
 The state machine will generate a visualization of average cost and speed for each power configuration.
 
+![visualization1](imgs/visualization1.jpg?raw=true)
+
+The graph helps you understand the impact of the power configuration on cost and performance for your specific AWS Lambda function.
+
+
+
 For example, this is what the results look like for two CPU-intensive functions, which become cheaper AND faster with more power:
 
-![visualization1](imgs/visualization1.jpg?raw=true)
+
 
 How to interpret the chart above: execution time goes from 35s with 128MB to less than 3s with 1.5GB, while being 14% cheaper to run.
 
@@ -34,67 +41,66 @@ How to interpret the chart above: execution time goes from 35s with 128MB to les
 
 How to interpret the chart above: execution time goes from 2.4s with 128MB to 300ms with 1GB, for the very same average cost.
 
-## How to deploy the state machine
+## Quick Start
 
-There are 5 deployment options for deploying the tool using Infrastructure as Code (IaC).
+> [!NOTE]
+> There are 5 deployment options for deploying AWS Lambda Power Tuning using Infrastucture as Code (IaC). In this Quick Start guide we will use the AWS SAM CLI. Read more about the [deployment options here](README-DEPLOY.md).
 
-1. The easiest way is to [deploy the app via the AWS Serverless Application Repository (SAR)](README-DEPLOY.md#option1).
-1. [Using the AWS SAM CLI](README-DEPLOY.md#option2)
-1. [Using the AWS CDK](README-DEPLOY.md#option3)
-1. [Using Terraform by Hashicorp and SAR](README-DEPLOY.md#option4)
-1. [Using native Terraform](README-DEPLOY.md#option5)
+### How to deploy the AWS Lambda Power Tuning tool with SAM CLI
 
-Read more about the [deployment options here](README-DEPLOY.md).
+**Prerequisites**: This method requires Docker.
 
-### State machine configuration (at deployment time)
+1. Install the [AWS SAM CLI in your local environment](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html).
 
-The CloudFormation template (used for option 1 to 4) accepts the following parameters:
+1. Configure your [AWS credentials (requires AWS CLI installed)](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-quick-configuration):
+    ```bash
+    $ aws configure
+    ```
+1. Install [Docker](https://docs.docker.com/get-docker/).
+1. Clone this git repository: 
+    ```bash
+    $ git clone https://github.com/alexcasalboni/aws-lambda-power-tuning.git
+    ```
+1. Build the Lambda layer and any other dependencies (Docker is required):
+    ```bash
+    $ cd ./aws-lambda-power-tuning
+    $ sam build -u
+    ```
+    [`sam build -u`](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-build.html) will run SAM build using a Docker container image that provides an environment similar to that which your function would run in. SAM build in-turn looks at your AWS SAM template file for information about Lambda functions and layers in this project.
+    
+    Once the build completes successfully you will see output stating `Build Succeeded`. If the build is not successful, there will be error messages providing guidance on what went wrong.
+1.  Deploy the application using the guided SAM deploy mode:
+    ```bash
+    $ sam deploy -g
+    ```
+    * For **Stack Name**, enter a unique name for the stack.
+    * For **AWS Region**, enter the region you want to deploy in. 
+    
+    Accept the defaults for all other prompts.
+    
+    [`sam deploy -g`](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-deploy.html)  provides simple prompts to walk you through the process of deploying the tool. The responses are saved in a configuration file, `samconfig.toml`, to be reused during subsequent deployments.
 
-|                    <div style="width:260px">**Parameter**</div>                     | Description                                                                                                                                                                                                                                                                                                                                                                                                                    |
-|:-----------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **PowerValues**<br>type: _list of numbers_<br>default: [128,256,512,1024,1536,3008] | These power values (in MB) will be used as the default in case no `powerValues` input parameter is provided at execution time.                                                                                                                                                                                                                                                                                                 |
-|    **visualizationURL**<br>type: _string_<br>default: `lambda-power-tuning.show`    | The base URL for the visualization tool, you can bring your own visualization tool.                                                                                                                                                                                                                                                                                                                                            |
-|            **totalExecutionTimeout**<br>type: _number_<br>default: `300`            | The timeout in seconds applied to all functions of the state machine.                                                                                                                                                                                                                                                                                                                                                          |
-|                **lambdaResource**<br>type: _string_<br>default: `*`                 | The `Resource` used in IAM policies; it's `*` by default but you could restrict it to a prefix or a specific function ARN.                                                                                                                                                                                                                                                                                                     |
-|                    **permissionsBoundary**<br>type: _string_<br>                    | The ARN of a permissions boundary (policy), applied to all functions of the state machine.                                                                                                                                                                                                                                                                                                                                     |
-|                      **payloadS3Bucket**<br>type: _string_<br>                      | The S3 bucket name used for large payloads (>256KB); if provided, it's added to a custom managed IAM policy that grants read-only permission to the S3 bucket; more details in the [S3 payloads section](README-ADVANCED.md#user-content-s3-payloads).                                                                                                                                                                         |
-|                 **payloadS3Key**<br>type: _string_<br>default: `*`                  | The S3 object key used for large payloads (>256KB); the default value grants access to all S3 objects in the bucket specified with `payloadS3Bucket`; more details in the [S3 payloads section](README-ADVANCED.md#user-content-s3-payloads).                                                                                                                                                                                  |
-|                       **layerSdkName**<br>type: _string_<br>                        | The name of the SDK layer, in case you need to customize it (optional).                                                                                                                                                                                                                                                                                                                                                        |
-|            **logGroupRetentionInDays**<br>type: _number_<br>default: `7`            | The number of days to retain log events in the Lambda log groups (a week by default).                                                                                                                                                                                                                                                                                                                                          |
-|            **securityGroupIds**<br>type: _list of SecurityGroup IDs_<br>            | List of Security Groups to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service.                                                                                                                                                                                       |
-|                   **subnetIds**<br>type: _list of Subnet IDs_<br>                   | List of Subnets to use in every Lambda function's VPC Configuration (optional); please note that your VPC should be configured to allow public internet access (via NAT Gateway) or include VPC Endpoints to the Lambda service.                                                                                                                                                                                               |
-| **stateMachineNamePrefix**<br>type: _string_<br>default: `powerTuningStateMachine`  | Allows you to customize the name of the state machine. Maximum 43 characters, only alphanumeric (plus `-` and `_`). The last portion of the `AWS::StackId` will be appended to this value, so the full name will look like `powerTuningStateMachine-89549da0-a4f9-11ee-844d-12a2895ed91f`. Note: `StateMachineName` has a maximum of 80 characters and 36+1 from the `StackId` are appended, allowing 43 for a custom prefix.  |
+    SAM CLI will run the required commands to create the resources for the Lambda Power Tuning tool. 
+    
+    A successful deployment displays the message `Successfully created/updated stack`. 
+1. To delete Lambda Power Tuning, run
+    ```bash
+    sam delete
+    ```
+    Answer `Y` to the prompts.
 
-Please note that the total execution time should stay below 300 seconds (5 min), which is the default timeout. You can estimate the total execution timeout based on the average duration of your functions. For example, if your function's average execution time is 5 seconds and you haven't enabled `parallelInvocation`, you should set `totalExecutionTimeout` to at least `num * 5`: 50 seconds if `num=10`, 500 seconds if `num=100`, and so on. If you have enabled `parallelInvocation`, usually you don't need to tune the value of `totalExecutionTimeout` unless your average execution time is above 5 min. If you have set a sleep between invocations, remember to include that in your timeout calculations.
+Deployment configuration [config](README-DEPLOY.md#state-machine-configuration-at-deployment-time)
 
-## How to run the state machine
+### How to run the state machine
 
-You can run the state machine manually or programmatically, see the documentation [here](README-EXECUTE.md).
+>[!NOTE]
+>You can run the state machine manually or programmatically, see the detailed documentation [here](README-EXECUTE.md).
 
-### State machine input (at execution time)
+In this Quick Start guide we will execute the state machine with the CLI.
 
-Each execution of the state machine will require an input where you can define the following input parameters:
+You'll find a few sample scripts in the `scripts` folder.
 
-|           <div style="width:260px">**Parameter**</div>            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-|:-----------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|         **lambdaARN** (required)<br/>type: _string_<br/>          | Unique identifier of the Lambda function you want to optimize.                                                                                                                                                                                                                                                                                                                                                                                            |
-|              **num** (required)<br/>type: _integer_               | The # of invocations for each power configuration (minimum 5, recommended: between 10 and 100).                                                                                                                                                                                                                                                                                                                                                           |
-|      **powerValues**<br/>type: _string or list of integers_       | The list of power values to be tested; if not provided, the default values configured at deploy-time are used; you can provide any power values between 128MB and 10,240MB. ⚠️ New AWS accounts have reduced concurrency and memory quotas (3008MB max).                                                                                                                                                                                                   |
-|          **payload**<br/>type: _string, object, or list_          | The static payload that will be used for every invocation (object or string); when using a list, a weighted payload is expected in the shape of `[{"payload": {...}, "weight": X }, {"payload": {...}, "weight": Y }, {"payload": {...}, "weight": Z }]`, where the weights `X`, `Y`, and `Z` are treated as relative weights (not percentages); more details in the [Weighted Payloads section](README-ADVANCED.md#user-content-weighted-payloads).      |
-|                 **payloadS3**<br/>type: _string_                  | An Amazon S3 object reference for large payloads (>256KB), formatted as `s3://bucket/key`; it requires read-only IAM permissions, see `payloadS3Bucket` and `payloadS3Key` below and find more details in the [S3 payloads section](README-ADVANCED.md#user-content-s3-payloads).                                                                                                                                                                         |
-|  **parallelInvocation**<br/>type: _boolean_<br/>default: `false`  | If true, all the invocations will run in parallel. ⚠️ Note: depending on the value of `num`, you might experience throttling.                                                                                                                                                                                                                                                                                                                              |
-|       **strategy**<br/>type: _string_<br/>default: `"cost"`       | It can be `"cost"` or `"speed"` or `"balanced"`; if you use `"cost"` the state machine will suggest the cheapest option (disregarding its performance), while if you use `"speed"` the state machine will suggest the fastest option (disregarding its cost). When using `"balanced"` the state machine will choose a compromise between `"cost"` and `"speed"` according to the parameter `"balancedWeight"`.                                            |
-|     **balancedWeight**<br/>type: _number_<br/>default: `0.5`      | Parameter that represents the trade-off between cost and speed. Value is between 0 and 1, where 0.0 is equivalent to `"speed"` strategy, 1.0 is equivalent to `"cost"` strategy.                                                                                                                                                                                                                                                                          |
-|     **autoOptimize**<br/>type: _boolean_<br/>default: `false`     | If true, the state machine will apply the optimal configuration at the end of its execution.                                                                                                                                                                                                                                                                                                                                                              |
-|             **autoOptimizeAlias**<br/>type: _string_              | If provided - and only if `autoOptimize` is true, the state machine will create or update this alias with the new optimal power value.                                                                                                                                                                                                                                                                                                                    |
-|        **dryRun**<br/>type: _boolean_<br/>default: `false`        | If true, the state machine will invoke the input function only once and disable every functionality related to logs analysis, auto-tuning, and visualization; this is intended for testing purposes, for example to verify that IAM permissions are set up correctly.                                                                                                                                                                                     |
-|              **preProcessorARN**<br/>type: _string_               | The ARN of a Lambda function that will be invoked before every invocation of `lambdaARN`; more details in the [Pre/Post-processing functions section](README-ADVANCED.md#user-content-prepost-processing-functions).                                                                                                                                                                                                                                      |
-|              **postProcessorARN**<br/>type: _string_              | The ARN of a Lambda function that will be invoked after every invocation of `lambdaARN`; more details in the [Pre/Post-processing functions section](README-ADVANCED.md#user-content-prepost-processing-functions).                                                                                                                                                                                                                                       |
-|    **discardTopBottom**<br/>type: _number_<br/>default: `0.2`     | By default, the state machine will discard the top/bottom 20% of "outlier invocations" (the fastest and slowest) to filter out the effects of cold starts and remove any bias from overall averages. You can customize this parameter by providing a value between 0 and 0.4, where 0 means no results are discarded and 0.4 means 40% of the top/bottom results are discarded (i.e. only 20% of the results are considered).                             |
-|            **sleepBetweenRunsMs**<br/>type: _integer_             | If provided, the time in milliseconds that the tuner will sleep/wait after invoking your function, but before carrying out the Post-Processing step, should that be provided. This could be used if you have aggressive downstream rate limits you need to respect. By default this will be set to 0 and the function won't sleep between invocations. This has no effect if running the invocations in parallel.                                         |
-|  **disablePayloadLogs**<br/>type: _boolean_<br/>default: `false`  | If true, suppresses `payload` from error messages and logs. If `preProcessorARN` is provided, this also suppresses the output payload of the pre-processor.                                                                                                                                                                                                                                                                                               |
-| **includeOutputResults**<br/>type: _boolean_<br/>default: `false` | If true, the average cost and average duration for every power value configuration will be included in the state machine output.                                                                                                                                                                                                                                                                                                                          |
-|    **onlyColdStarts**<br/>type: _boolean_<br/>default: `false`    | If true, the tool will force all invocations to be cold starts. The initialization phase will be considerably slower as `num` versions/aliases need to be created for each power value.                                                                                                                                                                                                                                                                   |
+The `scripts/sample-execution-input.json` let's you specify execution parameters, such as the lambdaARN and the number of invocations. You can find an extensive list of [execution parameters here](README-EXECUTE.md#state-machine-input-at-execution-time). To run the state machine you have to run the execute script in `scripts/execute.sh`.
 
 Here's a typical state machine input with basic parameters:
 
