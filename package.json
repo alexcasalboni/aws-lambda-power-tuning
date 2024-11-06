@@ -26,8 +26,8 @@
     "coverage": "c8 --reporter=lcov --reporter=cobertura --reporter=text-summary mocha"
   },
   "devDependencies": {
-    "@aws-sdk/client-lambda": "^3.485.0",
-    "@aws-sdk/client-s3": "^3.485.0",
+    "@aws-sdk/client-lambda": "^3.651.1",
+    "@aws-sdk/client-s3": "^3.651.1",
     "ansi-regex": ">=5.0.1",
     "aws-sdk-client-mock": "^3.0.0",
     "c8": "^7.13.0",
