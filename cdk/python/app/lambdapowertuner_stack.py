@@ -34,7 +34,7 @@ class TheLambdaPowerTunerStack(Stack):
             self, "SAR",
             location={
                 "applicationId": "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning",
-                "semanticVersion": "4.3.5"
+                "semanticVersion": "4.3.6"
             },
             parameters = stateMachineConfiguration
         )
