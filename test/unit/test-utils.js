@@ -1337,4 +1337,104 @@ describe('Lambda Utils', () => {
             expect(value).to.be('RAM128-1');
         });
     });
+
+    describe('extractDurationFromJSON', () => {
+        it('should handle pretty-printed logs from Powertools', () => {
+            const prettyPrintedLog = `
+    {
+      "cold_start": true,
+      "function_arn": "arn:aws:lambda:eu-west-1:123456789012:function:TestFunction",
+      "function_memory_size": "128",
+      "function_name": "TestFunction",
+      "function_request_id": "test-id",
+      "level": "INFO",
+      "message": "Lambda invocation event",
+      "timestamp": "2024-12-12T17:00:03.173Z",
+      "type": "platform.report",
+      "record": {
+        "metrics": {
+          "durationMs": 100.0,
+          "initDurationMs": 200.0
+        }
+      }
+    }`;
+    
+            const duration = utils.extractDurationFromJSON(prettyPrintedLog, utils.DURATIONS.durationMs);
+            expect(duration).to.be(100.0);
+        });
+        it('should handle multiline pretty printed logs', () =>{
+            const logLine = `
+           [{
+  "cold_start": true,
+  "function_arn": "arn:aws:lambda:eu-west-1:123456789012:function:TestFunction",
+  "function_memory_size": "128",
+  "function_name": "TestFunction",
+  "function_request_id": "test-id",
+  "level": "INFO",
+  "message": "Lambda invocation event",
+  "timestamp": "2024-12-12T17:00:03.173Z",
+  "type": "platform.report",
+  "record": {
+    "metrics": {
+      "durationMs": 100.0,
+      "initDurationMs": 200.0
+    }
+  }
+},{
+  "cold_start": true,
+  "function_arn": "arn:aws:lambda:eu-west-1:123456789012:function:TestFunction",
+  "function_memory_size": "128",
+  "function_name": "TestFunction",
+  "function_request_id": "test-id",
+  "level": "INFO",
+  "message": "Lambda invocation event",
+  "timestamp": "2024-12-12T17:00:03.173Z",
+  "type": "platform.test",
+  "record": {
+    "metrics": {
+      "durationMs": 100.0,
+      "initDurationMs": 200.0
+    }
+  }
+}]`
+    const duration = utils.extractDurationFromJSON(logLine, utils.DURATIONS.durationMs);
+    expect(duration).to.be(100.0);
+        })
+        
+        it('should handle empty lines in logs pretty printed', () => {
+            const logWithEmptyLines = `
+
+        [
+    
+    {
+      "type": "platform.report",
+      "record": {
+        "metrics": {
+          "durationMs": 100.0
+        }
+      }
+    }
+    ,
+    {
+      "some": "other log"
+    }
+    
+        ]
+
+    `;
+            const duration = utils.extractDurationFromJSON(logWithEmptyLines, utils.DURATIONS.durationMs);
+            expect(duration).to.be(100.0);
+        });
+    
+        it('should handle logs with no platform.report', () => {
+            const logWithNoPlatformReport = `
+    {
+      "message": "some log"
+    }
+    {
+      "another": "log"
+    }`;
+            expect(() => utils.extractDurationFromJSON(logWithNoPlatformReport, utils.DURATIONS.durationMs)).to.throwError()
+        });
+    });
 });

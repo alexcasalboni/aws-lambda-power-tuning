@@ -653,24 +653,33 @@ module.exports.extractDurationFromText = (log, durationType) => {
  * Extract duration (in ms) from a given JSON log (multi-line)  and duration type.
  */
 module.exports.extractDurationFromJSON = (log, durationType) => {
-    // extract each line and parse it to JSON object
-    const lines = log.split('\n').filter((line) => line.startsWith('{')).map((line) => {
-        try {
-            return JSON.parse(line);
-        } catch (e) {
-            console.error(`Detected invalid JSON line: ${line}`);
-            return '';
-        }
-    });
-    // find the log corresponding to the invocation report
-    const durationLine = lines.find((line) => line.type === 'platform.report');
-    if (durationLine){
-        let field = durationType;
-        // Default to 0 if the specific duration is not found in the log line
-        return durationLine.record.metrics[field] || 0;
+    //Check occurance of platform.report in log
+    if (!log.includes('platform.report')) {
+        throw new Error('Invalid JSON log does not contain platform.report');
     }
 
-    throw new Error('Unrecognized JSON log');
+    if (!log.includes(durationType)) {
+        throw new Error('Invalid JSON log does not contain durationMs');
+    }
+
+    let lines = []
+    try{
+        // check if lines is array
+        if (!Array.isArray(JSON.parse(log))) {
+            lines.push(JSON.parse(log))
+        } else {
+            lines = JSON.parse(log)
+        }
+        
+    }catch(e){
+        console.log("Json Log not pretty printed")
+        lines = log.split('\n').filter((line) => line.includes('platform.report')).map((line) => {
+            return JSON.parse(line)
+        });
+    }
+
+    const durationLine = lines.find((line) => line.type === 'platform.report');
+    return durationLine.record.metrics[durationType] || 0;
 };
 
 
