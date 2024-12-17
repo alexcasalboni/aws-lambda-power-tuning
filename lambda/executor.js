@@ -158,7 +158,7 @@ const replacePlaceholders = (payload, index, mem) => {
     return JSON.parse(
         JSON.stringify(payload)
             .replace(/\${index}/g, index) // Replace iteration index
-            .replace(/\${mem}/g, mem)    // Replace memory value
+            .replace(/\${mem}/g, mem), // Replace memory value
     );
 };
 
