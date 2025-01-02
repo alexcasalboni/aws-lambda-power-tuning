@@ -653,7 +653,7 @@ module.exports.extractDurationFromText = (log, durationType) => {
  * Extract duration (in ms) from a given JSON log (multi-line)  and duration type.
  */
 module.exports.extractDurationFromJSON = (log, durationType) => {
-    //Check occurance of platform.report in log
+    // Check occurance of platform.report in log
     if (!log.includes('platform.report')) {
         throw new Error('Invalid JSON log does not contain platform.report');
     }
@@ -662,19 +662,18 @@ module.exports.extractDurationFromJSON = (log, durationType) => {
         throw new Error('Invalid JSON log does not contain durationMs');
     }
 
-    let lines = []
-    try{
+    let lines = [];
+    try {
         // check if lines is array
         if (!Array.isArray(JSON.parse(log))) {
-            lines.push(JSON.parse(log))
+            lines.push(JSON.parse(log));
         } else {
-            lines = JSON.parse(log)
+            lines = JSON.parse(log);
         }
-        
-    }catch(e){
-        console.log("Json Log not pretty printed")
+    } catch (e) {
+        console.log('Json Log not pretty printed');
         lines = log.split('\n').filter((line) => line.includes('platform.report')).map((line) => {
-            return JSON.parse(line)
+            return JSON.parse(line);
         });
     }
 
