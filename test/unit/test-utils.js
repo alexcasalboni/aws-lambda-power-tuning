@@ -1433,5 +1433,25 @@ describe('Lambda Utils', () => {
     }`;
             expect(() => utils.extractDurationFromJSON(logWithNoPlatformReport, utils.DURATIONS.durationMs)).to.throwError();
         });
+        it('should handle logs with no platform.report', () => {
+            const logWithoutDurationMS = `
+            {
+            "cold_start": true,
+            "function_arn": "arn:aws:lambda:eu-west-1:123456789012:function:TestFunction",
+            "function_memory_size": "128",
+            "function_name": "TestFunction",
+            "function_request_id": "test-id",
+            "level": "INFO",
+            "message": "Lambda invocation event",
+            "timestamp": "2024-12-12T17:00:03.173Z",
+            "type": "platform.report",
+            "record": {
+                "metrics": {
+                "initDurationMs": 200.0
+                }
+            }
+            }`;
+            expect(() => utils.extractDurationFromJSON(logWithoutDurationMS, utils.DURATIONS.durationMs)).to.throwError();
+        });
     });
 });

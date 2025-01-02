@@ -671,6 +671,7 @@ module.exports.extractDurationFromJSON = (log, durationType) => {
             lines = JSON.parse(log);
         }
     } catch (e) {
+        // in case the log is not pretty printed, the string needs to be transformed first
         console.log('Json Log not pretty printed');
         lines = log.split('\n').filter((line) => line.includes('platform.report')).map((line) => {
             return JSON.parse(line);
