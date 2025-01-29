@@ -4,7 +4,7 @@ const {
     CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand,
     GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand,
     UpdateAliasCommand, UpdateFunctionConfigurationCommand,
-    waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException,
+    waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException,InvokeWithResponseStreamCommand,
 } = require('@aws-sdk/client-lambda');
 const { GetObjectCommand, S3Client } = require('@aws-sdk/client-s3');
 const url = require('url');
@@ -315,7 +315,7 @@ module.exports.invokeLambdaProcessor = async(processorARN, payload, preOrPost = 
 /**
  * Wrapper around Lambda function invocation with pre/post-processor functions.
  */
-module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, preARN, postARN, disablePayloadLogs) => {
+module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, preARN, postARN, disablePayloadLogs,streamresponse) => {
 
     var actualPayload = payload; // might change based on pre-processor
 
@@ -330,7 +330,7 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
     }
 
     // invoke function to be power-tuned
-    const invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload, disablePayloadLogs);
+    const invocationResults = await utils.invokeLambda(lambdaARN, alias, actualPayload, disablePayloadLogs,streamresponse )
 
     // then invoke post-processor, if provided
     if (postARN) {
@@ -348,7 +348,7 @@ module.exports.invokeLambdaWithProcessors = async(lambdaARN, alias, payload, pre
 /**
  * Invoke a given Lambda Function:Alias with payload and return its logs.
  */
-module.exports.invokeLambda = (lambdaARN, alias, payload, disablePayloadLogs) => {
+/** module.exports.invokeLambda = (lambdaARN, alias, payload, disablePayloadLogs) => {
     let consoleLogMessage = `Invoking function ${lambdaARN}:${alias || '$LATEST'}`;
     if (!disablePayloadLogs) {
         consoleLogMessage += ` with payload ${JSON.stringify(payload)}`;
@@ -362,7 +362,59 @@ module.exports.invokeLambda = (lambdaARN, alias, payload, disablePayloadLogs) =>
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.send(new InvokeCommand(params));
+};  */
+function Decodeuint8arr(uint8array) {
+    return new TextDecoder("utf-8").decode(uint8array);
+}
+module.exports.invokeLambda = async (lambdaARN, alias, payload, disablePayloadLogs, streamresponse) => {
+    let consoleLogMessage = `Invoking function ${lambdaARN}:${alias || '$LATEST'}`;
+    if (!disablePayloadLogs) {
+        consoleLogMessage += ` with payload ${JSON.stringify(payload)}`;
+    }
+    console.log(consoleLogMessage);
+    
+    const params = {
+        FunctionName: lambdaARN,
+        Qualifier: alias,
+        Payload: payload,
+        LogType: 'Tail', // will return logs
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    if (streamresponse){
+        const command = new InvokeWithResponseStreamCommand(params);
+        const response = await lambda.send(command);
+        
+        let streampayload='';
+        let logres='';
+        
+        for await (const item of response.EventStream) {
+            if (typeof item.PayloadChunk !== "undefined") {     
+                streampayload+=Decodeuint8arr(item.PayloadChunk.Payload)
+                
+            }
+            if (typeof item.InvokeComplete !== "undefined") {
+                const buff = Buffer.from(item.InvokeComplete.LogResult, 'base64');
+                console.log("Logs:", buff.toString("utf-8"));
+                logres=item.InvokeComplete.LogResult;
+            }
+        }
+        return {
+            Payload: streampayload,
+            LogResult: logres
+        };
+        
+    }
+    else
+    {
+        return lambda.send(new InvokeCommand(params));
+        
+    }
+    
+    
+    
 };
+    
+    
 
 /**
  * Handle a Lambda invocation error and generate an error message containing original error type, message and trace.
