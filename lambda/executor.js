@@ -23,8 +23,10 @@ module.exports.handler = async(event, context) => {
         onlyColdStarts,
         sleepBetweenRunsMs,
         disablePayloadLogs,
+        streamresponse,
     } = await extractDataFromInput(event);
 
+    
     validateInput(lambdaARN, value, num); // may throw
 
     // force only 1 execution if dryRun
@@ -56,6 +58,7 @@ module.exports.handler = async(event, context) => {
         onlyColdStarts: onlyColdStarts,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
         disablePayloadLogs: disablePayloadLogs,
+        streamresponse: streamresponse, 
     };
 
     // wait if the function/alias state is Pending
@@ -143,10 +146,11 @@ const extractDataFromInput = async(event) => {
         onlyColdStarts: !!input.onlyColdStarts,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
         disablePayloadLogs: !!input.disablePayloadLogs,
+        streamresponse: input.streamresponse === true,
     };
 };
 
-const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, disablePayloadLogs, onlyColdStarts}) => {
+const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, disablePayloadLogs, onlyColdStarts, streamresponse}) => {
     const results = [];
     // run all invocations in parallel ...
     const invocations = utils.range(num).map(async(_, i) => {
@@ -155,7 +159,7 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
             await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
             console.log(`${aliasToInvoke} is active`);
         }
-        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs, streamresponse);
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
             let errorMessage = 'Invocation error (running in parallel)';
@@ -168,7 +172,7 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
     return results;
 };
 
-const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs, disablePayloadLogs, onlyColdStarts}) => {
+const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postARN, sleepBetweenRunsMs, disablePayloadLogs, onlyColdStarts, streamresponse}) => {
     const results = [];
     for (let i = 0; i < num; i++) {
         let aliasToInvoke = utils.buildAliasString(lambdaAlias, onlyColdStarts, i);
@@ -177,8 +181,8 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
             await utils.waitForAliasActive(lambdaARN, aliasToInvoke);
             console.log(`${aliasToInvoke} is active`);
         }
-        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
-        // invocation errors return 200 and contain FunctionError and Payload
+        const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs, streamresponse);
+        // invocation errors return 200 and contain FunctionError and Payload, 
         if (invocationResults.FunctionError) {
             let errorMessage = 'Invocation error (running in series)';
             utils.handleLambdaInvocationError(errorMessage, invocationResults, actualPayload, disablePayloadLogs);
