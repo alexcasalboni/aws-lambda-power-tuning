@@ -32,7 +32,7 @@ resource "aws_lambda_function" "analyzer" {
       visualizationURL   = local.visualizationURL
     }
   }
-  tags = var.tags
+  tags       = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
@@ -69,7 +69,7 @@ resource "aws_lambda_function" "cleaner" {
       visualizationURL   = local.visualizationURL
     }
   }
-  tags = var.tags
+  tags       = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
@@ -106,7 +106,7 @@ resource "aws_lambda_function" "executor" {
       visualizationURL   = local.visualizationURL
     }
   }
-  tags = var.tags
+  tags       = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
@@ -143,7 +143,7 @@ resource "aws_lambda_function" "initializer" {
       visualizationURL   = local.visualizationURL
     }
   }
-  tags = var.tags
+  tags       = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
@@ -180,7 +180,7 @@ resource "aws_lambda_function" "publisher" {
       visualizationURL   = local.visualizationURL
     }
   }
-  tags = var.tags
+  tags       = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
@@ -217,7 +217,7 @@ resource "aws_lambda_function" "optimizer" {
       visualizationURL   = local.visualizationURL
     }
   }
-  tags = var.tags
+  tags       = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 

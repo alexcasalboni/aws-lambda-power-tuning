@@ -65,14 +65,14 @@ resource "aws_iam_policy" "optimizer_policy" {
   description = "Lambda power tuning policy - Optimizer - Terraform"
 
   policy = local.optimizer_template
-  tags = var.tags
+  tags   = var.tags
 }
 
 resource "aws_iam_policy_attachment" "optimizer-attach" {
   name       = "optimizer-attachment"
   roles      = [aws_iam_role.optimizer_role.name]
   policy_arn = aws_iam_policy.optimizer_policy.arn
-  
+
 }
 
 
