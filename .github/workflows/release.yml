@@ -1,0 +1,30 @@
+name: Reusable Workflow Release
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "fix"
+      - "feat"
+      - "breaking"
+      - "docs"
+      - "refactor"
+      - "style"
+      - "perf"
+
+  repository_dispatch:
+    types: [semantic-release]
+
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  pipeline:
+    if: "!contains(github.event.commits[0].message, 'Initial commit')"
+    permissions:
+      actions: write
+      contents: write
+    uses: awazevr/awazing-workflows/.github/workflows/reusable_release.yml@main
+    secrets:
+      github-token: ${{secrets.PAT}}

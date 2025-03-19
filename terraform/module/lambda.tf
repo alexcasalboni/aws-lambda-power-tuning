@@ -32,7 +32,7 @@ resource "aws_lambda_function" "analyzer" {
       visualizationURL   = local.visualizationURL
     }
   }
-
+  tags = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
@@ -69,7 +69,7 @@ resource "aws_lambda_function" "cleaner" {
       visualizationURL   = local.visualizationURL
     }
   }
-
+  tags = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
@@ -106,7 +106,7 @@ resource "aws_lambda_function" "executor" {
       visualizationURL   = local.visualizationURL
     }
   }
-
+  tags = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
@@ -143,7 +143,7 @@ resource "aws_lambda_function" "initializer" {
       visualizationURL   = local.visualizationURL
     }
   }
-
+  tags = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
@@ -180,7 +180,7 @@ resource "aws_lambda_function" "publisher" {
       visualizationURL   = local.visualizationURL
     }
   }
-
+  tags = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
@@ -217,17 +217,17 @@ resource "aws_lambda_function" "optimizer" {
       visualizationURL   = local.visualizationURL
     }
   }
-
+  tags = var.tags
   depends_on = [aws_lambda_layer_version.lambda_layer]
 }
 
 
 resource "aws_lambda_layer_version" "lambda_layer" {
-  filename    = "../src/layer.zip"
-  layer_name  = "AWS-SDK-v3"
-  description = "AWS SDK 3"
+  filename                 = "../src/layer.zip"
+  layer_name               = "AWS-SDK-v3"
+  description              = "AWS SDK 3"
   compatible_architectures = ["x86_64"]
-  compatible_runtimes = ["nodejs20.x"]
+  compatible_runtimes      = ["nodejs20.x"]
 
   depends_on = [data.archive_file.layer]
 }

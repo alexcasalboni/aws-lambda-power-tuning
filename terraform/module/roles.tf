@@ -3,6 +3,7 @@ resource "aws_iam_role" "analyzer_role" {
   permissions_boundary = var.permissions_boundary
   path                 = local.role_path
   assume_role_policy   = file("${path.module}/json_files/lambda.json")
+  tags = var.tags
 }
 
 resource "aws_iam_role" "optimizer_role" {
@@ -10,6 +11,7 @@ resource "aws_iam_role" "optimizer_role" {
   permissions_boundary = var.permissions_boundary
   path                 = local.role_path
   assume_role_policy   = file("${path.module}/json_files/lambda.json")
+  tags = var.tags
 }
 
 resource "aws_iam_role" "executor_role" {
@@ -17,6 +19,7 @@ resource "aws_iam_role" "executor_role" {
   permissions_boundary = var.permissions_boundary
   path                 = local.role_path
   assume_role_policy   = file("${path.module}/json_files/lambda.json")
+  tags = var.tags
 }
 
 resource "aws_iam_role" "initializer_role" {
@@ -24,6 +27,7 @@ resource "aws_iam_role" "initializer_role" {
   permissions_boundary = var.permissions_boundary
   path                 = local.role_path
   assume_role_policy   = file("${path.module}/json_files/lambda.json")
+  tags = var.tags
 }
 
 resource "aws_iam_role" "publisher_role" {
@@ -31,6 +35,7 @@ resource "aws_iam_role" "publisher_role" {
   permissions_boundary = var.permissions_boundary
   path                 = local.role_path
   assume_role_policy   = file("${path.module}/json_files/lambda.json")
+  tags = var.tags
 }
 
 resource "aws_iam_role" "cleaner_role" {
@@ -38,6 +43,7 @@ resource "aws_iam_role" "cleaner_role" {
   permissions_boundary = var.permissions_boundary
   path                 = local.role_path
   assume_role_policy   = file("${path.module}/json_files/lambda.json")
+  tags = var.tags
 }
 
 resource "aws_iam_role" "sfn_role" {
@@ -45,4 +51,5 @@ resource "aws_iam_role" "sfn_role" {
   permissions_boundary = var.permissions_boundary
   path                 = local.role_path
   assume_role_policy   = file("${path.module}/json_files/sfn.json")
+  tags = var.tags
 }

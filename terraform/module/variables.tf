@@ -3,7 +3,7 @@ variable "account_id" {
 }
 
 variable "lambda_function_prefix" {
-  default = "lambda_power_tuning"
+  default     = "lambda_power_tuning"
   description = "Prefix used for the names of Lambda functions, Step Functions state machines, IAM roles, and IAM policies."
 }
 
@@ -28,4 +28,9 @@ variable "vpc_security_group_ids" {
   description = "List of security group ids when Lambda Function should run in the VPC."
   type        = list(string)
   default     = null
+}
+
+variable "tags" {
+  description = " Tags to apply to all resources."
+  type        = map(string)
 }
