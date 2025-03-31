@@ -605,13 +605,27 @@ module.exports.computeAverageDuration = (durations, discardTopBottom) => {
 };
 
 /**
+ * Returns true if provided string is valid json, false otherwise
+ * @param str string to check
+ * @returns {boolean}
+ */
+module.exports.isValidJSON = (str) => {
+    try {
+        JSON.parse(str);
+        return true;
+    } catch (e) {
+        return false;
+    }
+};
+
+/**
  * Extract duration (in ms) from a given Lambda's CloudWatch log.
  */
 module.exports.extractDuration = (log, durationType) => {
     if (!durationType){
         durationType = DURATIONS.durationMs; // default to `durationMs`
     }
-    if (log.charAt(0) === '{') {
+    if (utils.isValidJSON(log)) {
         // extract from JSON (multi-line)
         return utils.extractDurationFromJSON(log, durationType);
     } else {
