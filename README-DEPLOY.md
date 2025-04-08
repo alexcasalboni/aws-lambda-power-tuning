@@ -80,7 +80,7 @@ You can also integrate the SAR app in your existing CloudFormation stacks - chec
 1. If you already have a CDK project you can include the following to use the [sam module](https://docs.aws.amazon.com/cdk/api/latest/docs/aws-sam-readme.html):
 
     ```typescript
-    import sam = require('@aws-cdk/aws-sam');
+    import * as sam from 'aws-cdk-lib/aws-sam';
     
     new sam.CfnApplication(this, 'powerTuner', {
       location: {
