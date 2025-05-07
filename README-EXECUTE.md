@@ -6,7 +6,7 @@ Independently of how you've deployed the state machine, you can execute it in a 
 
 You'll find a few sample scripts in the `scripts` folder.
 
-Feel free to customize the `scripts/sample-execution-input.json`, and then run `scripts/execute.sh`.
+Feel free to customize the `scripts/sample-execution-input.json` or add a new json file, and then run `scripts/execute.sh <Lambda name> <input json>`.
 
 The script will start a state machine execution, wait for the execution to complete (polling), and then show the execution results.
 

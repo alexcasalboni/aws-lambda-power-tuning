@@ -1,0 +1,4 @@
+bucket = "sg-ssd-dev-ds-local-tfstate"
+region = "eu-west-2"
+key = "environments-ds/shared/aws-lambda-power-tuning.tfstate"
+dynamodb_table = "sg-ssd-dev-ds-local-tfstatelock"
