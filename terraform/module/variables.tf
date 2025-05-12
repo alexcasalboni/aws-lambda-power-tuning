@@ -7,6 +7,13 @@ variable "lambda_function_prefix" {
   description = "Prefix used for the names of Lambda functions, Step Functions state machines, IAM roles, and IAM policies."
 }
 
+variable "executor_function_timeout" {
+  default = 30
+  type    = number
+  description = "Timeout for the executor function"
+}
+
+
 variable "role_path_override" {
   default     = ""
   type        = string

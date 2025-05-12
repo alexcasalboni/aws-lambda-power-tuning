@@ -30,7 +30,7 @@ do
         echo $STATUS
         echo "Execution output: "
         # retrieve output
-        aws stepfunctions describe-execution --execution-arn $EXECUTION_ARN --query 'output' --output text | cat
+        aws stepfunctions describe-execution --execution-arn $EXECUTION_ARN --query 'output' --output text
         break
     fi
 done
