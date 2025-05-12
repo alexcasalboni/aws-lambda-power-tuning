@@ -1,10 +1,12 @@
 #!/bin/bash
 # config
-STACK_NAME=lambda-power-tuning
-INPUT=$(cat scripts/sample-execution-input.json)  # or use a static string
+STACK_NAME=lambda_power_tuning
+INPUT=$(cat "${1:-'sample-execution-input.json'}")  # or use a static string
 
 # retrieve state machine ARN
-STATE_MACHINE_ARN=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`StateMachineARN`].OutputValue' --output text)
+
+# we don't use this as CF isn't used
+STATE_MACHINE_ARN=$(aws stepfunctions list-state-machines --query "stateMachines[?contains(name,\`${STACK_NAME}\`)]|[0].stateMachineArn" --output text | cat)
 
 # start execution
 EXECUTION_ARN=$(aws stepfunctions start-execution --state-machine-arn $STATE_MACHINE_ARN --input "$INPUT"  --query 'executionArn' --output text)
@@ -30,7 +32,7 @@ do
         echo $STATUS
         echo "Execution output: "
         # retrieve output
-        aws stepfunctions describe-execution --execution-arn $EXECUTION_ARN --query 'output' --output text
+        aws stepfunctions describe-execution --execution-arn $EXECUTION_ARN --query 'output' --output text | cat
         break
     fi
 done
