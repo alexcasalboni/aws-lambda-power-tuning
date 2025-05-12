@@ -1,7 +1,16 @@
 #!/bin/bash
 # config
+
+set -euo pipefail
+
+if [[ $# -gt 1 ]]
+then
+    echo "Incorrect Usage: $0 [input json file path]"
+    exit 1
+fi
+
 STACK_NAME=lambda_power_tuning
-INPUT=$(cat "${1:-'sample-execution-input.json'}")  # or use a static string
+INPUT=$(cat "${1:-sample-execution-input.json}")  # or use a static string
 
 # retrieve state machine ARN
 
