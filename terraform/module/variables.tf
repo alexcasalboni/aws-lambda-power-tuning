@@ -7,12 +7,6 @@ variable "lambda_function_prefix" {
   description = "Prefix used for the names of Lambda functions, Step Functions state machines, IAM roles, and IAM policies."
 }
 
-variable "total_execution_timeout" {
-  default = 300
-  type    = number
-  description = "Maximum invocation timeout (in seconds) for the Executor step, after which you get a States.Timeout error"
-}
-
 variable "role_path_override" {
   default     = ""
   type        = string

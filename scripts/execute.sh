@@ -1,15 +1,10 @@
 #!/bin/bash
 # config
 STACK_NAME=lambda-power-tuning
-INPUT_FILE="${2}"
-INPUT=$(cat "${INPUT_FILE}")  # or use a static string
+INPUT=$(cat scripts/sample-execution-input.json)  # or use a static string
 
 # retrieve state machine ARN
-
-# we don't use this as CF isn't used
-#STATE_MACHINE_ARN=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`StateMachineARN`].OutputValue' --output text)
-STATE_MACHINE_ARN="${1}"
-
+STATE_MACHINE_ARN=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`StateMachineARN`].OutputValue' --output text)
 
 # start execution
 EXECUTION_ARN=$(aws stepfunctions start-execution --state-machine-arn $STATE_MACHINE_ARN --input "$INPUT"  --query 'executionArn' --output text)
