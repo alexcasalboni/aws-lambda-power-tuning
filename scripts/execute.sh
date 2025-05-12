@@ -13,8 +13,6 @@ STACK_NAME=lambda_power_tuning
 INPUT=$(cat "${1:-sample-execution-input.json}")  # or use a static string
 
 # retrieve state machine ARN
-
-# we don't use this as CF isn't used
 STATE_MACHINE_ARN=$(aws stepfunctions list-state-machines --query "stateMachines[?contains(name,\`${STACK_NAME}\`)]|[0].stateMachineArn" --output text | cat)
 
 # start execution
