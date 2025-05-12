@@ -61,7 +61,7 @@
                         "Type": "Task",
                         "Resource": "${executorArn}",
                         "End": true,
-                        "TimeoutSeconds": 30,
+                        "TimeoutSeconds": ${totalExecutionTimeout},
                         "Retry": [{
                             "ErrorEquals": ["States.ALL"],
                             "IntervalSeconds": 3,

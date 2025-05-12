@@ -80,7 +80,7 @@ resource "aws_lambda_function" "executor" {
   handler       = "executor.handler"
   layers        = [aws_lambda_layer_version.lambda_layer.arn]
   memory_size   = 128
-  timeout       = 30
+  timeout       = var.total_execution_timeout
 
   # The filebase64sha256() function is available in Terraform 0.11.12 and later
   # For Terraform 0.11.11 and earlier, use the base64sha256() function and the file() function:
