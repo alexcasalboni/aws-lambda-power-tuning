@@ -160,6 +160,7 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
         }
         const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
         const parsedResults = JSON.parse(Buffer.from(invocationResults.Payload));
+        // invocation errors return 200 and contain FunctionError and Payload
         if ((invocationResults.FunctionError) && (allowedExceptions.includes(parsedResults.errorType))) {
             console.log(`Error ${parsedResults.errorType} is in the allowedExceptions list: ${allowedExceptions}`);
         } else if (invocationResults.FunctionError) {
