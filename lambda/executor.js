@@ -159,13 +159,18 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
             console.log(`${aliasToInvoke} is active`);
         }
         const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
-        const parsedResults = JSON.parse(Buffer.from(invocationResults.Payload));
+        
         // invocation errors return 200 and contain FunctionError and Payload
-        if ((invocationResults.FunctionError) && (allowedExceptions.includes(parsedResults.errorType))) {
-            console.log(`Error ${parsedResults.errorType} is in the allowedExceptions list: ${allowedExceptions}`);
-        } else if (invocationResults.FunctionError) {
-            let errorMessage = 'Invocation error (running in parallel)';
-            utils.handleLambdaInvocationError(errorMessage, invocationResults, actualPayload, disablePayloadLogs);
+        if (invocationResults.FunctionError) {
+            const parsedResults = JSON.parse(Buffer.from(invocationResults.Payload));
+            if (allowedExceptions.includes(parsedResults.errorType)) {
+                // do nothing
+                console.log(`Error ${parsedResults.errorType} is in the allowedExceptions list: ${allowedExceptions}`);
+            } else {
+                // throw error
+                let errorMessage = 'Invocation error (running in parallel)';
+                utils.handleLambdaInvocationError(errorMessage, invocationResults, actualPayload, disablePayloadLogs);
+            }
         }
         results.push(invocationResults);
     });
@@ -184,14 +189,20 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
             console.log(`${aliasToInvoke} is active`);
         }
         const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs, allowedExceptions);
-        const parsedResults = JSON.parse(Buffer.from(invocationResults.Payload));
+
         // invocation errors return 200 and contain FunctionError and Payload
-        if ((invocationResults.FunctionError) && (allowedExceptions.includes(parsedResults.errorType))) {
-            console.log(`Error ${parsedResults.errorType} is in the allowedExceptions list: ${allowedExceptions}`);
-        } else if (invocationResults.FunctionError) {
-            let errorMessage = 'Invocation error (running in series)';
-            utils.handleLambdaInvocationError(errorMessage, invocationResults, actualPayload, disablePayloadLogs);
+        if (invocationResults.FunctionError) {
+            const parsedResults = JSON.parse(Buffer.from(invocationResults.Payload));
+            if (allowedExceptions.includes(parsedResults.errorType)) {
+                // do nothing
+                console.log(`Error ${parsedResults.errorType} is in the allowedExceptions list: ${allowedExceptions}`);
+            } else {
+                // throw error
+                let errorMessage = 'Invocation error (running in series)';
+                utils.handleLambdaInvocationError(errorMessage, invocationResults, actualPayload, disablePayloadLogs);
+            }
         }
+       
         if (sleepBetweenRunsMs > 0) {
             await utils.sleep(sleepBetweenRunsMs);
         }
