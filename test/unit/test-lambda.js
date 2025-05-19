@@ -1450,6 +1450,86 @@ describe('Lambda Functions', async() => {
             expect(waitForAliasActiveCounter).to.be(0);
         });
 
+
+        it('should pass with processed payload in case of execution error (parallel) where error is in allowedExceptions', async() => {
+
+            invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
+            invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
+                .callsFake(async(_arn, _payload, _preOrPost) => {
+                    invokeProcessorCounter++;
+                    invokeLambdaCounter++;
+                    return {Processed: true};
+                });
+
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    invokeLambdaPayloads.push(payload);
+                    return {
+                        FunctionError: 'HandledError',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "HandledError", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
+                    };
+                });
+
+           await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 1,
+                    payload: {Original: true},
+                    parallelInvocation: true,
+                    allowedExceptions: ['HandledError']
+                },
+            });
+
+
+            expect(invokeLambdaPayloads[0].includes('Original')).to.be(true);
+            expect(getLambdaConfigCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(0);
+        });
+
+        it('should pass with processed payload in case of execution error (series) where error is in allowedExceptions', async() => {
+
+            invokeLambdaProcessorStub && invokeLambdaProcessorStub.restore();
+            invokeLambdaProcessorStub = sandBox.stub(utils, 'invokeLambdaProcessor')
+                .callsFake(async(_arn, _payload, _preOrPost) => {
+                    invokeProcessorCounter++;
+                    invokeLambdaCounter++;
+                    return {Processed: true};
+                });
+
+            invokeLambdaStub && invokeLambdaStub.restore();
+            invokeLambdaStub = sandBox.stub(utils, 'invokeLambda')
+                .callsFake(async(_arn, _alias, payload) => {
+                    invokeLambdaPayloads.push(payload);
+                    return {
+                        FunctionError: 'HandledError',
+                        Payload: toByteArray('{"errorMessage": "Exception raised during execution.", ' +
+                            '"errorType": "HandledError", "requestId": "c9e545c9-373c-402b-827f-e1c19af39e99", ' +
+                            '"stackTrace": ["File \\"/var/task/lambda_function.py\\", line 9, in lambda_handler, raise Exception(\\"Exception raised during execution.\\")"]}'),
+                    };
+                });
+
+           await invokeForSuccess(handler, {
+                value: '128',
+                input: {
+                    lambdaARN: 'arnOK',
+                    num: 1,
+                    payload: {Original: true},
+                    allowedExceptions: ['HandledError']
+                },
+            });
+
+
+            expect(invokeLambdaPayloads[0].includes('Original')).to.be(true);
+            expect(getLambdaConfigCounter).to.be(1);
+            expect(waitForAliasActiveCounter).to.be(0);
+        });
+
+
+
         it('should fetch payload from S3 if payloadS3 is given', async() => {
 
             await invokeForSuccess(handler, {
