@@ -13,6 +13,7 @@ locals {
       initializerArn = aws_lambda_function.initializer.arn,
       publisherArn = aws_lambda_function.publisher.arn,
       executorArn    = aws_lambda_function.executor.arn,
+      totalExecutionTimeout = var.total_execution_timeout
       cleanerArn     = aws_lambda_function.cleaner.arn,
       analyzerArn    = aws_lambda_function.analyzer.arn,
       optimizerArn   = aws_lambda_function.optimizer.arn
