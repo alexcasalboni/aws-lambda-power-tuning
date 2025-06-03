@@ -653,24 +653,33 @@ module.exports.extractDurationFromText = (log, durationType) => {
  * Extract duration (in ms) from a given JSON log (multi-line)  and duration type.
  */
 module.exports.extractDurationFromJSON = (log, durationType) => {
-    // extract each line and parse it to JSON object
-    const lines = log.split('\n').filter((line) => line.startsWith('{')).map((line) => {
-        try {
-            return JSON.parse(line);
-        } catch (e) {
-            console.error(`Detected invalid JSON line: ${line}`);
-            return '';
-        }
-    });
-    // find the log corresponding to the invocation report
-    const durationLine = lines.find((line) => line.type === 'platform.report');
-    if (durationLine){
-        let field = durationType;
-        // Default to 0 if the specific duration is not found in the log line
-        return durationLine.record.metrics[field] || 0;
+    // Check occurance of platform.report in log
+    if (!log.includes('platform.report')) {
+        throw new Error('Invalid JSON log does not contain platform.report');
     }
 
-    throw new Error('Unrecognized JSON log');
+    if (!log.includes(durationType)) {
+        throw new Error(`Invalid JSON log does not contain ${durationType}`);
+    }
+
+    let lines = [];
+    try {
+        const parsedLog = JSON.parse(log); // this might throw an Error (because of multi-line)
+        if (Array.isArray(parsedLog)) {
+            lines = parsedLog; // we already have a list of lines
+        } else {
+            lines.push(parsedLog); // we only have 1 line
+        }
+    } catch (e) {
+        // in case the log is not pretty printed, the string needs to be transformed first
+        console.log('Json Log not pretty printed');
+        lines = log.split('\n').filter((line) => line.includes('platform.report')).map((line) => {
+            return JSON.parse(line);
+        });
+    }
+
+    const durationLine = lines.find((line) => line.type === 'platform.report');
+    return durationLine.record.metrics[durationType] || 0;
 };
 
 
