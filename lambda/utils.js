@@ -659,7 +659,7 @@ module.exports.extractDurationFromJSON = (log, durationType) => {
     }
 
     if (!log.includes(durationType)) {
-        throw new Error('Invalid JSON log does not contain durationMs');
+        throw new Error(`Invalid JSON log does not contain ${durationType}`);
     }
 
     let lines = [];
