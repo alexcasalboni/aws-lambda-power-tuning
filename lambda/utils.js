@@ -664,11 +664,11 @@ module.exports.extractDurationFromJSON = (log, durationType) => {
 
     let lines = [];
     try {
-        // check if lines is array
-        if (!Array.isArray(JSON.parse(log))) {
-            lines.push(JSON.parse(log));
+        const parsedLog = JSON.parse(log); // this might throw an Error (because of multi-line)
+        if (Array.isArray(parsedLog)) {
+            lines = parsedLog; // we already have a list of lines
         } else {
-            lines = JSON.parse(log);
+            lines.push(parsedLog); // we only have 1 line
         }
     } catch (e) {
         // in case the log is not pretty printed, the string needs to be transformed first
