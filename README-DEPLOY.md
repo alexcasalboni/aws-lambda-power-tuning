@@ -139,7 +139,7 @@ If you don't yet have a Terraform project, check out the [Terraform introduction
 
 You can simply add the [lambda-power-tuning](https://registry.terraform.io/modules/aws-ia/lambda-power-tuning/aws/latest) Terraform module to your Terraform configuration.
 
-The module is hosted on the official [AWS Integration and Automation]() registry.
+The module is hosted on the official [AWS Integration and Automation](https://registry.terraform.io/namespaces/aws-ia) namespace.
 
 ```hcl
 module "lambda-power-tuning" {
