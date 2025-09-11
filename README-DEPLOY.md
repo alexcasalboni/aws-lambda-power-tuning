@@ -137,7 +137,18 @@ If you don't yet have a Terraform project, check out the [Terraform introduction
 
 ## Option 5: Deploy natively with Terraform<a name="option5"></a>
 
-The Terraform modules are located in the [terraform](terraform) directory. Deployment documentation is [here](terraform/Readme.md).
+You can simply add the [lambda-power-tuning](https://registry.terraform.io/modules/aws-ia/lambda-power-tuning/aws/latest) Terraform module to your Terraform configuration.
+
+The module is hosted on the official [AWS Integration and Automation](https://registry.terraform.io/namespaces/aws-ia) namespace.
+
+```hcl
+module "lambda-power-tuning" {
+  source  = "aws-ia/lambda-power-tuning/aws"
+  version = "0.0.2" # specify the desired version here
+
+  # for input variables, see https://registry.terraform.io/modules/aws-ia/lambda-power-tuning/aws/latest?tab=inputs
+}
+```
 
 ## State machine configuration (at deployment time)
 
