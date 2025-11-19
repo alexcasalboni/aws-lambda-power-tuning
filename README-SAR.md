@@ -263,6 +263,7 @@ Initializer, cleaner, analyzer, and optimizer are executed only once, while the 
 
 From most recent to oldest, with major releases in bold:
 
+* *4.4.0* (2025-11-19): upgrade Lambda runtime to Nodejs22.x
 * *4.3.6* (2024-11-07): updated dependencies (CVE-2024-41818)
 * *4.3.5* (2024-09-16): array-shape input support, JSON logging bugfix, externalized ASL, updated dependencies
 * *4.3.4* (2024-02-26): upgrade to Nodejs20, custom state machine prefix, SDKv3 migration, new includeOutputResults input parameter, JSON loggin support

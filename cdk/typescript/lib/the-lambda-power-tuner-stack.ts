@@ -23,7 +23,7 @@ export class TheLambdaPowerTunerStack extends cdk.Stack {
     new sam.CfnApplication(this, 'powerTuner', {
       location: {
         applicationId: 'arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning',
-        semanticVersion: '4.3.6'
+        semanticVersion: '4.4.0'
       },
       parameters: {
         //"lambdaResource": lambdaResource,
