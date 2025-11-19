@@ -29,7 +29,7 @@ namespace TheLambdaPowerTunerStack
                 {
                     Location = new CfnApplication.ApplicationLocationProperty {
                         ApplicationId = "arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning",
-                        SemanticVersion = "4.3.6"
+                        SemanticVersion = "4.4.0"
                     },
                     Parameters = stateMachineConfiguration
                 }
