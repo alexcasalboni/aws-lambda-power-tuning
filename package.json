@@ -31,12 +31,17 @@
     "ansi-regex": ">=5.0.1",
     "aws-sdk-client-mock": "^3.0.0",
     "c8": "^7.13.0",
-    "eslint-config-strongloop": "^2.1.0",
     "eslint": "^8.35.0",
+    "eslint-config-strongloop": "^2.1.0",
     "expect.js": "^0.3.1",
     "json-schema": ">=0.4.0",
-    "mocha": "^11.1.0",
+    "mocha": "^11.7.5",
     "path-parse": ">=1.0.7",
     "sinon": "^9.0.2"
+  },
+  "overrides": {
+    "diff": "8.0.3",
+    "fast-xml-parser": "5.5.8",
+    "serialize-javascript": "7.0.4"
   }
 }
