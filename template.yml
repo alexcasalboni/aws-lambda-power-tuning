@@ -34,6 +34,12 @@ Parameters:
     MinValue: 10
     MaxValue: 900
     Description: Maximum invocation timeout (in seconds) for the Executor step, after which you get a States.Timeout error
+  lmiExecutionTimeout:
+    Type: Number
+    Default: 900
+    MinValue: 60
+    MaxValue: 900
+    Description: Maximum invocation timeout (in seconds) for LMI steps (setup, executor), which may take longer due to capacity provider provisioning
   permissionsBoundary:
     Type: String
     Default: ''
@@ -267,6 +273,163 @@ Resources:
                 - lambda:UpdateAlias
               Resource: !Ref lambdaResource
 
+  lmiInitializerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: lmiInitializer
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${lmiInitializer}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
+  lmiInitializer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: lmi-initializer.handler
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole # Only logs
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetFunctionConfiguration
+              Resource: !Ref lambdaResource
+            - Effect: Allow
+              Action:
+                - pricing:GetProducts
+              Resource: '*'
+
+  lmiSetupLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: lmiSetup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${lmiSetup}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
+  lmiSetup:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: lmi-setup.handler
+      Timeout: !Ref lmiExecutionTimeout
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetFunction
+                - lambda:GetFunctionConfiguration
+                - lambda:CreateFunction
+                - lambda:UpdateFunctionConfiguration
+                - lambda:PublishVersion
+                - lambda:GetAlias
+                - lambda:CreateCapacityProvider
+                - lambda:GetCapacityProvider
+                - lambda:DeleteCapacityProvider
+                - lambda:PutFunctionScalingConfig
+                - lambda:GetFunctionScalingConfig
+                - lambda:PassCapacityProvider
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - iam:PassRole
+              Resource: '*'
+              Condition:
+                StringEquals:
+                  iam:PassedToService: lambda.amazonaws.com
+            - Effect: Allow
+              Action:
+                - iam:CreateServiceLinkedRole
+              Resource: arn:aws:iam::*:role/aws-service-role/lambda.amazonaws.com/*
+              Condition:
+                StringEquals:
+                  iam:AWSServiceName: lambda.amazonaws.com
+
+  lmiExecutorLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: lmiExecutor
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${lmiExecutor}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
+  lmiExecutor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: lmi-executor.handler
+      Timeout: !Ref lmiExecutionTimeout
+      MemorySize: 1024
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+                - lambda:GetFunctionConfiguration
+                - lambda:UpdateFunctionConfiguration
+                - lambda:PassCapacityProvider
+              Resource: '*'
+
+  lmiReadyLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: lmiReady
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${lmiReady}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
+  lmiReady:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: lmi-ready.handler
+      Timeout: 30
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetFunctionConfiguration
+                - lambda:PutFunctionScalingConfig
+              Resource: '*'
+
+  lmiCleanerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: lmiCleaner
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${lmiCleaner}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
+  lmiCleaner:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: lmi-cleaner.handler
+      Timeout: 300
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetFunctionConfiguration
+                - lambda:UpdateFunctionConfiguration
+                - lambda:DeleteFunction
+                - lambda:DeleteCapacityProvider
+                - lambda:GetCapacityProvider
+              Resource: '*'
+
   statemachineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -299,6 +462,12 @@ Resources:
         analyzerArn: !GetAtt analyzer.Arn
         optimizerArn: !GetAtt optimizer.Arn
         totalExecutionTimeout: !Ref totalExecutionTimeout
+        lmiInitializerArn: !GetAtt lmiInitializer.Arn
+        lmiSetupArn: !GetAtt lmiSetup.Arn
+        lmiReadyArn: !GetAtt lmiReady.Arn
+        lmiExecutorArn: !GetAtt lmiExecutor.Arn
+        lmiCleanerArn: !GetAtt lmiCleaner.Arn
+        lmiExecutionTimeout: !Ref lmiExecutionTimeout
 
 Outputs:
   StateMachineARN:

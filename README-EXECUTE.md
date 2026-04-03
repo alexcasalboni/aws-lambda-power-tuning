@@ -78,4 +78,122 @@ Each execution of the state machine will require an input where you can define t
 |  **disablePayloadLogs**<br/>type: _boolean_<br/>default: `false`  | If true, suppresses `payload` from error messages and logs. If `preProcessorARN` is provided, this also suppresses the output payload of the pre-processor.                                                                                                                                                                                                                                                                                               |
 | **includeOutputResults**<br/>type: _boolean_<br/>default: `false` | If true, the average cost and average duration for every power value configuration will be included in the state machine output.                                                                                                                                                                                                                                                                                                                          |
 |    **onlyColdStarts**<br/>type: _boolean_<br/>default: `false`    | If true, the tool will force all invocations to be cold starts. The initialization phase will be considerably slower as `num` versions/aliases need to be created for each power value.                                                                                                                                                                                                                                                                   |
-| **allowedExceptions"<br/>type: _list_<br/>default: `[]`           | Set Errors that will be handlded be the executor rather than causing it to error out.                                                                                                                                                                                                                                                                                                                                                                     |                                                                                                                                                                                                                                                                                                                                                                |
+| **allowedExceptions"<br/>type: _list_<br/>default: `[]`           | Set Errors that will be handlded be the executor rather than causing it to error out.                                                                                                                                                                                                                                                                                                                                                                     |
+| **lmiConfig**<br/>type: _object_                                  | Configuration for Lambda Managed Instances (LMI) tuning. When provided, the state machine will test LMI configurations in addition to (or instead of) standard Lambda memory configurations. See [LMI configuration](#lmi-configuration) below.                                                                                                                                                                                                          |
+
+## LMI Configuration
+
+The `lmiConfig` object supports the following parameters:
+
+| **Parameter** | Description |
+|:---:|:---|
+| **vpcConfig** (required)<br/>type: _object_ | VPC configuration with `subnetIds` (list of strings) and `securityGroupIds` (list of strings). The subnets must have internet access or appropriate VPC endpoints. |
+| **operatorRoleArn** (required)<br/>type: _string_ | ARN of an IAM role with the `AWSLambdaManagedEC2ResourceOperator` managed policy. This role is used by the capacity provider to manage EC2 instances. |
+| **instanceTypes**<br/>type: _list of strings or objects_<br/>default: `["c8g.xlarge"]` | EC2 instance types to test. Each instance type gets its own capacity provider and is tested sequentially. Supports strings (`"c8g.xlarge"`), objects (`{"instanceType": "c8g.xlarge", "instanceCostHourly": 0.16}`), or a mix of both. When `instanceCostHourly` is omitted, pricing is fetched automatically from the AWS Pricing API. |
+| **architecture**<br/>type: _string_<br/>default: `"arm64"` | CPU architecture for the instances. Must match the Lambda function's architecture. |
+| **memoryPerVCpuValues**<br/>type: _list of numbers_<br/>default: `[2.0, 4.0, 6.0, 8.0]` | Memory-per-vCPU ratios (in GiB) to test. Each value creates a separate test configuration. Valid range: 2.0 to 8.0. |
+| **concurrencyValues**<br/>type: _list of integers_<br/>default: `[1, 2, 5, 10, 20, 50, 100]` | Per-execution-environment concurrency levels to test for each memoryPerVCpu value. The tool ramps up through these values and stops if it detects performance degradation. |
+| **testDurationSeconds**<br/>type: _integer_<br/>default: `60` | Duration (in seconds) of the sustained load test for each concurrency level. Longer durations produce more stable results but increase total execution time. |
+| **degradationThreshold**<br/>type: _number_<br/>default: `null` (disabled) | If set, concurrency ramping stops early when the average duration increases by more than this fraction compared to the best observed duration for a given memoryPerVCpu. For example, a threshold of `0.2` means ramping stops when duration exceeds the best by 20%. When `null` (the default), all concurrency values are tested. |
+
+### LMI Prerequisites
+
+Before using LMI tuning, ensure:
+
+1. **VPC setup**: Your subnets must have internet access (NAT gateway or VPC endpoints for the Lambda service).
+
+2. **Operator role**: Create an IAM role with the `AWSLambdaManagedEC2ResourceOperator` managed policy:
+   ```json
+   {
+       "Version": "2012-10-17",
+       "Statement": [{
+           "Effect": "Allow",
+           "Principal": {"Service": "lambda.amazonaws.com"},
+           "Action": "sts:AssumeRole"
+       }]
+   }
+   ```
+
+3. **Function execution role**: The target Lambda function's execution role must also have the `AWSLambdaManagedEC2ResourceOperator` managed policy attached.
+
+4. **Runtime**: The target function must use a [supported LMI runtime](https://docs.aws.amazon.com/lambda/latest/dg/lambda-managed-instances.html).
+
+### LMI Example
+
+Test a function with both standard memory configurations and LMI:
+
+```json
+{
+    "lambdaARN": "arn:aws:lambda:XXX:YYY:function:ZZZ",
+    "num": 10,
+    "powerValues": [128, 512, 1024, 1769, 2048, 4096],
+    "payload": {},
+    "strategy": "cost",
+    "lmiConfig": {
+        "vpcConfig": {
+            "subnetIds": ["subnet-VVV"],
+            "securityGroupIds": ["sg-WWW"]
+        },
+        "operatorRoleArn": "arn:aws:iam::YYY:role/LmiOperatorRole",
+        "instanceTypes": ["c8g.xlarge", "c8g.2xlarge"],
+        "architecture": "arm64",
+        "memoryPerVCpuValues": [2.0, 4.0],
+        "concurrencyValues": [1, 5, 10, 20, 50, 100],
+        "testDurationSeconds": 30,
+        "degradationThreshold": 0.2
+    }
+}
+```
+
+You can also provide per-instance-type cost overrides using the object format. This is useful if you already know the hourly cost or want to skip the Pricing API lookup:
+
+```json
+{
+    "lmiConfig": {
+        ...
+        "instanceTypes": [
+            "c8g.xlarge",
+            {"instanceType": "c8g.2xlarge", "instanceCostHourly": 0.32}
+        ]
+    }
+}
+```
+
+When `instanceCostHourly` is omitted, the tool automatically fetches the current on-demand price from the [AWS Pricing API](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/price-changes.html).
+
+To run LMI-only (skip standard tuning), omit `powerValues`:
+
+```json
+{
+    "lambdaARN": "arn:aws:lambda:XXX:YYY:function:ZZZ",
+    "num": 10,
+    "payload": {},
+    "lmiConfig": {
+        "vpcConfig": {
+            "subnetIds": ["subnet-VVV"],
+            "securityGroupIds": ["sg-WWW"]
+        },
+        "operatorRoleArn": "arn:aws:iam::YYY:role/LmiOperatorRole"
+    }
+}
+```
+
+### Concurrency Degradation Detection
+
+By default, the tool tests all configured `concurrencyValues` for each `memoryPerVCpu` setting. You can optionally enable early stopping by setting `degradationThreshold` — when the average duration exceeds the best observed duration by more than this fraction, ramping stops early for that configuration.
+
+For example, with `concurrencyValues: [1, 5, 10, 20, 50, 100]` and `degradationThreshold: 0.2`:
+- If concurrency=10 achieves 29ms (the best so far)
+- And concurrency=20 achieves 30ms (within 20% — continues)
+- And concurrency=50 achieves 39ms (34% worse — **stops**, skips 100)
+
+This prevents wasting time and cost testing concurrency levels that are clearly oversaturating the instance. The tool reports the best concurrency level found before degradation.
+
+### LMI Cost Considerations
+
+LMI tuning incurs additional costs:
+
+- **EC2 instance cost**: The capacity provider provisions EC2 instances for the duration of the test. Pricing is fetched automatically from the AWS Pricing API (e.g. c8g.xlarge is ~$0.16/hr in us-west-2). When testing multiple instance types, each runs sequentially with its own capacity provider.
+- **Management fee**: AWS applies a 15% management fee on top of the EC2 instance cost.
+- **Request cost**: $0.20 per million invocations.
+- **Important**: If a test fails mid-execution, the cleanup step will automatically delete the capacity provider and temporary function to prevent ongoing EC2 charges.
