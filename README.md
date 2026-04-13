@@ -157,6 +157,8 @@ Optionally, you could deploy your own custom visualization tool and configure th
 
 ## Additional features, considerations, and internals
 
+For detailed IAM permission configuration guidance, see [README-IAM-PERMISSIONS.md](README-IAM-PERMISSIONS.md).
+
 [Here](README-ADVANCED.md) you can find out more about some advanced features of this project, its internals, and some considerations about security and execution cost.
 
 ## Contributing
