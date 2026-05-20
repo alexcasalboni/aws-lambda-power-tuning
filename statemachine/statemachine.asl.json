@@ -1,7 +1,28 @@
 {
   "Comment": "AWS Lambda Power Tuning state machine",
-  "StartAt": "Initializer",
+  "StartAt": "CheckMode",
   "States": {
+    "CheckMode": {
+      "Type": "Choice",
+      "Comment": "If lmiConfig present without powerValues, run LMI-only. Otherwise, run standard (which may chain to LMI if lmiConfig also present).",
+      "Choices": [
+        {
+          "And": [
+            {
+              "Variable": "$.lmiConfig",
+              "IsPresent": true
+            },
+            {
+              "Variable": "$.powerValues",
+              "IsPresent": false
+            }
+          ],
+          "Next": "LmiInitializer"
+        }
+      ],
+      "Default": "Initializer"
+    },
+
     "Initializer": {
       "Type": "Task",
       "Resource": "${initializerArn}",
@@ -70,10 +91,22 @@
     },
     "Cleaner": {
       "Type": "Task",
-      "Next": "Analyzer",
+      "Next": "CheckLmiAfterStandard",
       "ResultPath": null,
       "TimeoutSeconds": ${totalExecutionTimeout},
       "Resource": "${cleanerArn}"
+    },
+    "CheckLmiAfterStandard": {
+      "Type": "Choice",
+      "Comment": "After standard tuning completes, check if LMI tuning should also run.",
+      "Choices": [
+        {
+          "Variable": "$.lmiConfig",
+          "IsPresent": true,
+          "Next": "LmiInitializer"
+        }
+      ],
+      "Default": "Analyzer"
     },
     "Analyzer": {
       "Type": "Task",
@@ -95,6 +128,159 @@
       "ResultPath": null,
       "OutputPath": null,
       "Resource": "${cleanerArn}",
+      "TimeoutSeconds": ${totalExecutionTimeout},
+      "End": true
+    },
+
+    "LmiInitializer": {
+      "Type": "Task",
+      "Resource": "${lmiInitializerArn}",
+      "ResultPath": "$.lmiInit",
+      "TimeoutSeconds": ${totalExecutionTimeout},
+      "Next": "LmiInstanceTypeLoop"
+    },
+    "LmiInstanceTypeLoop": {
+      "Type": "Map",
+      "Comment": "Iterate over instance types sequentially. Each iteration creates a capacity provider, runs all memoryPerVCpu tests, and cleans up.",
+      "Next": "Analyzer",
+      "ItemsPath": "$.lmiInit.instanceTypeConfigs",
+      "ResultPath": "$.lmiStatsNested",
+      "ItemSelector": {
+        "instanceTypeConfig.$": "$$.Map.Item.Value",
+        "lmiConfig.$": "$.lmiInit.lmiConfig",
+        "lambdaARN.$": "$.lmiInit.lambdaARN"
+      },
+      "MaxConcurrency": 1,
+      "Catch": [{
+        "ErrorEquals": ["States.ALL"],
+        "Next": "LmiCleanUpOnError",
+        "ResultPath": "$.error"
+      }],
+      "Iterator": {
+        "StartAt": "LmiSetup",
+        "States": {
+          "LmiSetup": {
+            "Type": "Task",
+            "Resource": "${lmiSetupArn}",
+            "ResultPath": "$.lmiSetup",
+            "TimeoutSeconds": ${lmiExecutionTimeout},
+            "Next": "LmiCheckReady",
+            "Catch": [{
+              "ErrorEquals": ["States.ALL"],
+              "Next": "LmiIterationCleanUp",
+              "ResultPath": "$.error"
+            }]
+          },
+          "LmiCheckReady": {
+            "Type": "Task",
+            "Resource": "${lmiReadyArn}",
+            "Parameters": {
+              "lmiFunctionArn.$": "$.lmiSetup.lmiFunctionArn",
+              "functionVersion.$": "$.lmiSetup.functionVersion"
+            },
+            "ResultPath": "$.lmiReadyResult",
+            "TimeoutSeconds": 60,
+            "Next": "LmiIsReady",
+            "Catch": [{
+              "ErrorEquals": ["States.ALL"],
+              "Next": "LmiIterationCleanUp",
+              "ResultPath": "$.error"
+            }]
+          },
+          "LmiIsReady": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.lmiReadyResult.ready",
+                "BooleanEquals": true,
+                "Next": "LmiBranching"
+              }
+            ],
+            "Default": "LmiWait"
+          },
+          "LmiWait": {
+            "Type": "Wait",
+            "Seconds": 30,
+            "Next": "LmiCheckReady"
+          },
+          "LmiBranching": {
+            "Type": "Map",
+            "Next": "LmiCleaner",
+            "ItemsPath": "$.instanceTypeConfig.lmiTestMatrix",
+            "ResultPath": "$.lmiStats",
+            "ItemSelector": {
+              "input.$": "$",
+              "lmiSetup.$": "$.lmiSetup",
+              "value.$": "$$.Map.Item.Value"
+            },
+            "MaxConcurrency": 1,
+            "Catch": [{
+              "ErrorEquals": ["States.ALL"],
+              "Next": "LmiIterationCleanUp",
+              "ResultPath": "$.error"
+            }],
+            "Iterator": {
+              "StartAt": "LmiExecutor",
+              "States": {
+                "LmiExecutor": {
+                  "Type": "Task",
+                  "Resource": "${lmiExecutorArn}",
+                  "End": true,
+                  "TimeoutSeconds": ${lmiExecutionTimeout},
+                  "Retry": [{
+                    "ErrorEquals": ["States.ALL"],
+                    "IntervalSeconds": 5,
+                    "MaxAttempts": 1
+                  }]
+                }
+              }
+            }
+          },
+          "LmiCleaner": {
+            "Type": "Task",
+            "Resource": "${lmiCleanerArn}",
+            "Parameters": {
+              "lambdaARN.$": "$.lambdaARN",
+              "lmiSetup.$": "$.lmiSetup",
+              "capacityProviderName.$": "$.instanceTypeConfig.capacityProviderName"
+            },
+            "ResultPath": null,
+            "TimeoutSeconds": ${totalExecutionTimeout},
+            "Next": "LmiExtractStats"
+          },
+          "LmiExtractStats": {
+            "Type": "Pass",
+            "OutputPath": "$.lmiStats",
+            "End": true
+          },
+          "LmiIterationCleanUp": {
+            "Type": "Task",
+            "Resource": "${lmiCleanerArn}",
+            "Parameters": {
+              "lambdaARN.$": "$.lambdaARN",
+              "capacityProviderName.$": "$.instanceTypeConfig.capacityProviderName"
+            },
+            "ResultPath": null,
+            "TimeoutSeconds": ${totalExecutionTimeout},
+            "Next": "LmiIterationFail"
+          },
+          "LmiIterationFail": {
+            "Type": "Fail",
+            "Error": "LmiIterationError",
+            "Cause": "An error occurred during LMI testing for this instance type"
+          }
+        }
+      }
+    },
+    "LmiCleanUpOnError": {
+      "Type": "Task",
+      "Resource": "${lmiCleanerArn}",
+      "Parameters": {
+        "lambdaARN.$": "$.lmiInit.lambdaARN",
+        "instanceTypeConfigs.$": "$.lmiInit.instanceTypeConfigs"
+      },
+      "ResultPath": null,
+      "OutputPath": null,
       "TimeoutSeconds": ${totalExecutionTimeout},
       "End": true
     }
