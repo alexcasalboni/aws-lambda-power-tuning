@@ -34,6 +34,12 @@ Parameters:
     MinValue: 10
     MaxValue: 900
     Description: Maximum invocation timeout (in seconds) for the Executor step, after which you get a States.Timeout error
+  lmiExecutionTimeout:
+    Type: Number
+    Default: 900
+    MinValue: 60
+    MaxValue: 900
+    Description: Maximum invocation timeout (in seconds) for LMI steps (setup, executor), which may take longer due to capacity provider provisioning. Only used when enableLmiSupport is true.
   permissionsBoundary:
     Type: String
     Default: ''
@@ -69,6 +75,11 @@ Parameters:
     ConstraintDescription: Prefix must conform to StateMachineName requirements.
     Default: 'powerTuningStateMachine'
     Description: Prefix to the name of the StateMachine. The StackId will be appended to this value (optional).
+  enableLmiSupport:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: Enable Lambda Managed Instances (LMI) power tuning support. When enabled, additional Lambda functions and IAM policies are deployed to support LMI-based tuning.
 
 Conditions:
   UsePermissionsBoundary: !Not [!Equals [!Ref permissionsBoundary, '']]
@@ -77,6 +88,8 @@ Conditions:
   UseSecurityGroupIds: !Not [!Equals [!Join ['', !Ref securityGroupIds], '']]
   UseSubnetIds: !Not [!Equals [!Join ['', !Ref subnetIds], '']]
   UseVPCConfig: !Or [Condition: UseSecurityGroupIds, Condition: UseSubnetIds]
+  LmiSupportEnabled: !Equals [!Ref enableLmiSupport, 'true']
+  LmiSupportDisabled: !Not [Condition: LmiSupportEnabled]
 
 Globals:
   Function:
@@ -267,6 +280,173 @@ Resources:
                 - lambda:UpdateAlias
               Resource: !Ref lambdaResource
 
+  lmiInitializerLogGroup:
+    Condition: LmiSupportEnabled
+    Type: AWS::Logs::LogGroup
+    DependsOn: lmiInitializer
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${lmiInitializer}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
+  lmiInitializer:
+    Condition: LmiSupportEnabled
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: lmi/initializer.handler
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole # Only logs
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetFunctionConfiguration
+              Resource: !Ref lambdaResource
+            - Effect: Allow
+              Action:
+                - pricing:GetProducts
+              Resource: '*'
+
+  lmiSetupLogGroup:
+    Condition: LmiSupportEnabled
+    Type: AWS::Logs::LogGroup
+    DependsOn: lmiSetup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${lmiSetup}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
+  lmiSetup:
+    Condition: LmiSupportEnabled
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: lmi/setup.handler
+      Timeout: !Ref lmiExecutionTimeout
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetFunction
+                - lambda:GetFunctionConfiguration
+                - lambda:CreateFunction
+                - lambda:UpdateFunctionConfiguration
+                - lambda:PublishVersion
+                - lambda:GetAlias
+                - lambda:CreateCapacityProvider
+                - lambda:GetCapacityProvider
+                - lambda:DeleteCapacityProvider
+                - lambda:PutFunctionScalingConfig
+                - lambda:GetFunctionScalingConfig
+                - lambda:PassCapacityProvider
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - iam:PassRole
+              Resource: '*'
+              Condition:
+                StringEquals:
+                  iam:PassedToService: lambda.amazonaws.com
+            - Effect: Allow
+              Action:
+                - iam:CreateServiceLinkedRole
+              Resource: arn:aws:iam::*:role/aws-service-role/lambda.amazonaws.com/*
+              Condition:
+                StringEquals:
+                  iam:AWSServiceName: lambda.amazonaws.com
+
+  lmiExecutorLogGroup:
+    Condition: LmiSupportEnabled
+    Type: AWS::Logs::LogGroup
+    DependsOn: lmiExecutor
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${lmiExecutor}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
+  lmiExecutor:
+    Condition: LmiSupportEnabled
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: lmi/executor.handler
+      Timeout: !Ref lmiExecutionTimeout
+      MemorySize: 1024
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+                - lambda:GetFunctionConfiguration
+                - lambda:UpdateFunctionConfiguration
+                - lambda:PassCapacityProvider
+              Resource: '*'
+
+  lmiReadyLogGroup:
+    Condition: LmiSupportEnabled
+    Type: AWS::Logs::LogGroup
+    DependsOn: lmiReady
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${lmiReady}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
+  lmiReady:
+    Condition: LmiSupportEnabled
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: lmi/ready.handler
+      Timeout: 30
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetFunctionConfiguration
+                - lambda:PutFunctionScalingConfig
+              Resource: '*'
+
+  lmiCleanerLogGroup:
+    Condition: LmiSupportEnabled
+    Type: AWS::Logs::LogGroup
+    DependsOn: lmiCleaner
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${lmiCleaner}'
+      RetentionInDays: !Ref logGroupRetentionInDays
+
+  lmiCleaner:
+    Condition: LmiSupportEnabled
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda
+      Handler: lmi/cleaner.handler
+      Timeout: 300
+      Layers:
+        - !Ref SDKlayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetFunctionConfiguration
+                - lambda:UpdateFunctionConfiguration
+                - lambda:DeleteFunction
+                - lambda:DeleteCapacityProvider
+                - lambda:GetCapacityProvider
+              Resource: '*'
+
   statemachineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -282,6 +462,7 @@ Resources:
             Action: sts:AssumeRole
 
   powerTuningStateMachine:
+    Condition: LmiSupportDisabled
     Type: AWS::Serverless::StateMachine
     Properties:
       Name:
@@ -300,6 +481,32 @@ Resources:
         optimizerArn: !GetAtt optimizer.Arn
         totalExecutionTimeout: !Ref totalExecutionTimeout
 
+  powerTuningStateMachineLmi:
+    Condition: LmiSupportEnabled
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref stateMachineNamePrefix
+            - !Select [2, !Split ['/', !Ref AWS::StackId]]
+      Role: !GetAtt statemachineRole.Arn
+      DefinitionUri: statemachine/lmi/statemachine.asl.json
+      DefinitionSubstitutions:
+        initializerArn: !GetAtt initializer.Arn
+        publisherArn: !GetAtt publisher.Arn
+        executorArn: !GetAtt executor.Arn
+        cleanerArn: !GetAtt cleaner.Arn
+        analyzerArn: !GetAtt analyzer.Arn
+        optimizerArn: !GetAtt optimizer.Arn
+        totalExecutionTimeout: !Ref totalExecutionTimeout
+        lmiInitializerArn: !GetAtt lmiInitializer.Arn
+        lmiSetupArn: !GetAtt lmiSetup.Arn
+        lmiReadyArn: !GetAtt lmiReady.Arn
+        lmiExecutorArn: !GetAtt lmiExecutor.Arn
+        lmiCleanerArn: !GetAtt lmiCleaner.Arn
+        lmiExecutionTimeout: !Ref lmiExecutionTimeout
+
 Outputs:
   StateMachineARN:
-    Value: !Ref powerTuningStateMachine
+    Value: !If [LmiSupportEnabled, !Ref powerTuningStateMachineLmi, !Ref powerTuningStateMachine]

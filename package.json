@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-lambda": "^3.651.1",
+    "@aws-sdk/client-pricing": "^3.1023.0",
     "@aws-sdk/client-s3": "^3.651.1",
     "ansi-regex": ">=5.0.1",
     "aws-sdk-client-mock": "^3.0.0",

@@ -1454,4 +1454,5 @@ describe('Lambda Utils', () => {
             expect(() => utils.extractDurationFromJSON(logWithoutDurationMS, utils.DURATIONS.durationMs)).to.throwError();
         });
     });
+
 });

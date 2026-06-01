@@ -21,6 +21,13 @@ module.exports.handler = async(event, context) => {
         return console.log('Not optimizing');
     }
 
+    // LMI configurations cannot be auto-applied (MVP safety measure)
+    if (analysis && analysis.type === 'lmi') {
+        console.log(`[LMI] Optimal config: memoryPerVCpu=${analysis.memoryPerVCpu}, ` +
+            `concurrency=${analysis.bestConcurrency}, instanceType=${analysis.instanceType}`);
+        return console.log('[LMI] Auto-optimization not supported for LMI configurations');
+    }
+
     if (!autoOptimizeAlias) {
         // only update $LATEST power
         await utils.setLambdaPower(lambdaARN, optimalValue);

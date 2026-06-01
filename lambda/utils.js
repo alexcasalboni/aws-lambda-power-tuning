@@ -1,8 +1,9 @@
 'use strict';
 
 const {
-    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand, GetAliasCommand,
-    GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, PublishVersionCommand,
+    CreateAliasCommand, DeleteAliasCommand, DeleteFunctionCommand,
+    GetAliasCommand, GetFunctionConfigurationCommand,
+    InvokeCommand, LambdaClient, PublishVersionCommand,
     UpdateAliasCommand, UpdateFunctionConfigurationCommand,
     waitUntilFunctionActive, waitUntilFunctionUpdated, ResourceNotFoundException,
 } = require('@aws-sdk/client-lambda');
@@ -215,7 +216,7 @@ module.exports.getLambdaConfig = async(lambdaARN, alias) => {
     } else {
         isPending = false;
     }
-    return {architecture, isPending};
+    return {architecture, isPending, state: config.State, stateReason: config.StateReason};
 };
 
 /**
@@ -254,6 +255,18 @@ module.exports.deleteLambdaVersion = (lambdaARN, version) => {
     const params = {
         FunctionName: lambdaARN,
         Qualifier: version,
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    return lambda.send(new DeleteFunctionCommand(params));
+};
+
+/**
+ * Delete an entire Lambda function (all versions and aliases).
+ */
+module.exports.deleteLambdaFunction = (lambdaARN) => {
+    console.log('Deleting function', lambdaARN);
+    const params = {
+        FunctionName: lambdaARN,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.send(new DeleteFunctionCommand(params));
@@ -359,6 +372,20 @@ module.exports.invokeLambda = (lambdaARN, alias, payload, disablePayloadLogs) =>
         Qualifier: alias,
         Payload: payload,
         LogType: 'Tail', // will return logs
+    };
+    const lambda = utils.lambdaClientFromARN(lambdaARN);
+    return lambda.send(new InvokeCommand(params));
+};
+
+/**
+ * Invoke a Lambda function without requesting tail logs.
+ * LMI (capacity provider) functions do not support LogType: 'Tail'.
+ */
+module.exports.invokeLambdaNoTail = (lambdaARN, alias, payload) => {
+    const params = {
+        FunctionName: lambdaARN,
+        Qualifier: alias,
+        Payload: payload,
     };
     const lambda = utils.lambdaClientFromARN(lambdaARN);
     return lambda.send(new InvokeCommand(params));
@@ -749,6 +776,98 @@ module.exports.buildVisualizationURL = (stats, baseURL) => {
     }
 
     return baseURL + '#' + hash;
+};
+
+/**
+ * Build per-memoryPerVCpu visualization URLs for LMI stats.
+ * Returns an object mapping memoryPerVCpu values to visualization URLs,
+ * with concurrency on the x-axis and duration/cost on the y-axes.
+ *
+ * Example return: { "2.0": "https://...#hash", "4.0": "https://...#hash" }
+ */
+module.exports.buildLmiVisualizationURL = (lmiStats, baseURL) => {
+
+    function encode(inputList, EncodeType = null) {
+        EncodeType = EncodeType || Float32Array;
+        inputList = new EncodeType(inputList);
+        inputList = new Uint8Array(inputList.buffer);
+        return Buffer.from(inputList).toString('base64');
+    }
+
+    const result = {};
+
+    for (const stat of lmiStats) {
+        if (!stat || !stat.allResults || stat.allResults.length === 0) continue;
+
+        const points = stat.allResults
+            .slice()
+            .sort((a, b) => a.concurrency - b.concurrency);
+
+        const concurrencies = points.map(p => p.concurrency);
+        const times = points.map(p => p.averageDuration);
+        const costs = points.map(p => p.averagePrice);
+
+        const hash = [
+            encode(concurrencies, Int16Array),
+            encode(times),
+            encode(costs),
+        ].join(';');
+
+        let url = baseURL;
+        if (process.env.AWS_REGION.startsWith('cn-')) {
+            url += '?currency=CNY';
+        }
+
+        const key = Number.isInteger(stat.memoryPerVCpu)
+            ? stat.memoryPerVCpu.toFixed(1)
+            : String(stat.memoryPerVCpu);
+        result[key] = url + '#' + hash;
+    }
+
+    return Object.keys(result).length > 0 ? result : null;
+};
+
+/**
+ * Build a combined visualization URL encoding both standard and LMI results
+ * as base64 JSON for the combined visualization page.
+ *
+ * @param {Array} standardStats - Standard Lambda stats from executor
+ * @param {Array} lmiStats - LMI stats from lmi-executor (with allResults)
+ * @param {string} baseURL - Base URL for the combined visualization page
+ * @returns {string|null} - Full URL with data in hash, or null if no data
+ */
+module.exports.buildCombinedVisualizationURL = (standardStats, lmiStats, baseURL) => {
+    const data = {};
+
+    if (standardStats && standardStats.length > 0) {
+        data.standard = standardStats
+            .filter(s => s && s.averageDuration)
+            .map(s => ({
+                memory: parseInt(s.value, 10),
+                duration: s.averageDuration,
+                cost: s.averagePrice,
+            }));
+    }
+
+    if (lmiStats && lmiStats.length > 0) {
+        data.lmi = lmiStats
+            .filter(s => s && s.allResults && s.allResults.length > 0)
+            .map(s => ({
+                memoryPerVCpu: s.memoryPerVCpu,
+                instanceType: s.instanceType,
+                results: s.allResults.map(r => ({
+                    concurrency: r.concurrency,
+                    duration: r.averageDuration,
+                    cost: r.averagePrice,
+                    throughput: r.throughput,
+                })),
+            }));
+    }
+
+    if (!data.standard && !data.lmi) return null;
+
+    const encoded = Buffer.from(JSON.stringify(data)).toString('base64');
+    return baseURL + '#' + encoded;
 };
 
 /**

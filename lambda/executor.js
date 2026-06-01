@@ -145,7 +145,7 @@ const extractDataFromInput = async(event) => {
         onlyColdStarts: !!input.onlyColdStarts,
         sleepBetweenRunsMs: sleepBetweenRunsMs,
         disablePayloadLogs: !!input.disablePayloadLogs,
-        allowedExceptions: input.allowedExceptions
+        allowedExceptions: input.allowedExceptions,
     };
 };
 
@@ -159,7 +159,7 @@ const runInParallel = async({num, lambdaARN, lambdaAlias, payloads, preARN, post
             console.log(`${aliasToInvoke} is active`);
         }
         const {invocationResults, actualPayload} = await utils.invokeLambdaWithProcessors(lambdaARN, aliasToInvoke, payloads[i], preARN, postARN, disablePayloadLogs);
-        
+
         // invocation errors return 200 and contain FunctionError and Payload
         if (invocationResults.FunctionError) {
             const parsedResults = JSON.parse(Buffer.from(invocationResults.Payload));
@@ -202,7 +202,7 @@ const runInSeries = async({num, lambdaARN, lambdaAlias, payloads, preARN, postAR
                 utils.handleLambdaInvocationError(errorMessage, invocationResults, actualPayload, disablePayloadLogs);
             }
         }
-       
+
         if (sleepBetweenRunsMs > 0) {
             await utils.sleep(sleepBetweenRunsMs);
         }

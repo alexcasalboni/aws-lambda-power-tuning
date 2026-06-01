@@ -155,6 +155,10 @@ Website repository: [matteo-ronchetti/aws-lambda-power-tuning-ui](https://github
 
 Optionally, you could deploy your own custom visualization tool and configure the CloudFormation Parameter named `visualizationURL` with your own URL.
 
+## Lambda Managed Instances (LMI) Support
+
+This tool optionally supports [Lambda Managed Instances](https://docs.aws.amazon.com/lambda/latest/dg/lambda-managed-instances.html) (LMI), which run Lambda functions on dedicated EC2 instances with configurable memory-per-vCPU ratios and concurrency levels. LMI support must be enabled at deploy time by setting `enableLmiSupport=true`. See the full [LMI documentation](README-LMI.md) for details.
+
 ## Additional features, considerations, and internals
 
 For detailed IAM permission configuration guidance, see [README-IAM-PERMISSIONS.md](README-IAM-PERMISSIONS.md).

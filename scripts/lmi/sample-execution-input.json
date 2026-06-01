@@ -1,0 +1,19 @@
+{
+  "lambdaARN": "arn:aws:lambda:XXX:YYY:function:ZZZ",
+  "num": 10,
+  "payload": {"iterations": 50000},
+  "strategy": "cost",
+  "lmiConfig": {
+    "vpcConfig": {
+      "subnetIds": ["subnet-VVV"],
+      "securityGroupIds": ["sg-WWW"]
+    },
+    "operatorRoleArn": "arn:aws:iam::YYY:role/pt-lmi-test-operator-role",
+    "instanceTypes": ["c8g.xlarge"],
+    "architecture": "arm64",
+    "memoryPerVCpuValues": [2.0, 4.0],
+    "concurrencyValues": [1, 2, 5, 10, 50],
+    "testDurationSeconds": 60,
+    "degradationThreshold": 0.2
+  }
+}

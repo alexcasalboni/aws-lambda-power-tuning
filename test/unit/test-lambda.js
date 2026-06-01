@@ -1473,14 +1473,14 @@ describe('Lambda Functions', async() => {
                     };
                 });
 
-           await invokeForSuccess(handler, {
+            await invokeForSuccess(handler, {
                 value: '128',
                 input: {
                     lambdaARN: 'arnOK',
                     num: 1,
                     payload: {Original: true},
                     parallelInvocation: true,
-                    allowedExceptions: ['HandledError']
+                    allowedExceptions: ['HandledError'],
                 },
             });
 
@@ -1512,13 +1512,13 @@ describe('Lambda Functions', async() => {
                     };
                 });
 
-           await invokeForSuccess(handler, {
+            await invokeForSuccess(handler, {
                 value: '128',
                 input: {
                     lambdaARN: 'arnOK',
                     num: 1,
                     payload: {Original: true},
-                    allowedExceptions: ['HandledError']
+                    allowedExceptions: ['HandledError'],
                 },
             });
 
@@ -1527,7 +1527,6 @@ describe('Lambda Functions', async() => {
             expect(getLambdaConfigCounter).to.be(1);
             expect(waitForAliasActiveCounter).to.be(0);
         });
-
 
 
         it('should fetch payload from S3 if payloadS3 is given', async() => {
@@ -2122,6 +2121,167 @@ describe('Lambda Functions', async() => {
             expect(result.stateMachine).to.be.an('object');
         });
 
+        // LMI-specific analyzer tests
+
+        it('should accept lmiStats only (no standard stats)', async() => {
+            const event = {
+                lmiStats: [
+                    { value: 2.0, memoryPerVCpu: 2.0, bestConcurrency: 10, instanceType: 'c8g.xlarge', averagePrice: 0.0000005, averageDuration: 15.0, totalCost: 0.005 },
+                    { value: 4.0, memoryPerVCpu: 4.0, bestConcurrency: 20, instanceType: 'c8g.xlarge', averagePrice: 0.0000003, averageDuration: 12.0, totalCost: 0.003 },
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.power).to.be(4.0); // cheapest
+            expect(result.cost).to.be(0.0000003);
+            expect(result.duration).to.be(12.0);
+            expect(result.type).to.be('lmi');
+            expect(result.memoryPerVCpu).to.be(4.0);
+            expect(result.bestConcurrency).to.be(20);
+        });
+
+        it('should pick LMI config as cheapest when mixed with standard stats', async() => {
+            const event = {
+                strategy: 'cost',
+                stats: [
+                    { value: '128', averagePrice: 0.0000010, averageDuration: 50, totalCost: 0.01 },
+                    { value: '256', averagePrice: 0.0000008, averageDuration: 30, totalCost: 0.008 },
+                ],
+                lmiStats: [
+                    { value: 4.0, memoryPerVCpu: 4.0, bestConcurrency: 10, instanceType: 'c8g.xlarge', averagePrice: 0.0000002, averageDuration: 12.0, totalCost: 0.002 },
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.cost).to.be(0.0000002);
+            expect(result.type).to.be('lmi');
+        });
+
+        it('should pick standard config as fastest when LMI is slower', async() => {
+            const event = {
+                strategy: 'speed',
+                stats: [
+                    { value: '1024', averagePrice: 0.0000050, averageDuration: 5, totalCost: 0.05 },
+                ],
+                lmiStats: [
+                    { value: 4.0, memoryPerVCpu: 4.0, bestConcurrency: 10, instanceType: 'c8g.xlarge', averagePrice: 0.0000002, averageDuration: 12.0, totalCost: 0.002 },
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.duration).to.be(5);
+            expect(result.type).to.be('standard');
+        });
+
+        it('should include lmiStats in output when includeOutputResults is true', async() => {
+            const event = {
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
+                ],
+                lmiStats: [
+                    { value: 4.0, memoryPerVCpu: 4.0, bestConcurrency: 10, instanceType: 'c8g.xlarge', averagePrice: 0.0000003, averageDuration: 12.0, totalCost: 0.003 },
+                ],
+                includeOutputResults: true,
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result).to.have.property('stats');
+            expect(result).to.have.property('lmiStats');
+            expect(result.lmiStats).to.have.length(1);
+            expect(result.lmiStats[0].type).to.be('lmi');
+            expect(result.lmiStats[0].memoryPerVCpu).to.be(4.0);
+            expect(result.lmiStats[0].bestConcurrency).to.be(10);
+        });
+
+        it('should not include lmiStats in output when includeOutputResults is false', async() => {
+            const event = {
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
+                ],
+                lmiStats: [
+                    { value: 4.0, memoryPerVCpu: 4.0, bestConcurrency: 10, instanceType: 'c8g.xlarge', averagePrice: 0.0000003, averageDuration: 12.0, totalCost: 0.003 },
+                ],
+                includeOutputResults: false,
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result).to.not.have.property('stats');
+            expect(result).to.not.have.property('lmiStats');
+        });
+
+        it('should filter out LMI stats from visualization URL', async() => {
+            const event = {
+                stats: [
+                    { value: '128', averagePrice: 100, averageDuration: 100, totalCost: 1 },
+                ],
+                lmiStats: [
+                    { value: 4.0, memoryPerVCpu: 4.0, bestConcurrency: 10, instanceType: 'c8g.xlarge', averagePrice: 0.0000003, averageDuration: 12.0, totalCost: 0.003 },
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.visualization).to.be.a('string');
+        });
+
+        it('should not generate visualization URL for LMI-only stats', async() => {
+            const event = {
+                lmiStats: [
+                    { value: 4.0, memoryPerVCpu: 4.0, bestConcurrency: 10, instanceType: 'c8g.xlarge', averagePrice: 0.0000003, averageDuration: 12.0, totalCost: 0.003 },
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result.stateMachine).to.be.an('object');
+            expect(result.stateMachine.visualization).to.be(undefined);
+        });
+
+        it('should flatten lmiStatsNested from multi-instance-type Map output', async() => {
+            const event = {
+                lmiStatsNested: [
+                    // Results from instance type 1
+                    [
+                        { value: 2.0, memoryPerVCpu: 2.0, bestConcurrency: 10, instanceType: 'c8g.xlarge', averagePrice: 0.0000005, averageDuration: 15.0, totalCost: 0.005 },
+                        { value: 4.0, memoryPerVCpu: 4.0, bestConcurrency: 20, instanceType: 'c8g.xlarge', averagePrice: 0.0000003, averageDuration: 12.0, totalCost: 0.003 },
+                    ],
+                    // Results from instance type 2
+                    [
+                        { value: 2.0, memoryPerVCpu: 2.0, bestConcurrency: 5, instanceType: 'm7g.xlarge', averagePrice: 0.0000004, averageDuration: 10.0, totalCost: 0.004 },
+                    ],
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result).to.be.an('object');
+            expect(result.type).to.be('lmi');
+            // Should pick the cheapest across all instance types
+            expect(result.cost).to.be(0.0000003);
+            expect(result.instanceType).to.be('c8g.xlarge');
+        });
+
+        it('should flatten lmiStatsNested and combine with standard stats', async() => {
+            const event = {
+                strategy: 'cost',
+                stats: [
+                    { value: '128', averagePrice: 0.0000010, averageDuration: 50, totalCost: 0.01 },
+                ],
+                lmiStatsNested: [
+                    [
+                        { value: 4.0, memoryPerVCpu: 4.0, bestConcurrency: 10, instanceType: 'c8g.xlarge', averagePrice: 0.0000002, averageDuration: 12.0, totalCost: 0.002 },
+                    ],
+                ],
+            };
+
+            const result = await invokeForSuccess(handler, event);
+            expect(result.cost).to.be(0.0000002);
+            expect(result.type).to.be('lmi');
+        });
+
     });
 
     describe('optimizer', async() => {
@@ -2257,6 +2417,45 @@ describe('Lambda Functions', async() => {
             expect(publishLambdaVersionCounter).to.be(1);
             expect(createLambdaAliasCounter).to.be(0);
             expect(updateLambdaAliasCounter).to.be(1);
+        });
+
+        // LMI-specific optimizer tests
+
+        it('should not auto-optimize if analysis type is lmi', async() => {
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                analysis: {
+                    power: 4.0,
+                    type: 'lmi',
+                    memoryPerVCpu: 4.0,
+                    bestConcurrency: 10,
+                    instanceType: 'c8g.xlarge',
+                },
+                autoOptimize: true,
+            });
+            expect(setLambdaPowerCounter).to.be(0);
+            expect(publishLambdaVersionCounter).to.be(0);
+            expect(createLambdaAliasCounter).to.be(0);
+            expect(updateLambdaAliasCounter).to.be(0);
+        });
+
+        it('should not auto-optimize LMI even with autoOptimizeAlias', async() => {
+            await invokeForSuccess(handler, {
+                lambdaARN: 'arnOK',
+                analysis: {
+                    power: 4.0,
+                    type: 'lmi',
+                    memoryPerVCpu: 4.0,
+                    bestConcurrency: 10,
+                    instanceType: 'c8g.xlarge',
+                },
+                autoOptimize: true,
+                autoOptimizeAlias: 'prod',
+            });
+            expect(setLambdaPowerCounter).to.be(0);
+            expect(publishLambdaVersionCounter).to.be(0);
+            expect(createLambdaAliasCounter).to.be(0);
+            expect(updateLambdaAliasCounter).to.be(0);
         });
     });
 });
