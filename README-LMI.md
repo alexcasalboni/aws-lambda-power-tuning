@@ -23,12 +23,14 @@ When disabled (the default), no LMI Lambda functions or IAM policies are deploye
 When you provide an `lmiConfig` input parameter, the state machine will:
 
 1. Run standard Lambda power tuning (if `powerValues` is also provided)
-2. For each instance type, create a capacity provider and a dedicated LMI function
+2. For each instance type, create a capacity provider and a dedicated LMI function (cloned from your function's code)
 3. Test each memory-per-vCPU configuration across multiple concurrency levels using sustained load
 4. Detect concurrency degradation and stop ramping automatically
 5. Clean up all LMI resources (capacity provider, function versions)
 6. Move to the next instance type (if multiple are configured)
 7. Analyze all results together and recommend the optimal configuration
+
+> **Note on large functions**: the dedicated LMI function is cloned from your source function's deployment package. The source code is staged through an S3 bucket (created automatically when LMI support is enabled) rather than uploaded inline, so functions larger than 50&nbsp;MB (the inline upload limit) are supported up to the standard 250&nbsp;MB unzipped package limit. Staged objects are deleted immediately after each LMI function is created, with a 1-day lifecycle rule as a backstop.
 
 ## Input example
 

@@ -317,6 +317,31 @@ Resources:
       LogGroupName: !Sub '/aws/lambda/${lmiSetup}'
       RetentionInDays: !Ref logGroupRetentionInDays
 
+  # S3 bucket used to stage source code when cloning functions into LMI
+  # functions. CreateFunction's inline ZipFile upload is capped at 50MB, so we
+  # stage the source package here and create the LMI function from S3 instead
+  # (250MB unzipped limit). Objects are deleted immediately after use; the
+  # lifecycle rule is a backstop for any left behind by failed runs.
+  lmiStagingBucket:
+    Condition: LmiSupportEnabled
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-staged-code
+            Status: Enabled
+            Prefix: lmi-staging/
+            ExpirationInDays: 1
+
   lmiSetup:
     Condition: LmiSupportEnabled
     Type: AWS::Serverless::Function
@@ -326,6 +351,9 @@ Resources:
       Timeout: !Ref lmiExecutionTimeout
       Layers:
         - !Ref SDKlayer
+      Environment:
+        Variables:
+          lmiStagingBucket: !Ref lmiStagingBucket
       Policies:
         - AWSLambdaBasicExecutionRole
         - Version: '2012-10-17'
@@ -345,6 +373,15 @@ Resources:
                 - lambda:GetFunctionScalingConfig
                 - lambda:PassCapacityProvider
               Resource: '*'
+            - Effect: Allow
+              Action:
+                # PutObject/DeleteObject to stage and clean up the source
+                # package; GetObject is required by lambda:CreateFunction to
+                # read the code from the staging bucket.
+                - s3:PutObject
+                - s3:GetObject
+                - s3:DeleteObject
+              Resource: !Sub '${lmiStagingBucket.Arn}/lmi-staging/*'
             - Effect: Allow
               Action:
                 - iam:PassRole

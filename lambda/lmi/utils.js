@@ -8,6 +8,9 @@ const {
     UpdateFunctionConfigurationCommand,
 } = require('@aws-sdk/client-lambda');
 const { PricingClient, GetProductsCommand } = require('@aws-sdk/client-pricing');
+const {
+    S3Client, PutObjectCommand, DeleteObjectCommand,
+} = require('@aws-sdk/client-s3');
 
 const utils = require('../utils');
 
@@ -136,6 +139,14 @@ module.exports.waitForCapacityProviderActive = async(name, region, maxWaitMs = 6
     throw new Error(`Timeout waiting for capacity provider ${name} to become ACTIVE after ${maxWaitMs}ms`);
 };
 
+// S3 bucket used to stage source code when creating LMI functions.
+// Inline ZipFile uploads are capped at 50MB, so we stage the source package
+// in S3 and create the LMI function from it (250MB unzipped limit).
+const stagingBucket = () => process.env.lmiStagingBucket;
+
+// Factory for the S3 client (mirrors lambdaClientFromARN) so it can be stubbed in tests.
+module.exports.s3ClientForRegion = (region) => new S3Client({region});
+
 module.exports.createLmiFunction = async(sourceLambdaARN, newFunctionName, capacityProviderArn, memoryPerVCpu, concurrency) => {
     console.log(`Creating LMI function ${newFunctionName} from ${sourceLambdaARN}`);
     const lambda = lmiUtils.lambdaClientFromARN(sourceLambdaARN);
@@ -143,6 +154,12 @@ module.exports.createLmiFunction = async(sourceLambdaARN, newFunctionName, capac
     const sourceFunc = await lambda.send(new GetFunctionCommand({FunctionName: sourceLambdaARN}));
     const sourceConfig = sourceFunc.Configuration;
     const sourceCode = sourceFunc.Code;
+    const region = lmiUtils.regionFromARN(sourceLambdaARN);
+
+    // Download the source package from its presigned location and stage it in
+    // our own S3 bucket so CreateFunction can read it via S3Bucket/S3Key
+    // (avoids the 50MB inline ZipFile limit).
+    const stagingKey = await lmiUtils.stageSourceCode(sourceCode.Location, newFunctionName, region);
 
     const params = {
         FunctionName: newFunctionName,
@@ -154,7 +171,8 @@ module.exports.createLmiFunction = async(sourceLambdaARN, newFunctionName, capac
         Description: `LMI power tuning clone of ${sourceLambdaARN}`,
         Architectures: sourceConfig.Architectures,
         Code: {
-            S3Bucket: sourceCode.RepositoryType === 'S3' ? sourceCode.Location.split('/')[2].split('.')[0] : undefined,
+            S3Bucket: stagingBucket(),
+            S3Key: stagingKey,
         },
         CapacityProviderConfig: {
             LambdaManagedInstancesCapacityProviderConfig: {
@@ -173,13 +191,61 @@ module.exports.createLmiFunction = async(sourceLambdaARN, newFunctionName, capac
         params.Layers = sourceConfig.Layers.map(l => l.Arn);
     }
 
-    const response = await fetch(sourceCode.Location);
-    const zipBuffer = Buffer.from(await response.arrayBuffer());
-    params.Code = {ZipFile: zipBuffer};
+    try {
+        const result = await lambda.send(new CreateFunctionCommand(params));
+        console.log(`Created LMI function: ${result.FunctionArn}`);
+        return result.FunctionArn;
+    } finally {
+        // The function now owns its own copy of the code; the staged object is
+        // no longer needed regardless of whether CreateFunction succeeded.
+        await lmiUtils.deleteStagedCode(stagingKey, region);
+    }
+};
 
-    const result = await lambda.send(new CreateFunctionCommand(params));
-    console.log(`Created LMI function: ${result.FunctionArn}`);
-    return result.FunctionArn;
+/**
+ * Download the source code package from its (presigned) location and upload it
+ * to the staging bucket. Returns the S3 key of the staged object.
+ */
+module.exports.stageSourceCode = async(codeLocation, newFunctionName, region) => {
+    const bucket = stagingBucket();
+    if (!bucket) {
+        throw new Error('Missing lmiStagingBucket environment variable; cannot stage source code for LMI function creation');
+    }
+
+    console.log(`Staging source code in s3://${bucket} for ${newFunctionName}`);
+    const response = await fetch(codeLocation);
+    if (!response.ok) {
+        throw new Error(`Failed to download source code package (HTTP ${response.status})`);
+    }
+    const zipBuffer = Buffer.from(await response.arrayBuffer());
+
+    const key = `lmi-staging/${newFunctionName}.zip`;
+    const s3 = lmiUtils.s3ClientForRegion(region);
+    await s3.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: zipBuffer,
+    }));
+    console.log(`Staged ${zipBuffer.length} bytes at s3://${bucket}/${key}`);
+    return key;
+};
+
+/**
+ * Delete a staged source code object. Best-effort: logs and swallows errors so
+ * cleanup failures never mask the primary operation.
+ */
+module.exports.deleteStagedCode = async(stagingKey, region) => {
+    const bucket = stagingBucket();
+    if (!bucket || !stagingKey) {
+        return;
+    }
+    try {
+        const s3 = lmiUtils.s3ClientForRegion(region);
+        await s3.send(new DeleteObjectCommand({Bucket: bucket, Key: stagingKey}));
+        console.log(`Deleted staged source code s3://${bucket}/${stagingKey}`);
+    } catch (error) {
+        console.log(`Error deleting staged source code ${stagingKey} (continuing): ${error.message}`);
+    }
 };
 
 module.exports.updateFunctionLmiConfig = async(lambdaARN, capacityProviderArn, memoryPerVCpu, concurrency) => {

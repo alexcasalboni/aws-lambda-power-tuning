@@ -3,6 +3,11 @@
 const sinon = require('sinon');
 const expect = require('expect.js');
 
+process.env.lmiStagingBucket = 'test-staging-bucket';
+
+const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { GetFunctionCommand, CreateFunctionCommand } = require('@aws-sdk/client-lambda');
+
 const lmiUtils = require('../../../lambda/lmi/utils');
 
 describe('LMI Utils', () => {
@@ -165,6 +170,141 @@ describe('LMI Utils', () => {
                 4.0,
                 10,
             );
+        });
+    });
+
+    describe('stageSourceCode', () => {
+        let s3SendStub, fetchStub;
+
+        beforeEach(() => {
+            s3SendStub = sinon.stub().resolves({});
+            sandBox.stub(lmiUtils, 's3ClientForRegion').returns({send: s3SendStub});
+            fetchStub = sandBox.stub(global, 'fetch').resolves({
+                ok: true,
+                arrayBuffer: async() => new Uint8Array([1, 2, 3]).buffer,
+            });
+        });
+
+        it('should download the source package and upload it to the staging bucket', async() => {
+            const key = await lmiUtils.stageSourceCode('https://presigned.example.com/code.zip', 'pt-myFunc-fn', 'us-east-1');
+
+            expect(fetchStub.calledOnce).to.be(true);
+            expect(key).to.be('lmi-staging/pt-myFunc-fn.zip');
+
+            expect(s3SendStub.calledOnce).to.be(true);
+            const command = s3SendStub.firstCall.args[0];
+            expect(command).to.be.a(PutObjectCommand);
+            expect(command.input.Bucket).to.be('test-staging-bucket');
+            expect(command.input.Key).to.be('lmi-staging/pt-myFunc-fn.zip');
+        });
+
+        it('should throw when the download fails', async() => {
+            fetchStub.resolves({ok: false, status: 403});
+            try {
+                await lmiUtils.stageSourceCode('https://presigned.example.com/code.zip', 'pt-myFunc-fn', 'us-east-1');
+                expect().fail('should have thrown');
+            } catch (err) {
+                expect(err.message).to.contain('Failed to download source code');
+            }
+        });
+    });
+
+    describe('deleteStagedCode', () => {
+        let s3SendStub;
+
+        beforeEach(() => {
+            s3SendStub = sinon.stub().resolves({});
+            sandBox.stub(lmiUtils, 's3ClientForRegion').returns({send: s3SendStub});
+        });
+
+        it('should delete the staged object', async() => {
+            await lmiUtils.deleteStagedCode('lmi-staging/pt-myFunc-fn.zip', 'us-east-1');
+
+            expect(s3SendStub.calledOnce).to.be(true);
+            const command = s3SendStub.firstCall.args[0];
+            expect(command).to.be.a(DeleteObjectCommand);
+            expect(command.input.Key).to.be('lmi-staging/pt-myFunc-fn.zip');
+        });
+
+        it('should not call S3 when no key is provided', async() => {
+            await lmiUtils.deleteStagedCode(null, 'us-east-1');
+            expect(s3SendStub.called).to.be(false);
+        });
+
+        it('should swallow deletion errors', async() => {
+            s3SendStub.rejects(new Error('AccessDenied'));
+            // Should not throw
+            await lmiUtils.deleteStagedCode('lmi-staging/pt-myFunc-fn.zip', 'us-east-1');
+        });
+    });
+
+    describe('createLmiFunction', () => {
+        let lambdaSendStub;
+
+        beforeEach(() => {
+            lambdaSendStub = sinon.stub();
+            lambdaSendStub.withArgs(sinon.match.instanceOf(GetFunctionCommand)).resolves({
+                Configuration: {
+                    Role: 'arn:aws:iam::123:role/exec',
+                    Handler: 'index.handler',
+                    Runtime: 'nodejs22.x',
+                    Timeout: 30,
+                    MemorySize: 1024,
+                    Architectures: ['arm64'],
+                },
+                Code: {Location: 'https://presigned.example.com/code.zip'},
+            });
+            lambdaSendStub.withArgs(sinon.match.instanceOf(CreateFunctionCommand)).resolves({
+                FunctionArn: 'arn:aws:lambda:us-east-1:123:function:pt-myFunc-fn',
+            });
+            sandBox.stub(lmiUtils, 'lambdaClientFromARN').returns({send: lambdaSendStub});
+
+            // stageSourceCode/deleteStagedCode are exercised via their own tests;
+            // here we just verify createLmiFunction wires them together correctly.
+            sandBox.stub(lmiUtils, 'stageSourceCode').resolves('lmi-staging/pt-myFunc-fn.zip');
+            sandBox.stub(lmiUtils, 'deleteStagedCode').resolves();
+        });
+
+        it('should create the function from the staged S3 object and clean it up', async() => {
+            const arn = await lmiUtils.createLmiFunction(
+                'arn:aws:lambda:us-east-1:123:function:myFunc',
+                'pt-myFunc-fn',
+                'arn:aws:lambda:us-east-1:123:capacity-provider:cp1',
+                2.0,
+                1,
+            );
+
+            expect(arn).to.be('arn:aws:lambda:us-east-1:123:function:pt-myFunc-fn');
+            expect(lmiUtils.stageSourceCode.calledOnce).to.be(true);
+
+            const createCall = lambdaSendStub.getCalls().find(c => c.args[0] instanceof CreateFunctionCommand);
+            expect(createCall).to.be.ok();
+            const input = createCall.args[0].input;
+            expect(input.Code.S3Bucket).to.be('test-staging-bucket');
+            expect(input.Code.S3Key).to.be('lmi-staging/pt-myFunc-fn.zip');
+            expect(input.Code.ZipFile).to.be(undefined);
+
+            // staged object should be cleaned up after creation
+            expect(lmiUtils.deleteStagedCode.calledOnceWith('lmi-staging/pt-myFunc-fn.zip')).to.be(true);
+        });
+
+        it('should clean up the staged object even if CreateFunction fails', async() => {
+            lambdaSendStub.withArgs(sinon.match.instanceOf(CreateFunctionCommand)).rejects(new Error('CreateFunction failed'));
+
+            try {
+                await lmiUtils.createLmiFunction(
+                    'arn:aws:lambda:us-east-1:123:function:myFunc',
+                    'pt-myFunc-fn',
+                    'arn:aws:lambda:us-east-1:123:capacity-provider:cp1',
+                    2.0,
+                    1,
+                );
+                expect().fail('should have thrown');
+            } catch (err) {
+                expect(err.message).to.contain('CreateFunction failed');
+            }
+
+            expect(lmiUtils.deleteStagedCode.calledOnce).to.be(true);
         });
     });
 });
