@@ -42,6 +42,6 @@
   "overrides": {
     "diff": "8.0.3",
     "fast-xml-parser": "5.5.8",
-    "serialize-javascript": "7.0.4"
+    "serialize-javascript": "7.0.5"
   }
 }
